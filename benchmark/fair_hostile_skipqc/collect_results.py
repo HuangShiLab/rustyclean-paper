@@ -27,15 +27,24 @@ def parse_gnu_time_log(path: str):
         for line in f:
             line = line.strip()
             if line.startswith("Elapsed (wall clock) time"):
-                val = line.split(":", 1)[1].strip()
-                # m:ss or h:mm:ss
-                parts = val.split(":")
-                if len(parts) == 2:
-                    m, s = float(parts[0]), float(parts[1])
-                    runtime_seconds = int(m * 60 + s)
-                elif len(parts) == 3:
-                    h, m, s = float(parts[0]), float(parts[1]), float(parts[2])
-                    runtime_seconds = int(h * 3600 + m * 60 + s)
+                # Line format: "Elapsed (wall clock) time (h:mm:ss or m:ss): 1:46.30"
+                # The actual time is the last colon-separated token.
+                val = line.split(":")[-1].strip()
+                # Reconstruct the full time from the preceding tokens.
+                # Split on all colons; the last three tokens form h:m:s or m:s.
+                tokens = line.split(":")
+                # tokens are like ["Elapsed (wall clock) time (h", "mm", "ss or m", "ss)", " 1", "46.30"]
+                # The numeric time is the last non-empty numeric tokens before the description.
+                # Easier: match a time pattern at the end of the line.
+                m = re.search(r"(\d+):(\d+(?:\.\d+)?)(?::(\d+(?:\.\d+)?))?\s*$", line)
+                if m:
+                    groups = m.groups()
+                    if groups[2] is None:
+                        # m:ss
+                        runtime_seconds = int(float(groups[0]) * 60 + float(groups[1]))
+                    else:
+                        # h:mm:ss
+                        runtime_seconds = int(float(groups[0]) * 3600 + float(groups[1]) * 60 + float(groups[2]))
             elif line.startswith("Maximum resident set size"):
                 max_memory_kb = int(line.split()[-1])
     return runtime_seconds, max_memory_kb
