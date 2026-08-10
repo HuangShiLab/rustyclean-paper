@@ -42,6 +42,15 @@ minimal/results/
 rustyclean_src/target/
 target/
 
+# Local RustyClean source copies that belong to the rustyclean repo, not this paper repo
+rustyclean_src/
+pipeline.rs
+
+# Accidental empty tool marker files
+bowtie2,
+kraken2,
+minimap2,
+
 # HPC job logs and monitor logs that are not part of the repo
 *.out
 *.err
