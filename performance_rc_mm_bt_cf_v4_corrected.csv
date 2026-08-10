@@ -1,0 +1,13 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rc_minimap2,5M_1pct_low_even_SE,1,1802,12085272,2026-08-01T19:10:54+08:00
+rc_minimap2,10M_10pct_med_even_SE,1,235,12227848,2026-08-01T19:10:55+08:00
+rc_minimap2,30M_50pct_high_skewed_SE,1,2122,12399040,2026-08-01T19:10:55+08:00
+rc_minimap2,60M_90pct_high_lognormal_SE,1,1570,12523592,2026-08-01T19:10:55+08:00
+rc_bowtie2,5M_1pct_low_even_SE,1,141,3750992,2026-08-01T19:10:55+08:00
+rc_bowtie2,10M_10pct_med_even_SE,1,244,3773440,2026-08-01T19:10:55+08:00
+rc_bowtie2,30M_50pct_high_skewed_SE,1,922,3788108,2026-08-01T19:10:55+08:00
+rc_bowtie2,60M_90pct_high_lognormal_SE,1,2268,6543688,2026-08-01T19:10:55+08:00
+rc_centrifuge,5M_1pct_low_even_SE,1,273,7291440,2026-08-01T19:10:55+08:00
+rc_centrifuge,10M_10pct_med_even_SE,1,271,7535848,2026-08-01T19:10:55+08:00
+rc_centrifuge,30M_50pct_high_skewed_SE,1,745,8272708,2026-08-01T19:10:55+08:00
+rc_centrifuge,60M_90pct_high_lognormal_SE,1,1404,8965916,2026-08-01T19:10:55+08:00

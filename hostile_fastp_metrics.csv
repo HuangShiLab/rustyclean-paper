@@ -1,0 +1,9 @@
+dataset,step,runtime_seconds,max_memory_kb,timestamp
+5M_1pct_low_even_SE,fastp,72.49,1283580,,2026-08-09T20:23:00+08:00
+5M_1pct_low_even_SE,hostile_after_fastp,114.13,3539600,,2026-08-09T20:24:54+08:00
+10M_10pct_med_even_SE,fastp,110.03,1279096,,2026-08-09T20:26:44+08:00
+10M_10pct_med_even_SE,hostile_after_fastp,216.43,3726836,,2026-08-09T20:30:21+08:00
+30M_50pct_high_skewed_SE,fastp,259.73,1278392,,2026-08-09T20:34:41+08:00
+30M_50pct_high_skewed_SE,hostile_after_fastp,580.58,3758952,,2026-08-09T20:44:21+08:00
+60M_90pct_high_lognormal_SE,fastp,474.57,1282788,,2026-08-09T20:52:16+08:00
+60M_90pct_high_lognormal_SE,hostile_after_fastp,981.83,3777572,,2026-08-09T21:08:38+08:00

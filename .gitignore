@@ -1,0 +1,48 @@
+# macOS
+.DS_Store
+
+# Temporary / swap files
+~$*
+*.tmp
+*.swp
+*.swo
+
+# Python environments
+.venv_docx/
+minimal_env/
+__pycache__/
+*.pyc
+
+# Large binaries / installers
+*.pkg
+*.dmg
+*.exe
+
+# Large Office documents (keep Markdown sources)
+*.docx
+
+# Large generated data files
+*.fastq
+*.fastq.gz
+*.fna
+*.fna.gz
+*.fa
+*.fa.gz
+
+# Large ground-truth / label files
+ground_truth_labels.txt
+
+# Runtime output directories (generated on HPC)
+data/
+results/
+analysis/
+minimal/results/
+
+# Cargo build artifacts for local rustyclean copies
+rustyclean_src/target/
+target/
+
+# HPC job logs and monitor logs that are not part of the repo
+*.out
+*.err
+logs/monitor_*.log
