@@ -34,8 +34,8 @@ ground_truth_labels.txt
 
 # Runtime output directories (generated on HPC)
 data/
-results/
-analysis/
+/results/
+/analysis/
 minimal/results/
 
 # Cargo build artifacts for local rustyclean copies

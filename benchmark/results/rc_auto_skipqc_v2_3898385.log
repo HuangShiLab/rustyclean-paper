@@ -1,0 +1,40 @@
+============================================
+Dataset: 5M_1pct_low_even_SE
+============================================
+[1/2] Running RustyClean AUTO --skip-qc ...
+RustyClean AUTO --skip-qc: 106.30,3511520s, KB, backend=[2m2026-08-10T15:11:01.935323Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m5M_1pct_low_even_SE [3mhost_pct[0m[2m=[0m"0.93" [3minput_reads[0m[2m=[0m4996861 [3mchosen_backend[0m[2m=[0m"bowtie2", host_pct=[2m2026-08-10T15:11:01.935281Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m5M_1pct_low_even_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m930 [3mestimated_host_pct[0m[2m=[0m"0.93", size=467729938B
+[2/2] Running Hostile on raw reads ...
+Hostile raw: 110.23,2454116s, KB, size=467712592B
+============================================
+Dataset: 10M_10pct_med_even_SE
+============================================
+[1/2] Running RustyClean AUTO --skip-qc ...
+RustyClean AUTO --skip-qc: 116.55,3511976s, KB, backend=[2m2026-08-10T15:14:17.779556Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m10M_10pct_med_even_SE [3mhost_pct[0m[2m=[0m"10.13" [3minput_reads[0m[2m=[0m9791725 [3mchosen_backend[0m[2m=[0m"bowtie2", host_pct=[2m2026-08-10T15:14:17.779527Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m10M_10pct_med_even_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m10132 [3mestimated_host_pct[0m[2m=[0m"10.13", size=846266698B
+[2/2] Running Hostile on raw reads ...
+Hostile raw: 212.80,3360552s, KB, size=850340767B
+============================================
+Dataset: 30M_50pct_high_skewed_SE
+============================================
+[1/2] Running RustyClean AUTO --skip-qc ...
+RustyClean AUTO --skip-qc: 552.33,16179644s, KB, backend=[2m2026-08-10T15:21:29.555465Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m30M_50pct_high_skewed_SE [3mhost_pct[0m[2m=[0m"48.95" [3minput_reads[0m[2m=[0m29143494 [3mchosen_backend[0m[2m=[0m"kraken2", host_pct=[2m2026-08-10T15:21:29.555424Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m30M_50pct_high_skewed_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m48952 [3mestimated_host_pct[0m[2m=[0m"48.95", size=1963206631B
+[2/2] Running Hostile on raw reads ...
+Hostile raw: 2385.29,3587024s, KB, size=1460901069B
+============================================
+Dataset: 60M_90pct_high_lognormal_SE
+============================================
+[1/2] Running RustyClean AUTO --skip-qc ...
+RustyClean AUTO --skip-qc: 858.53,16222352s, KB, backend=[2m2026-08-10T16:12:58.592230Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m60M_90pct_high_lognormal_SE [3mhost_pct[0m[2m=[0m"89.43" [3minput_reads[0m[2m=[0m57274054 [3mchosen_backend[0m[2m=[0m"kraken2", host_pct=[2m2026-08-10T16:12:58.592198Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m60M_90pct_high_lognormal_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m89427 [3mestimated_host_pct[0m[2m=[0m"89.43", size=866910963B
+[2/2] Running Hostile on raw reads ...
+Hostile raw: 4241,3596120s, KB, size=611932309B
+============================================
+All done. Metrics: /scr/u/shihuang/rustyclean-paper/rc_auto_skipqc_hostile_v2/rc_auto_skipqc_hostile_metrics.csv
+dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+5M_1pct_low_even_SE,rustyclean_auto_skipqc,106.30,3511520,,467729938,[2m2026-08-10T15:11:01.935323Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m5M_1pct_low_even_SE [3mhost_pct[0m[2m=[0m"0.93" [3minput_reads[0m[2m=[0m4996861 [3mchosen_backend[0m[2m=[0m"bowtie2",[2m2026-08-10T15:11:01.935281Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m5M_1pct_low_even_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m930 [3mestimated_host_pct[0m[2m=[0m"0.93",2026-08-10T23:11:34+08:00
+5M_1pct_low_even_SE,hostile_raw,110.23,2454116,,467712592,bowtie2,NA,2026-08-10T23:13:24+08:00
+10M_10pct_med_even_SE,rustyclean_auto_skipqc,116.55,3511976,,846266698,[2m2026-08-10T15:14:17.779556Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m10M_10pct_med_even_SE [3mhost_pct[0m[2m=[0m"10.13" [3minput_reads[0m[2m=[0m9791725 [3mchosen_backend[0m[2m=[0m"bowtie2",[2m2026-08-10T15:14:17.779527Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m10M_10pct_med_even_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m10132 [3mestimated_host_pct[0m[2m=[0m"10.13",2026-08-10T23:15:21+08:00
+10M_10pct_med_even_SE,hostile_raw,212.80,3360552,,850340767,bowtie2,NA,2026-08-10T23:18:54+08:00
+30M_50pct_high_skewed_SE,rustyclean_auto_skipqc,552.33,16179644,,1963206631,[2m2026-08-10T15:21:29.555465Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m30M_50pct_high_skewed_SE [3mhost_pct[0m[2m=[0m"48.95" [3minput_reads[0m[2m=[0m29143494 [3mchosen_backend[0m[2m=[0m"kraken2",[2m2026-08-10T15:21:29.555424Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m30M_50pct_high_skewed_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m48952 [3mestimated_host_pct[0m[2m=[0m"48.95",2026-08-10T23:28:06+08:00
+30M_50pct_high_skewed_SE,hostile_raw,2385.29,3587024,,1460901069,bowtie2,NA,2026-08-11T00:07:51+08:00
+60M_90pct_high_lognormal_SE,rustyclean_auto_skipqc,858.53,16222352,,866910963,[2m2026-08-10T16:12:58.592230Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m60M_90pct_high_lognormal_SE [3mhost_pct[0m[2m=[0m"89.43" [3minput_reads[0m[2m=[0m57274054 [3mchosen_backend[0m[2m=[0m"kraken2",[2m2026-08-10T16:12:58.592198Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m60M_90pct_high_lognormal_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m89427 [3mestimated_host_pct[0m[2m=[0m"89.43",2026-08-11T00:22:10+08:00
+60M_90pct_high_lognormal_SE,hostile_raw,4241,3596120,,611932309,bowtie2,NA,2026-08-11T01:32:52+08:00
+============================================

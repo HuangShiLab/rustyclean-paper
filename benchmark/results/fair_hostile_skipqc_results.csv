@@ -1,0 +1,9 @@
+dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+10M_10pct_med_even_SE,rustyclean_auto_skipqc,116,3511976,846266698,bowtie2,10.13,2026-08-11T01:34:24.018268
+10M_10pct_med_even_SE,hostile_raw,212,3360552,850340767,bowtie2,NA,2026-08-11T01:34:24.018268
+30M_50pct_high_skewed_SE,rustyclean_auto_skipqc,552,16179644,1963206631,kraken2,48.95,2026-08-11T01:34:24.031872
+30M_50pct_high_skewed_SE,hostile_raw,2385,3587024,1460901069,bowtie2,NA,2026-08-11T01:34:24.031872
+5M_1pct_low_even_SE,rustyclean_auto_skipqc,106,3511520,467729938,bowtie2,0.93,2026-08-11T01:34:24.043863
+5M_1pct_low_even_SE,hostile_raw,110,2454116,467712592,bowtie2,NA,2026-08-11T01:34:24.043863
+60M_90pct_high_lognormal_SE,rustyclean_auto_skipqc,858,16222352,866910963,kraken2,89.43,2026-08-11T01:34:24.054538
+60M_90pct_high_lognormal_SE,hostile_raw,4241,3596120,611932309,bowtie2,NA,2026-08-11T01:34:24.054538
