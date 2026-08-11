@@ -64,10 +64,13 @@ def find_output_size(ds_path: Path, tool: str) -> int:
     return "unknown"
 
 
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
 def parse_backend(log_path: Path) -> str:
     if not log_path.exists():
         return "unknown"
-    text = log_path.read_text(encoding="utf-8", errors="ignore")
+    text = ANSI_RE.sub("", log_path.read_text(encoding="utf-8", errors="ignore"))
     m = re.search(r"chosen_backend[=:]\"?([^\"\s]+)\"?", text)
     return m.group(1) if m else "unknown"
 
@@ -75,7 +78,7 @@ def parse_backend(log_path: Path) -> str:
 def parse_hostpct(log_path: Path) -> str:
     if not log_path.exists():
         return "unknown"
-    text = log_path.read_text(encoding="utf-8", errors="ignore")
+    text = ANSI_RE.sub("", log_path.read_text(encoding="utf-8", errors="ignore"))
     m = re.search(r"estimated_host_pct[=:]\"?([^\"\s]+)\"?", text)
     return m.group(1) if m else "unknown"
 

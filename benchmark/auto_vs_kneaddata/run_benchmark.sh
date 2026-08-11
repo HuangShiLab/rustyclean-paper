@@ -85,8 +85,8 @@ for dataset in "${DATASETS[@]}"; do
     read -r rc_runtime rc_mem <<< "$(parse_time_log "${time_log}")"
     rc_clean=$(find "${rc_out}" \( -name '*_clean_R1.fastq.gz' -o -name '*_clean.fastq.gz' \) -print -quit)
     rc_size=$(stat -c%s "${rc_clean}" 2>/dev/null || echo "unknown")
-    rc_backend=$(grep "chosen_backend" "${ds_out}/rc_auto.log" 2>/dev/null | tail -1 | sed -E 's/.*chosen_backend=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
-    rc_hostpct=$(grep "estimated_host_pct" "${ds_out}/rc_auto.log" 2>/dev/null | tail -1 | sed -E 's/.*estimated_host_pct=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
+    rc_backend=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto.log" 2>/dev/null | grep "chosen_backend" | tail -1 | sed -E 's/.*chosen_backend=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
+    rc_hostpct=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto.log" 2>/dev/null | grep "estimated_host_pct" | tail -1 | sed -E 's/.*estimated_host_pct=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
     echo "${dataset},rustyclean_auto,${rc_runtime},${rc_mem},${rc_size},${rc_backend},${rc_hostpct},$(date -Iseconds)" >> "${METRICS}"
     echo "RustyClean AUTO: ${rc_runtime}s, ${rc_mem}KB, backend=${rc_backend}, host_pct=${rc_hostpct}, size=${rc_size}B"
 
@@ -97,10 +97,10 @@ for dataset in "${DATASETS[@]}"; do
     time_log="${ds_out}/kneaddata.time.log"
     /usr/bin/time -v -o "${time_log}" \
         kneaddata \
-            --input "${r1}" \
-            --reference-db "${HOST_INDEX}" \
-            --output "${kd_out}" \
-            --threads "${THREADS}" \
+            -un "${r1}" \
+            -db "${HOST_INDEX}" \
+            -o "${kd_out}" \
+            -t "${THREADS}" \
             > "${ds_out}/kneaddata.log" 2>&1
     read -r kd_runtime kd_mem <<< "$(parse_time_log "${time_log}")"
     # KneadData SE final clean reads: largest .fastq excluding trimmed/contam
