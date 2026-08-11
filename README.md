@@ -88,6 +88,47 @@ python scripts/generate_report.py ./results
 
 ---
 
+## 与 Hostile 的公平对比（仅去宿主步骤）
+
+在 `benchmark/fair_hostile_skipqc/` 中，我们把 **RustyClean AUTO + `--skip-qc`** 与 **Hostile** 进行公平对比：两者都只测量去宿主步骤，不包含 QC，以排除 fastp / Trimmomatic 等环节对时间的干扰。
+
+### 数据集
+
+4 个不同规模与宿主比例的模拟 SE 数据集：
+
+| dataset | reads | host % | distribution |
+|---------|-------|--------|--------------|
+| 5M_1pct_low_even_SE | 5 M | 1 % | even |
+| 10M_10pct_med_even_SE | 10 M | 10 % | even |
+| 30M_50pct_high_skewed_SE | 30 M | 50 % | skewed |
+| 60M_90pct_high_lognormal_SE | 60 M | 90 % | log-normal |
+
+### 运行
+
+```bash
+cd benchmark/fair_hostile_skipqc
+sbatch run_benchmark.sh
+```
+
+HPC 脚本请求 `amd` 分区 1 节点 / 16 CPU / 64 GB，限时 24 小时。
+
+### 最新结果（job 3898385）
+
+| dataset | tool | runtime (s) | memory (GB) | backend |
+|---|---|---:|---:|---|
+| 5M_1pct_low_even_SE | rustyclean_auto_skipqc | 106 | 3.4 | bowtie2 |
+| 5M_1pct_low_even_SE | hostile_raw | 110 | 2.3 | bowtie2 |
+| 10M_10pct_med_even_SE | rustyclean_auto_skipqc | 116 | 3.4 | bowtie2 |
+| 10M_10pct_med_even_SE | hostile_raw | 212 | 3.2 | bowtie2 |
+| 30M_50pct_high_skewed_SE | rustyclean_auto_skipqc | 552 | 15.4 | kraken2 |
+| 30M_50pct_high_skewed_SE | hostile_raw | 2385 | 3.4 | bowtie2 |
+| 60M_90pct_high_lognormal_SE | rustyclean_auto_skipqc | 858 | 15.5 | kraken2 |
+| 60M_90pct_high_lognormal_SE | hostile_raw | 4241 | 3.4 | bowtie2 |
+
+完整 metrics 见 `benchmark/results/fair_hostile_skipqc_results.csv`。
+
+---
+
 ## 快速开始
 
 ```bash
