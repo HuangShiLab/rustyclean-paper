@@ -1,0 +1,40 @@
+============================================
+Dataset: 5M_1pct_low_even_SE
+============================================
+[1/2] Running RustyClean AUTO (with fastp QC) ...
+RustyClean AUTO: 170.38,3510352s, KB, backend=bowtie2, host_pct=0.93, size=453426880B
+[2/2] Running KneadData ...
+KneadData: 420.28,1144428s, KB, size=1567529001B
+============================================
+Dataset: 10M_10pct_med_even_SE
+============================================
+[1/2] Running RustyClean AUTO (with fastp QC) ...
+RustyClean AUTO: 188.88,3512092s, KB, backend=bowtie2, host_pct=10.13, size=821813076B
+[2/2] Running KneadData ...
+KneadData: 694.50,1155064s, KB, size=3147893141B
+============================================
+Dataset: 30M_50pct_high_skewed_SE
+============================================
+[1/2] Running RustyClean AUTO (with fastp QC) ...
+RustyClean AUTO: 815.09,16156564s, KB, backend=kraken2, host_pct=48.95, size=1963236391B
+[2/2] Running KneadData ...
+KneadData: 2317.46,1157304s, KB, size=9263063161B
+============================================
+Dataset: 60M_90pct_high_lognormal_SE
+============================================
+[1/2] Running RustyClean AUTO (with fastp QC) ...
+RustyClean AUTO: 1470.45,16195260s, KB, backend=kraken2, host_pct=89.43, size=866909805B
+[2/2] Running KneadData ...
+KneadData: 6822,1155420s, KB, size=18217799574B
+============================================
+All done. Metrics: /scr/u/shihuang/rustyclean-paper/auto_vs_kneaddata/auto_vs_kneaddata_metrics.csv
+dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+5M_1pct_low_even_SE,rustyclean_auto,170.38,3510352,,453426880,bowtie2,0.93,2026-08-11T11:06:12+08:00
+5M_1pct_low_even_SE,kneaddata,420.28,1144428,,1567529001,bowtie2,NA,2026-08-11T11:13:12+08:00
+10M_10pct_med_even_SE,rustyclean_auto,188.88,3512092,,821813076,bowtie2,10.13,2026-08-11T11:16:21+08:00
+10M_10pct_med_even_SE,kneaddata,694.50,1155064,,3147893141,bowtie2,NA,2026-08-11T11:27:55+08:00
+30M_50pct_high_skewed_SE,rustyclean_auto,815.09,16156564,,1963236391,kraken2,48.95,2026-08-11T11:41:31+08:00
+30M_50pct_high_skewed_SE,kneaddata,2317.46,1157304,,9263063161,bowtie2,NA,2026-08-11T12:20:08+08:00
+60M_90pct_high_lognormal_SE,rustyclean_auto,1470.45,16195260,,866909805,kraken2,89.43,2026-08-11T12:44:39+08:00
+60M_90pct_high_lognormal_SE,kneaddata,6822,1155420,,18217799574,bowtie2,NA,2026-08-11T14:38:21+08:00
+============================================

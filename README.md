@@ -129,6 +129,40 @@ HPC 脚本请求 `amd` 分区 1 节点 / 16 CPU / 64 GB，限时 24 小时。
 
 ---
 
+## RustyClean AUTO（含 QC）vs KneadData 全流程对比
+
+在 `benchmark/auto_vs_kneaddata/` 中，对比两个工具的**完整流程**：RustyClean（fastp QC + AUTO 自适应去宿主）vs KneadData（Trimmomatic QC + Bowtie2 去宿主）。
+
+### 数据集
+
+与 Hostile 公平对比使用相同的 4 个模拟 SE 数据集。
+
+### 运行
+
+```bash
+cd benchmark/auto_vs_kneaddata
+sbatch run_benchmark.sh
+```
+
+### 最新结果（job 3899267）
+
+| dataset | tool | runtime (s) | memory (GB) | backend |
+|---|---|---:|---:|---|
+| 5M_1pct_low_even_SE | rustyclean_auto | 170 | 3.4 | bowtie2 |
+| 5M_1pct_low_even_SE | kneaddata | 420 | 1.1 | bowtie2 |
+| 10M_10pct_med_even_SE | rustyclean_auto | 189 | 3.4 | bowtie2 |
+| 10M_10pct_med_even_SE | kneaddata | 695 | 1.1 | bowtie2 |
+| 30M_50pct_high_skewed_SE | rustyclean_auto | 815 | 15.4 | kraken2 |
+| 30M_50pct_high_skewed_SE | kneaddata | 2317 | 1.1 | bowtie2 |
+| 60M_90pct_high_lognormal_SE | rustyclean_auto | 1470 | 15.5 | kraken2 |
+| 60M_90pct_high_lognormal_SE | kneaddata | 6822 | 1.1 | bowtie2 |
+
+完整 metrics 见 `benchmark/results/auto_vs_kneaddata_metrics.csv`。
+
+> 注意：KneadData 默认流程会生成大量 TRF 中间文件（最后一个 60M 数据集占约 66 GB 临时文件），而 RustyClean 的中间文件和峰值内存均显著更小。
+
+---
+
 ## 快速开始
 
 ```bash
