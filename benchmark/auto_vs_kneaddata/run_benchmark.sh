@@ -82,7 +82,7 @@ for dataset in "${DATASETS[@]}"; do
             -t "${THREADS}" \
             --checkpoint-dir "${rc_ckpt}" \
             > "${ds_out}/rc_auto.log" 2>&1
-    read -r rc_runtime rc_mem <<< "$(parse_time_log "${time_log}")"
+    IFS=, read -r rc_runtime rc_mem <<< "$(parse_time_log "${time_log}")"
     rc_clean=$(find "${rc_out}" \( -name '*_clean_R1.fastq.gz' -o -name '*_clean.fastq.gz' \) -print -quit)
     rc_size=$(stat -c%s "${rc_clean}" 2>/dev/null || echo "unknown")
     rc_backend=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto.log" 2>/dev/null | grep "chosen_backend" | tail -1 | sed -E 's/.*chosen_backend=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
@@ -102,7 +102,7 @@ for dataset in "${DATASETS[@]}"; do
             -o "${kd_out}" \
             -t "${THREADS}" \
             > "${ds_out}/kneaddata.log" 2>&1
-    read -r kd_runtime kd_mem <<< "$(parse_time_log "${time_log}")"
+    IFS=, read -r kd_runtime kd_mem <<< "$(parse_time_log "${time_log}")"
     # KneadData SE final clean reads: largest .fastq excluding trimmed/contam
     kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*.fastq' ! -name '*contam*' ! -name '*trimmed*' -printf '%s %p\n' 2>/dev/null | sort -nr | head -1 | awk '{print $2}')
     kd_size=$(stat -c%s "${kd_clean}" 2>/dev/null || echo "unknown")
