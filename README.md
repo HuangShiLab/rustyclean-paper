@@ -163,6 +163,17 @@ sbatch run_benchmark.sh
 
 ---
 
+## 综合对比图
+
+`benchmark/figures/rc_hostile_kneaddata_comparison.{png,svg,pdf}` 汇总了 RustyClean 与 Hostile / KneadData 在 4 个模拟数据集上的运行时间、峰值内存和 F1-score：
+
+- **上行**：与 Hostile 的公平对比（均不包含 QC）
+- **下行**：与 KneadData 的全流程对比（均包含 QC）
+
+该图由 `benchmark/scripts/plot_rc_hostile_kneaddata.py` 基于 `benchmark/results/fair_hostile_skipqc_results.csv`、`auto_vs_kneaddata_metrics.csv` 和 `accuracy_comparison.csv` 生成。
+
+---
+
 ## 快速开始
 
 ```bash
