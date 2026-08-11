@@ -191,7 +191,7 @@ rustyclean_benchmark/
 
 ## 参考论文
 
-Gao Y, et al. (2024). [Benchmarking short-read metagenomics tools for removing host contamination](https://pmc.ncbi.nlm.nih.gov/articles/PMC11878760/). *iMeta*, 4(1): e70005.
+Gao Y, et al. (2024). [Benchmarking short-read metagenomics tools for removing host contamination](https://doi.org/10.1093/gigascience/giaf004), *GigaScience*, GigaScience, Volume 14, 2025, giaf004.
 
 该论文关键发现：
 - **Kraken2** 最快: 29.34 min，内存 2.47 Gb
