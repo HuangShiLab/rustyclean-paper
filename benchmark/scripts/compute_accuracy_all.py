@@ -36,11 +36,22 @@ def find_clean_file(outdir: Path, tool: str) -> Path:
     elif tool == "hostile_raw":
         patterns = ["*.fastq.gz"]
     elif tool == "kneaddata":
-        # Prefer *clean*.fastq; fall back to any non-intermediate .fastq
-        clean = list(outdir.rglob("*clean*.fastq"))
-        if clean:
-            return max(clean, key=lambda p: p.stat().st_size)
-        patterns = ["*.fastq"]
+        # KneadData final clean reads are typically {prefix}_kneaddata.fastq.
+        # Avoid intermediates: *_contam.fastq, *_trimmed.fastq, *.repeats.removed.fastq.
+        candidates = [p for p in outdir.iterdir() if p.is_file() and p.suffix == ".fastq"]
+
+        def score(p: Path):
+            s = p.name.lower()
+            if "clean" in s:
+                return (0, len(s))
+            if any(k in s for k in ("contam", "trimmed", "repeats")):
+                return (2, len(s))
+            return (1, len(s))
+
+        candidates.sort(key=score)
+        if candidates:
+            return candidates[0]
+        raise FileNotFoundError(f"No cleaned FASTQ found in {outdir}")
     else:
         patterns = ["*.fastq.gz", "*.fastq"]
 
@@ -59,7 +70,10 @@ def find_clean_file(outdir: Path, tool: str) -> Path:
 
 
 def read_fastq_ids(path: Path) -> set:
-    """Return set of read IDs from a FASTQ file (gzipped or plain)."""
+    """Return set of read IDs from a FASTQ file (gzipped or plain).
+
+    Handles IDs like @read_id/1 and @read_id#0/1 by stripping /N and #N suffixes.
+    """
     ids = set()
     if str(path).endswith(".gz"):
         opener = lambda: gzip.open(path, "rt", encoding="utf-8", errors="ignore")
@@ -69,8 +83,9 @@ def read_fastq_ids(path: Path) -> set:
     with opener() as fh:
         for i, line in enumerate(fh):
             if i % 4 == 0:
-                # @read_id/1 or @read_id
-                rid = line.split()[0][1:].split("/")[0]
+                rid = line.split()[0][1:]
+                rid = rid.split("/")[0]
+                rid = rid.split("#")[0]
                 ids.add(rid)
     return ids
 
