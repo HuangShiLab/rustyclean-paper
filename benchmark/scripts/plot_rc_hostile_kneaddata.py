@@ -126,7 +126,7 @@ def plot_comparison(outdir: Path, fair_rows: list, auto_rows: list, accuracy: di
         hs_f1 = [accuracy.get((d, "hostile_raw"), {}).get("f1", np.nan) for d in datasets]
         bars1 = ax.bar(x - width/2, rc_f1, width, label="RustyClean", color=RC_COLOR)
         bars2 = ax.bar(x + width/2, hs_f1, width, label="Hostile", color=HOSTILE_COLOR)
-        ax.set_ylim(0.95, 1.001)
+        ax.set_ylim(0.9, 1.001)
         ax.set_ylabel("F1-score")
         ax.set_title("(c) F1-score (no-QC fair)")
         ax.set_xticks(x)
@@ -178,7 +178,7 @@ def plot_comparison(outdir: Path, fair_rows: list, auto_rows: list, accuracy: di
         kd_f1 = [accuracy.get((d, "kneaddata"), {}).get("f1", np.nan) for d in datasets]
         bars1 = ax.bar(x - width/2, rc_f1, width, label="RustyClean", color=RC_COLOR)
         bars2 = ax.bar(x + width/2, kd_f1, width, label="KneadData", color=KNEADDATA_COLOR)
-        ax.set_ylim(0.95, 1.001)
+        ax.set_ylim(0.9, 1.001)
         ax.set_ylabel("F1-score")
         ax.set_title("(f) F1-score (full pipeline)")
         ax.set_xticks(x)
