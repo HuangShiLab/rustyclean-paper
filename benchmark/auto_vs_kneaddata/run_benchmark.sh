@@ -103,8 +103,11 @@ for dataset in "${DATASETS[@]}"; do
             -t "${THREADS}" \
             > "${ds_out}/kneaddata.log" 2>&1
     IFS=, read -r kd_runtime kd_mem <<< "$(parse_time_log "${time_log}")"
-    # KneadData SE final clean reads: largest .fastq excluding trimmed/contam
-    kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*.fastq' ! -name '*contam*' ! -name '*trimmed*' -printf '%s %p\n' 2>/dev/null | sort -nr | head -1 | awk '{print $2}')
+    # KneadData SE final clean reads: prefer *clean*.fastq, otherwise largest excluding intermediates
+    kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*clean*.fastq' -print -quit 2>/dev/null)
+    if [[ -z "${kd_clean}" ]]; then
+        kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*.fastq' ! -name '*contam*' ! -name '*trimmed*' ! -name '*repeats*' -printf '%s %p\n' 2>/dev/null | sort -nr | head -1 | awk '{print $2}')
+    fi
     kd_size=$(stat -c%s "${kd_clean}" 2>/dev/null || echo "unknown")
     echo "${dataset},kneaddata,${kd_runtime},${kd_mem},${kd_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
     echo "KneadData: ${kd_runtime}s, ${kd_mem}KB, size=${kd_size}B"

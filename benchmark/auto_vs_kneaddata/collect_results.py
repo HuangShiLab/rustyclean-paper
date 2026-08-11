@@ -53,11 +53,15 @@ def find_output_size(ds_path: Path, tool: str) -> int:
             if matches:
                 return matches[0].stat().st_size
     else:  # kneaddata
+        clean_candidates = [p for p in ds_path.iterdir() if p.is_file() and "clean" in p.name and p.suffix == ".fastq"]
+        if clean_candidates:
+            return max(p.stat().st_size for p in clean_candidates)
         candidates = [
             p for p in ds_path.iterdir()
             if p.is_file() and p.suffix == ".fastq"
             and "contam" not in p.name
             and "trimmed" not in p.name
+            and "repeats" not in p.name
         ]
         if candidates:
             return max(p.stat().st_size for p in candidates)
