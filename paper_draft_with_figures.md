@@ -8,7 +8,12 @@
 
 ## Abstract
 
-Host DNA contamination is a pervasive problem in metagenomic sequencing of low-biomass human-associated samples. Existing pipelines such as KneadData provide robust removal but are computationally expensive, while ultrafast aligners such as Hostile trade integration and configurability for speed. We present **RustyClean**, a Rust-based host-removal pipeline that integrates quality control with pluggable host-removal backends (Kraken2, Bowtie2, Minimap2 and Centrifuge) and an adaptive AUTO mode that selects the fastest backend for each sample. We benchmarked RustyClean against KneadData, Hostile and Centrifuge on simulated metagenomes spanning 1–90% host fractions, six host species, and up to 80 replicated samples, and validated performance on three real human microbiome samples. On four standard human datasets, RustyClean-AUTO completed in 5.4–25.9 min with F1 > 0.99, while KneadData required 5.0 min to 1.7 h. RustyClean-Bowtie2 achieved the highest accuracy (F1 = 0.9980, host remaining 0.05%, microbe loss 0.34%) in a new T2T/GRCh38 backend benchmark. Cross-species tests showed F1 ≈ 0.9995 for mammalian hosts, and AUTO mode correctly chose the optimal backend in all 80-sample scalability tests. RustyClean provides a scalable, reproducible and easy-to-deploy alternative for host-DNA removal in large metagenomic cohorts.
+Host DNA contamination is a pervasive problem in metagenomic sequencing of low-biomass human-associated samples. Existing pipelines such as KneadData provide robust removal but are computationally expensive, while ultrafast aligners such as Hostile trade integration and configurability for speed. We present **RustyClean**, a Rust-based host-removal pipeline that integrates quality control with pluggable host-removal backends (Kraken2, Bowtie2, Minimap2 and Centrifuge) and an adaptive AUTO mode that selects the fastest backend for each sample. We benchmarked RustyClean against KneadData, Hostile and Centrifuge on simulated metagenomes spanning 1–90% host fractions, six host species, and up to 80 replicated samples, and validated performance on three real human microbiome samples. On four standard human datasets, RustyClean-AUTO completed in 5.4–25.9 min with F1 > 0.99, while KneadData required 5.0 min to 1.7 h.
+
+![Figure 1. Runtime and memory comparison across tools and datasets.](figures_v4/figure_v4_runtime_memory.png)
+
+**Figure 1. Runtime and memory comparison across RustyClean backends, KneadData, Hostile and Centrifuge on four standard human simulated datasets.** (a) Wall-clock runtime. (b) Peak resident memory.
+ RustyClean-Bowtie2 achieved the highest accuracy (F1 = 0.9980, host remaining 0.05%, microbe loss 0.34%) in a new T2T/GRCh38 backend benchmark. Cross-species tests showed F1 ≈ 0.9995 for mammalian hosts, and AUTO mode correctly chose the optimal backend in all 80-sample scalability tests. RustyClean provides a scalable, reproducible and easy-to-deploy alternative for host-DNA removal in large metagenomic cohorts.
 
 ---
 
@@ -121,6 +126,11 @@ On the four standard human datasets, RustyClean-AUTO consistently outperformed o
 
 KneadData showed highly variable accuracy, dropping to F1 = 0.32 on the 1% host dataset. RustyClean-Bowtie2 and RustyClean-Kraken2 maintained F1 ≥ 0.97 across all conditions, with Bowtie2 slightly outperforming Kraken2 on the high-host datasets.
 
+![Figure 2. Accuracy comparison across tools and datasets.](figures_v4/figure_v4_accuracy.png)
+
+**Figure 2. Accuracy comparison across RustyClean backends, KneadData, Hostile and Centrifuge on four standard human simulated datasets.** F1 score is shown for each dataset.
+
+
 ### 3.2 Direct comparison of RustyClean backends on a uniform human index
 
 To disentangle the effect of the host-removal backend from index choice, we re-ran RustyClean with Minimap2, Bowtie2 and Centrifuge against a uniform T2T/GRCh38 human reference (v4 benchmark). Accuracy and resource use are summarized in Table 3.
@@ -148,7 +158,15 @@ To quantify the benefit of the optional Bowtie2 re-check step, we compared Krake
 | 100M_50pct_high_lognormal_SE | 50% | 0.9912 | 0.9976 | +0.0064 |
 | 100M_90pct_high_lognormal_SE | 90% | 0.9299 | 0.9943 | +0.0644 |
 
-The largest gains occurred at 90% host fraction, where Kraken2 alone left a substantial number of host reads unclassified (F1 ≈ 0.93). Bowtie2 re-check recovered most of these reads, raising F1 to ≈ 0.994 with minimal runtime overhead.
+The largest gains occurred at 90% host fraction, where Kraken2 alone left a substantial number of host reads unclassified (F1 ≈ 0.93). Bowtie2 re-check recovered most of these reads, raising F1 to ≈ 0.994 with minimal runtime overhead (Figure 3).
+
+![Figure 3. F1 improvement from Bowtie2 re-check.](benchmark/bowtie2_recheck/results/f1_comparison.png)
+
+**Figure 3. F1 score with and without Bowtie2 re-check on high-host simulated datasets.**
+
+![Figure 4. Runtime impact of Bowtie2 re-check.](benchmark/bowtie2_recheck/results/runtime_comparison.png)
+
+**Figure 4. Wall-clock runtime with and without Bowtie2 re-check.** Runtime overhead was modest (≤20%) and occasionally negative for the largest sample, because removing additional host reads reduced downstream I/O.
 
 ### 3.3 Separating QC and host-removal time
 

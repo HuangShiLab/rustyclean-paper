@@ -174,6 +174,46 @@ sbatch run_benchmark.sh
 
 ---
 
+## Bowtie2 复核步骤对 Kraken2 准确性的提升
+
+在 `benchmark/bowtie2_recheck/` 中评估了 RustyClean 的 **Bowtie2 复核** 功能：当 Kraken2 将某些宿主 reads 判定为 unclassified 时，使用 Bowtie2 对这些 reads 进行二次比对并去除命中宿主索引的 reads。
+
+### 数据集
+
+4 个大规模高宿主 SE 数据集：
+
+| dataset | reads | host % | distribution |
+|---------|-------|--------|--------------|
+| 30M_50pct_high_skewed_SE | 30 M | 50 % | skewed |
+| 60M_90pct_high_lognormal_SE | 60 M | 90 % | log-normal |
+| 100M_50pct_high_lognormal_SE | 100 M | 50 % | log-normal |
+| 100M_90pct_high_lognormal_SE | 100 M | 90 % | log-normal |
+
+### 运行
+
+```bash
+cd benchmark/bowtie2_recheck/scripts
+sbatch benchmark_baseline_kraken2_memmap.sh
+sbatch benchmark_bowtie2_recheck_v2.sh
+```
+
+### 最新结果
+
+| dataset | host % | baseline F1 | +Bowtie2 recheck F1 | ΔF1 |
+|---|---|---:|---:|---:|
+| 30M_50pct_high_skewed_SE | 50 % | 0.9890 | 0.9974 | +0.0084 |
+| 60M_90pct_high_lognormal_SE | 90 % | 0.9299 | 0.9942 | +0.0643 |
+| 100M_50pct_high_lognormal_SE | 50 % | 0.9912 | 0.9976 | +0.0064 |
+| 100M_90pct_high_lognormal_SE | 90 % | 0.9299 | 0.9943 | +0.0644 |
+
+- **90% 宿主样本**提升最大：F1 从 ~0.93 提升到 ~0.994。
+- **运行时间开销**很小（30M +5.7%，60M +20.3%，100M 基本不变）。
+- **峰值内存**维持在 ~15.5 GB，无显著增加。
+
+在 AUTO 模式下，当 survey 估计宿主比例超过高阈值（默认 30%）时会自动开启 Bowtie2 复核，无需用户手动指定 `--bowtie2-recheck`。
+
+---
+
 ## 快速开始
 
 ```bash
