@@ -78,7 +78,12 @@ def find_clean_fastq_rc(rep_dir):
             candidates.append(p)
     if not candidates:
         return None
-    candidates.sort(key=lambda p: (not 'clean' in p.name.lower(), len(str(p.relative_to(rep_dir)))))
+    # For paired-end, prefer R1 so each pair is counted once.
+    candidates.sort(key=lambda p: (
+        not 'clean' in p.name.lower(),
+        not ('_r1' in p.name.lower() or '_1' in p.name.lower()),
+        len(str(p.relative_to(rep_dir)))
+    ))
     return candidates[0]
 
 
@@ -91,8 +96,12 @@ def find_clean_fastq_simple(tool_dir):
             candidates.append(p)
     if not candidates:
         return None
-    # Prefer files with 'clean' in name, then shortest path
-    candidates.sort(key=lambda p: (not 'clean' in p.name.lower(), len(str(p.relative_to(tool_dir)))))
+    # For paired-end, prefer R1 so each pair is counted once.
+    candidates.sort(key=lambda p: (
+        not 'clean' in p.name.lower(),
+        not ('_r1' in p.name.lower() or '_1' in p.name.lower() or '_paired_1' in p.name.lower()),
+        len(str(p.relative_to(tool_dir)))
+    ))
     return candidates[0]
 
 
