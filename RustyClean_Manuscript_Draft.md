@@ -303,8 +303,14 @@ semaphore admits *W* samples concurrently (default: half the available
 cores), and each sample passes *T* threads to its external tools. Total
 load is approximately *W × T*, giving independent control over the
 CPU-bound quality-control stage and the memory-bound depletion stage.
-Interrupt handling uses a cancellation token so that queued samples are
-not started after a shutdown signal.
+When the user does not explicitly set *W*, RustyClean estimates the
+resident database size for the selected backend and the available memory
+(cgroup limit first, then `/proc/meminfo` `MemAvailable`), and caps *W*
+so that concurrent workers do not collectively exceed roughly 80% of
+available RAM. This prevents out-of-memory failures when the default
+CPU-based worker count would load more database copies than fit in
+memory. Interrupt handling uses a cancellation token so that queued
+samples are not started after a shutdown signal.
 
 **Implementation.** RustyClean is \~1,300 lines of Rust built on the
 Tokio asynchronous runtime, distributed as a single binary with no
@@ -621,13 +627,17 @@ index therefore reduced peak memory by roughly one-third to one-half on
 these datasets.
 
 This has a direct scheduling consequence. Because RustyClean can run
-several samples concurrently, and each worker currently loads its own
-copy of the database, concurrent memory demand scales as the product of
-worker count and database size; a memory-aware cap on worker count is
-required and is not yet implemented. The default T2T-only index already
-addresses the largest component of the memory cost; enabling Kraken2\'s
---memory-mapping option or capping the worker count based on available
-memory are the remaining practical optimisations for concurrent runs.
+several samples concurrently, and each worker loads its own copy of the
+database, concurrent memory demand scales as the product of worker count
+and database size. RustyClean therefore estimates the resident database
+size (for example, the Kraken2 `hash.k2d` file or the Bowtie2 index
+files) and the available memory (cgroup limit first, then
+`/proc/meminfo` `MemAvailable`) and caps the default worker count so
+that concurrent copies do not exceed roughly 80% of available RAM. Users
+can override the cap with `-w/--workers`. The default T2T-only index
+already addresses the largest component of the memory cost; enabling
+Kraken2\'s `--memory-mapping` option is the remaining practical
+optimisation for highly parallel runs.
 
 ### 3.6 The depletion backend is interchangeable
 
@@ -744,9 +754,8 @@ describe functionality that does not yet exist.**
   index matches the configured    
   host                            
 
-  Memory-aware cap on worker      ❌ not implemented --- concurrent
-  count (§3.5)                    demand scales as workers × database
-                                  size
+  Memory-aware cap on worker      ✅ implemented (main)
+  count (§3.5)
 
   Per-transition checkpoint       ⚠️ partial --- written at attempt
   persistence                     boundaries only, so a hard process kill
