@@ -64,7 +64,7 @@ parse_time() {
             else { printf "%d", $1 }
         }')
     fi
-    echo "${runtime_sec},${max_mem}"
+    echo "${runtime_sec} ${max_mem}"
 }
 
 for DATASET in "${DATASETS[@]}"; do
