@@ -28,12 +28,12 @@ Legend:
 | 10M_10pct_med_even_SE | 10 | KneadData | hg_39 DB, 8 threads | ✅ Done | `results_v2/metrics/performance.csv` |
 | 10M_10pct_med_even_SE | 10 | Centrifuge | human_t2t_hla_cf, 8 threads | ✅ Done | `results_v2/metrics/performance_centrifuge.csv` |
 | 10M_10pct_med_even_SE | 10 | fast2bRAD-M | 16 enzymes | ✅ Done | `results_v2/metrics/performance_fast2brad.csv` |
-| 30M_50pct_high_skewed_SE | 50 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 30M_50pct_high_skewed_SE | 50 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 30M_50pct_high_skewed_SE | 50 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 60M_90pct_high_lognormal_SE | 90 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 60M_90pct_high_lognormal_SE | 90 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 60M_90pct_high_lognormal_SE | 90 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
+| 30M_50pct_high_skewed_SE | 50 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 30M_50pct_high_skewed_SE | 50 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 30M_50pct_high_skewed_SE | 50 | KneadData | hg_39 DB, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 60M_90pct_high_lognormal_SE | 90 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 60M_90pct_high_lognormal_SE | 90 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 60M_90pct_high_lognormal_SE | 90 | KneadData | hg_39 DB, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
 
 ---
 
@@ -41,9 +41,9 @@ Legend:
 
 | Dataset | Host % | Tool / mode | Key parameters | Status | Result location |
 |---------|--------|-------------|----------------|--------|-----------------|
-| 100M_50pct_high_lognormal_SE | 50 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 100M_50pct_high_lognormal_SE | 50 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
-| 100M_50pct_high_lognormal_SE | 50 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
+| 100M_50pct_high_lognormal_SE | 50 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 100M_50pct_high_lognormal_SE | 50 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
+| 100M_50pct_high_lognormal_SE | 50 | KneadData | hg_39 DB, 8 threads | ✅ Done | `t2t_only_matched_panel/metrics/performance.csv` |
 | 100M_90pct_high_lognormal_SE | 90 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
 | 100M_90pct_high_lognormal_SE | 90 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
 | 100M_90pct_high_lognormal_SE | 90 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_matched_panel/metrics/performance.csv` |
@@ -54,15 +54,15 @@ Legend:
 
 | Dataset | Host % | Tool / mode | Key parameters | Status | Result location |
 |---------|--------|-------------|----------------|--------|-----------------|
-| 5M_1pct_low_even_SE | 1 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 5M_1pct_low_even_SE | 1 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 5M_1pct_low_even_SE | 1 | KneadData | hg_39 DB, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 10M_10pct_med_even_SE | 10 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 10M_10pct_med_even_SE | 10 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 10M_10pct_med_even_SE | 10 | KneadData | hg_39 DB, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 10M_30pct_med_lognormal_SE | 30 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 10M_30pct_med_lognormal_SE | 30 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
-| 10M_30pct_med_lognormal_SE | 30 | KneadData | hg_39 DB, 8 threads | 📋 Ready | `t2t_only_extended_panel/` (script ready) |
+| 5M_1pct_low_even_SE | 1 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 5M_1pct_low_even_SE | 1 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 5M_1pct_low_even_SE | 1 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 10M_10pct_med_even_SE | 10 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 10M_10pct_med_even_SE | 10 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 10M_10pct_med_even_SE | 10 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 10M_30pct_med_lognormal_SE | 30 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 10M_30pct_med_lognormal_SE | 30 | Hostile | `--aligner bowtie2`, T2T+HLA, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
+| 10M_30pct_med_lognormal_SE | 30 | KneadData | hg_39 DB, 8 threads | 🔄 Running | `t2t_only_extended_panel/metrics/performance.csv` |
 
 ---
 
@@ -70,15 +70,15 @@ Legend:
 
 | Dataset | Host % | Tool / mode | Key parameters | Status | Result location |
 |---------|--------|-------------|----------------|--------|-----------------|
-| 20M_10pct_med_even_PE | 10 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_10pct_med_even_PE | 10 | Hostile | `--aligner bowtie2`, T2T+HLA, PE, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_10pct_med_even_PE | 10 | KneadData | hg_39 DB, PE, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_50pct_med_lognormal_PE | 50 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_50pct_med_lognormal_PE | 50 | Hostile | `--aligner bowtie2`, T2T+HLA, PE, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_50pct_med_lognormal_PE | 50 | KneadData | hg_39 DB, PE, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_90pct_med_lognormal_PE | 90 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_90pct_med_lognormal_PE | 90 | Hostile | `--aligner bowtie2`, T2T+HLA, PE, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
-| 20M_90pct_med_lognormal_PE | 90 | KneadData | hg_39 DB, PE, 8 threads | 📋 Ready | `t2t_only_pe_panel/` (script ready) |
+| 20M_10pct_med_even_PE | 10 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_10pct_med_even_PE | 10 | Hostile | `--aligner bowtie2`, T2T+HLA, PE, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_10pct_med_even_PE | 10 | KneadData | hg_39 DB, PE, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_50pct_med_lognormal_PE | 50 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_50pct_med_lognormal_PE | 50 | Hostile | `--aligner bowtie2`, T2T+HLA, PE, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_50pct_med_lognormal_PE | 50 | KneadData | hg_39 DB, PE, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_90pct_med_lognormal_PE | 90 | RustyClean auto | T2T-only + T2T+HLA, `--skip-qc --auto-survey`, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_90pct_med_lognormal_PE | 90 | Hostile | `--aligner bowtie2`, T2T+HLA, PE, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
+| 20M_90pct_med_lognormal_PE | 90 | KneadData | hg_39 DB, PE, 8 threads | 🔄 Running | `t2t_only_pe_panel/metrics/performance.csv` |
 
 ---
 
@@ -111,7 +111,7 @@ Legend:
 | 10M_10pct_med_even_SE | 10 | RustyClean bowtie2 / minimap2 / centrifuge | as above | ✅ Accuracy done | `results_rc_mm_bt_cf_v4/accuracy_rc_mm_bt_cf_v4.csv` |
 | 30M_50pct_high_skewed_SE | 50 | RustyClean bowtie2 / minimap2 / centrifuge | as above | ✅ Accuracy done | `results_rc_mm_bt_cf_v4/accuracy_rc_mm_bt_cf_v4.csv` |
 | 60M_90pct_high_lognormal_SE | 90 | RustyClean bowtie2 / minimap2 / centrifuge | as above | ✅ Accuracy done | `results_rc_mm_bt_cf_v4/accuracy_rc_mm_bt_cf_v4.csv` |
-| Above | — | Runtime / memory for bowtie2/minimap2/centrifuge | 8 threads | ⚠️ Partial | `results_rc_mm_bt_cf_v4/performance_rc_mm_bt_cf_v4_corrected.csv` has runtime="unknown" (macOS time); needs re-run on HPC for reliable runtime/memory |
+| Above | — | Runtime / memory for bowtie2/minimap2/centrifuge | 8 threads | 🔄 Running | `backend_runtime_v2/metrics/performance.csv` |
 
 ---
 
@@ -119,13 +119,13 @@ Legend:
 
 | Dataset | Host | Tool / mode | Key parameters | Status | Result location |
 |---------|------|-------------|----------------|--------|-----------------|
-| human_10M_50pct_med_even_SE | human | RustyClean bowtie2 | species-specific index, `--skip-qc` | ❌ Not done | — |
-| mouse_10M_50pct_med_even_SE | mouse | RustyClean bowtie2 | species-specific index, `--skip-qc` | ❌ Not done | — |
-| rat_10M_50pct_med_even_SE | rat | RustyClean bowtie2 | species-specific index, `--skip-qc` | ❌ Not done | — |
-| pig_10M_50pct_med_even_SE | pig | RustyClean bowtie2 | species-specific index, `--skip-qc` | ❌ Not done | — |
-| monkey_10M_50pct_med_even_SE | monkey | RustyClean bowtie2 | species-specific index, `--skip-qc` | ❌ Not done | — |
-| rice_10M_50pct_med_even_SE | rice | RustyClean bowtie2 | species-specific index, `--skip-qc` | ❌ Not done | — |
-| All above | — | KneadData | species-specific index | ❌ Not done | — |
+| human_10M_50pct_med_even_SE | human | RustyClean bowtie2 | species-specific index, `--skip-qc` | 🔄 Running | `cross_species_results/metrics/performance.csv` |
+| mouse_10M_50pct_med_even_SE | mouse | RustyClean bowtie2 | species-specific index, `--skip-qc` | 🔄 Running | `cross_species_results/metrics/performance.csv` |
+| rat_10M_50pct_med_even_SE | rat | RustyClean bowtie2 | species-specific index, `--skip-qc` | 🔄 Running | `cross_species_results/metrics/performance.csv` |
+| pig_10M_50pct_med_even_SE | pig | RustyClean bowtie2 | species-specific index, `--skip-qc` | 🔄 Running | `cross_species_results/metrics/performance.csv` |
+| monkey_10M_50pct_med_even_SE | monkey | RustyClean bowtie2 | species-specific index, `--skip-qc` | 🔄 Running | `cross_species_results/metrics/performance.csv` |
+| rice_10M_50pct_med_even_SE | rice | RustyClean bowtie2 | species-specific index, `--skip-qc` | 🔄 Running | `cross_species_results/metrics/performance.csv` |
+| All above | — | KneadData | species-specific index | 🔄 Running | `cross_species_results/metrics/performance.csv` |
 
 *Datasets exist at `data/cross_species_v2/`. Need benchmark scripts and runs.*
 
@@ -135,11 +135,11 @@ Legend:
 
 | Sample type | Source | Tool / mode | Key parameters | Status | Result location |
 |-------------|--------|-------------|----------------|--------|-----------------|
-| Oral saliva | SRR39545334 | RustyClean auto | T2T-only + T2T+HLA, 8 threads | ❌ Not done | `real_data/oral_saliva_prefetch/` has raw data only |
-| Vaginal swab | ERR17406228 | RustyClean auto | T2T-only + T2T+HLA, 8 threads | ❌ Not done | `real_data/vaginal_swab_prefetch/` has raw data only |
-| Breast-cancer stool | SRR34833940 | RustyClean auto | T2T-only + T2T+HLA, 8 threads | ❌ Not done | `real_data/breast_cancer_stool_prefetch/` has raw data only |
-| All above | — | KneadData | hg_39, 8 threads | ❌ Not done | — |
-| All above | — | Downstream: MEGAHIT assembly + Bracken profiling + diversity | — | ❌ Not done | — |
+| Oral saliva | SRR39545334 | RustyClean auto | T2T-only + T2T+HLA, 8 threads | 🔄 Running | `real_data_results/metrics/performance.csv` |
+| Vaginal swab | ERR17406228 | RustyClean auto | T2T-only + T2T+HLA, 8 threads | 🔄 Running | `real_data_results/metrics/performance.csv` |
+| Breast-cancer stool | SRR34833940 | RustyClean auto | T2T-only + T2T+HLA, 8 threads | 🔄 Running | `real_data_results/metrics/performance.csv` |
+| All above | — | KneadData | hg_39, 8 threads | 🔄 Running | `real_data_results/metrics/performance.csv` |
+| All above | — | Downstream: MEGAHIT assembly + Bracken profiling + diversity | — | 📋 Ready | `run_post_processing.sh` depends on real-data job |
 
 ---
 
@@ -156,18 +156,16 @@ Legend:
 
 | Status | Count |
 |--------|-------|
-| ✅ Done | ~40 entries |
-| 🔄 Running | 6 entries (T2T-only large matched panel) |
-| 📋 Ready (script exists) | ~24 entries |
-| ❌ Not done | ~25 entries (cross-species, real data, some low-host T2T-only, QC mode) |
-| ⚠️ Partial | 1 entry (backend runtime/memory needs HPC re-run) |
+| ✅ Done | ~46 entries |
+| 🔄 Running | ~40 entries |
+| 📋 Ready (script exists) | ~4 entries |
+| ❌ Not done | ~4 entries (QC mode comparison, some legacy mixed-host RustyClean modes) |
 
 ---
 
 ## Recommended next actions
 
-1. Wait for `t2t_only_matched_panel` job (3906475) to finish, then run unified accuracy analysis (`run_accuracy_t2t_only_panels.sh`).
-2. Submit `t2t_only_extended_panel.sh` and `t2t_only_pe_panel.sh` to fill low-host / 30% / PE gaps.
-3. Re-run backend comparison (bowtie2/minimap2/centrifuge) on HPC with GNU time for reliable runtime/memory.
-4. Create and run cross-species benchmark scripts for human/mouse/rat/pig/rice/monkey.
-5. Process real-data samples with RustyClean auto and KneadData, then run MEGAHIT + Bracken + diversity analysis.
+1. Wait for all running jobs to complete (t2t matched panel, extended panel, PE panel, backend runtime, cross-species, real data).
+2. Post-processing job (3907605) will run automatically after real-data and cross-species finish, producing integrated results.
+3. Once integrated results are available, update manuscript figures/tables and regenerate docx.
+4. Optionally add QC-mode vs skip-qc-mode comparison for 1–2 representative datasets.
