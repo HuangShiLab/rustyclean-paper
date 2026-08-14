@@ -8,7 +8,7 @@
 
 ## Abstract
 
-Host DNA contamination is a pervasive problem in metagenomic sequencing of low-biomass human-associated samples. Existing pipelines such as KneadData provide robust removal but are computationally expensive, while ultrafast aligners such as Hostile trade integration and configurability for speed. We present **RustyClean**, a Rust-based host-removal pipeline that integrates quality control with pluggable host-removal backends (Kraken2, Bowtie2, Minimap2 and Centrifuge) and an adaptive AUTO mode that selects the fastest backend for each sample. We benchmarked RustyClean against KneadData, Hostile and Centrifuge on simulated metagenomes spanning 1–90% host fractions, six host species, and up to 80 replicated samples, and validated performance on three real human microbiome samples. On four standard human datasets, RustyClean-AUTO completed in 5.4–25.9 min with F1 > 0.99, while KneadData required 5.0 min to 1.7 h. RustyClean-Bowtie2 achieved the highest accuracy (F1 = 0.9980, host remaining 0.05%, microbe loss 0.34%) in a new T2T/GRCh38 backend benchmark. Cross-species tests showed F1 ≈ 0.9995 for mammalian hosts, and AUTO mode correctly chose the optimal backend in all 80-sample scalability tests. RustyClean provides a scalable, reproducible and easy-to-deploy alternative for host-DNA removal in large metagenomic cohorts.
+Host DNA contamination is a pervasive problem in metagenomic sequencing of low-biomass human-associated samples. Existing pipelines such as KneadData provide robust removal but are computationally expensive, while ultrafast aligners such as Hostile trade integration and configurability for speed. We present **RustyClean**, a Rust-based host-removal pipeline that integrates quality control with pluggable host-removal backends (Kraken2, Bowtie2, Minimap2 and Centrifuge) and an adaptive AUTO mode that selects the fastest backend for each sample. The default human classification database is a compact T2T-only Kraken2 index; a mixed multi-host index is available as an optional taxonomy-aware mode. We benchmarked RustyClean against KneadData, Hostile and Centrifuge on simulated metagenomes spanning 1–90% host fractions, six host species, and up to 80 replicated samples, and validated performance on three real human microbiome samples. On four standard human datasets, RustyClean-AUTO completed in 5.4–25.9 min with F1 > 0.99, while KneadData required 5.0 min to 1.7 h. RustyClean-Bowtie2 achieved the highest accuracy (F1 = 0.9980, host remaining 0.05%, microbe loss 0.34%) in a new T2T/GRCh38 backend benchmark. Cross-species tests showed F1 ≈ 0.9995 for mammalian hosts, and AUTO mode correctly chose the optimal backend in all 80-sample scalability tests. RustyClean provides a scalable, reproducible and easy-to-deploy alternative for host-DNA removal in large metagenomic cohorts.
 
 ---
 
@@ -38,7 +38,7 @@ RustyClean is implemented in Rust and orchestrates three stages:
 
 1. **Quality control** with `fastp` (Chen et al., 2018), producing adapter-trimmed, quality-filtered reads.
 2. **Host identification** using one of four backends:
-   - **Kraken2** (`--memory-mapping` optional) classifies reads against the MiniKraken2/Standard database; reads assigned to *Homo sapiens* (taxid 9606) are removed.
+   - **Kraken2** (`--memory-mapping` optional) classifies reads against a host-specific Kraken2 database. The default human database is built from the T2T-CHM13v2.0 assembly; reads assigned to *Homo sapiens* (taxid 9606) are removed. A mixed multi-host ("Kraken16") database is available as an optional taxonomy-aware mode.
    - **Bowtie2** (`--very-fast-local -k 1 --mm`) maps reads to a user-supplied Bowtie2 index; mapped reads are discarded via a streaming `samtools` pipeline.
    - **Minimap2** (`-x sr -a --secondary=no`) maps reads to a Minimap2 index; mapped reads are removed.
    - **Centrifuge** classifies reads against a Centrifuge index; reads assigned to taxid 9606 are removed.
@@ -99,7 +99,7 @@ Three real human metagenomic samples were processed: oral saliva, vaginal swab a
 
 ### 3.1 Single-sample performance on human simulated data
 
-On the four standard human datasets, RustyClean-AUTO consistently outperformed or matched KneadData in runtime while maintaining high accuracy (Table 1).
+On the four standard human datasets, RustyClean-AUTO consistently outperformed or matched KneadData in runtime while maintaining high accuracy (Table 1). The default Kraken2 backend now uses a T2T-only human library; the earlier mixed-host (Kraken16) library remains available as an optional taxonomy-aware mode.
 
 **Table 1. Runtime and peak memory on four standard human simulated datasets.**
 
@@ -224,7 +224,7 @@ Second, **AUTO mode works**. By surveying a small subset of reads, RustyClean co
 
 Third, **cross-species flexibility is practical**. Replacing the host index allowed RustyClean to maintain F1 ≈ 0.9995 across mammals and plants, with runtimes comparable to or better than KneadData. This is important for microbiome studies in model organisms and agriculture.
 
-Limitations remain. The current Kraken2 backend loads the full database per worker; enabling `--memory-mapping` would reduce memory in highly parallel runs. Real-data validation lacks ground truth, so accuracy was assessed indirectly through downstream assembly and taxonomy metrics. Finally, all benchmarks used 8 threads; scaling to modern high-core nodes is a future direction.
+Limitations remain. The default T2T-only Kraken2 database already reduced peak memory substantially relative to the earlier mixed-host library, but each worker still loads its own copy; enabling `--memory-mapping` or capping worker count by available memory would further reduce memory in highly parallel runs. Real-data validation lacks ground truth, so accuracy was assessed indirectly through downstream assembly and taxonomy metrics. Finally, all benchmarks used 8 threads; scaling to modern high-core nodes is a future direction.
 
 ---
 

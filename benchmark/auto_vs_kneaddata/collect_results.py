@@ -22,7 +22,7 @@ DATASETS = [
     "60M_90pct_high_lognormal_SE",
 ]
 
-TIME_RE = re.compile(r"Elapsed \(wall clock\) time:\s*(.+)")
+TIME_RE = re.compile(r"Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*(.+)")
 MEM_RE = re.compile(r"Maximum resident set size \(kbytes\):\s*(\d+)")
 
 
