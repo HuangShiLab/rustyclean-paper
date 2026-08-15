@@ -174,7 +174,7 @@ Legend:
 
 **Full enhanced panel** (all SE/PE datasets, 3 reps each): 🔄 Running as SLURM job `3908080`, output `results_sylph_full/`.
 
-**T2T-only Bowtie2 index comparison** (4 standard datasets, sylph + T2T-only index vs. Hostile T2T+HLA index): 🔄 Running as SLURM job `3908081`, output `results_sylph_t2t_only/`.
+**T2T-only Bowtie2 index comparison** (4 standard datasets, sylph + T2T-only index vs. Hostile T2T+HLA index): ✅ Done (SLURM job `3908081`), output `results_sylph_t2t_only/metrics/`. Runtime comparable to Hostile T2T+HLA index after the first-rep index-cache warm-up; accuracy CSV is being computed.
 
 **Key take-away:** sylph is faster than RustyClean auto, Hostile, and KneadData across all four standard datasets while using only ~3.5 GB RAM. It matches or exceeds Hostile's F1 at 50% and 90% host contamination.
 
