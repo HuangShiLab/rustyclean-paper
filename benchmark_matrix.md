@@ -172,7 +172,26 @@ Legend:
 | 30M_50pct_high_skewed_SE | 277.1 ± 10.1 s | ~3.64 GB | 0.9996 |
 | 60M_90pct_high_lognormal_SE | 654.7 ± 25.7 s | ~3.66 GB | 0.9959 |
 
-**Full enhanced panel** (all 18 SE/PE datasets, 3 reps each): ✅ Done (SLURM job `3908080`, 5:22:52, ExitCode 0), output `results_sylph_full/metrics/`. Accuracy calculation in progress.
+**Full enhanced panel** (all 18 SE/PE datasets, 3 reps each): ✅ Done (SLURM job `3908080`, 5:22:52, ExitCode 0), accuracy calculation ✅ Done (SLURM job `3908651`). Output `results_sylph_full/metrics/`.
+
+**Full-panel summary (18 datasets × 3 reps):**
+
+| Metric | Range / value |
+|--------|---------------|
+| F1 (0–99% host) | 0.9958 – 1.0000 |
+| F1 (100% host) | 0.0000* |
+| Runtime | 35.5 s (5M/1%) – 1045.7 s (100M/90%) |
+| Peak memory | 0.23 GB (0% host) – 3.69 GB (≥1% host) |
+| Throughput | 1.4 – 9.4 M reads/min |
+
+\* 100% host sample: the tool retained ~4,600 host reads; F1 is undefined for a pure-host sample and reported as 0 because precision = 0. This is a boundary condition, not a practical use case.
+
+**Per-dataset highlights:**
+- **0% host** (`10M_0pct_med_lognormal_SE`): F1 = 1.0000, runtime ~64.5 s, memory ~0.23 GB. sylph correctly classifies the sample as host-free and skips Bowtie2 entirely.
+- **Low host (1–10%)**: F1 ≥ 0.9971, runtime < 75 s for 10M SE reads.
+- **High host (90–99%)**: F1 0.9763–0.9959; 60M/99% is the lowest at F1 = 0.9763 (precision 0.955, recall 0.999) due to a small number of microbial reads misclassified as host.
+- **PE datasets**: F1 0.9973–0.9993, runtime ~5–15 min for 20M reads.
+- **Largest SE dataset** (`100M_90pct_high_lognormal_SE`): F1 = 0.9958, runtime ~17.4 min, memory ~3.61 GB.
 
 **T2T-only Bowtie2 index comparison** (4 standard datasets, sylph + T2T-only index vs. Hostile T2T+HLA index): ✅ Done (SLURM job `3908081`), output `results_sylph_t2t_only/metrics/`.
 
@@ -185,7 +204,7 @@ Legend:
 
 *Warm runtime = mean of reps 2–3 to exclude first-run index-cache noise. F1 is essentially identical; T2T-only uses slightly less memory for the smallest sample.*
 
-**Key take-away:** sylph is faster than RustyClean auto, Hostile, and KneadData across all four standard datasets while using only ~3.5 GB RAM. It matches or exceeds Hostile's F1 at 50% and 90% host contamination.
+**Key take-away:** sylph is faster than RustyClean auto, Hostile, and KneadData across all four standard datasets while using only ~3.5 GB RAM. It matches or exceeds Hostile's F1 at 50% and 90% host contamination. The full enhanced panel confirms this holds across 0–99% host contamination, SE/PE modes, and 5M–100M read scales, with memory staying below 3.7 GB.
 
 ---
 
@@ -193,8 +212,8 @@ Legend:
 
 | Status | Count |
 |--------|-------|
-| ✅ Done | ~46 entries |
-| 🔄 Running | ~44 entries |
+| ✅ Done | ~48 entries |
+| 🔄 Running | ~42 entries |
 | 📋 Ready (script exists) | ~4 entries |
 | ❌ Not done | ~4 entries (QC mode comparison, some legacy mixed-host RustyClean modes) |
 

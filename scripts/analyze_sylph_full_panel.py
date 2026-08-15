@@ -145,7 +145,7 @@ def main():
         )
     ax.set_xlabel("Host contamination (%)")
     ax.set_ylabel("F1 score")
-    ax.set_ylim(0.85, 1.005)
+    ax.set_ylim(0.94, 1.005)
     ax.set_title("Sylph backend accuracy across full panel")
     ax.legend(title="Mode", frameon=False)
     ax.grid(True, alpha=0.3)
