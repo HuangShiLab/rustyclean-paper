@@ -172,7 +172,7 @@ Legend:
 | 30M_50pct_high_skewed_SE | 277.1 ± 10.1 s | ~3.64 GB | 0.9996 |
 | 60M_90pct_high_lognormal_SE | 654.7 ± 25.7 s | ~3.66 GB | 0.9959 |
 
-**Full enhanced panel** (all SE/PE datasets, 3 reps each): 🔄 Running as SLURM job `3908080`, output `results_sylph_full/`.
+**Full enhanced panel** (all 18 SE/PE datasets, 3 reps each): ✅ Done (SLURM job `3908080`, 5:22:52, ExitCode 0), output `results_sylph_full/metrics/`. Accuracy calculation in progress.
 
 **T2T-only Bowtie2 index comparison** (4 standard datasets, sylph + T2T-only index vs. Hostile T2T+HLA index): ✅ Done (SLURM job `3908081`), output `results_sylph_t2t_only/metrics/`.
 
