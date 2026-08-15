@@ -172,6 +172,10 @@ Legend:
 | 30M_50pct_high_skewed_SE | 277.1 ± 10.1 s | ~3.64 GB | 0.9996 |
 | 60M_90pct_high_lognormal_SE | 654.7 ± 25.7 s | ~3.66 GB | 0.9959 |
 
+**Full enhanced panel** (all SE/PE datasets, 3 reps each): 🔄 Running as SLURM job `3908080`, output `results_sylph_full/`.
+
+**Key take-away:** sylph is faster than RustyClean auto, Hostile, and KneadData across all four standard datasets while using only ~3.5 GB RAM. It matches or exceeds Hostile's F1 at 50% and 90% host contamination.
+
 ---
 
 ## Summary counts
