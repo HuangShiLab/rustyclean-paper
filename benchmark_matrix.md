@@ -152,12 +152,25 @@ Legend:
 
 ---
 
+## 10. sylph + Bowtie2 backend
+
+| Dataset | Host % | Tool / mode | Key parameters | Status | Result location |
+|---------|--------|-------------|----------------|--------|-----------------|
+| 5M_1pct_low_even_SE | 1 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 10M_10pct_med_even_SE | 10 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 30M_50pct_high_skewed_SE | 50 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 60M_90pct_high_lognormal_SE | 90 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+
+*sylph 0.9.x is used as a sample-level prefilter; host-positive samples are passed to Bowtie2 for read-level removal. Host-negative samples skip Bowtie2 entirely.*
+
+---
+
 ## Summary counts
 
 | Status | Count |
 |--------|-------|
 | ✅ Done | ~46 entries |
-| 🔄 Running | ~40 entries |
+| 🔄 Running | ~44 entries |
 | 📋 Ready (script exists) | ~4 entries |
 | ❌ Not done | ~4 entries (QC mode comparison, some legacy mixed-host RustyClean modes) |
 
