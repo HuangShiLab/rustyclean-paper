@@ -32,6 +32,7 @@ def read_ground_truth(gt_path: Path) -> tuple:
             if not line or "\t" not in line:
                 continue
             rid, label = line.split("\t", 1)
+            rid = rid.split("/")[0]
             if label.lower() == "host":
                 host_ids.add(rid)
             else:
@@ -48,7 +49,11 @@ def compute_metrics(host_ids: set, microbe_ids: set, kept_ids: set) -> dict:
     accuracy = (tp + tn) / total if total else 0
     precision = tp / (tp + fp) if (tp + fp) else 0
     recall = tp / (tp + fn) if (tp + fn) else 0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0
+    if (tp + fp) == 0 and (tp + fn) == 0:
+        # No microbes to recover and none predicted: perfect negative prediction.
+        f1 = 1.0
+    else:
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0
     return {
         "accuracy": accuracy,
         "precision": precision,
