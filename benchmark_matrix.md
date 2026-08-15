@@ -156,12 +156,21 @@ Legend:
 
 | Dataset | Host % | Tool / mode | Key parameters | Status | Result location |
 |---------|--------|-------------|----------------|--------|-----------------|
-| 5M_1pct_low_even_SE | 1 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
-| 10M_10pct_med_even_SE | 10 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
-| 30M_50pct_high_skewed_SE | 50 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
-| 60M_90pct_high_lognormal_SE | 90 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 5M_1pct_low_even_SE | 1 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | ✅ Done | `results_sylph_standard/metrics/` |
+| 10M_10pct_med_even_SE | 10 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | ✅ Done | `results_sylph_standard/metrics/` |
+| 30M_50pct_high_skewed_SE | 50 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | ✅ Done | `results_sylph_standard/metrics/` |
+| 60M_90pct_high_lognormal_SE | 90 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | ✅ Done | `results_sylph_standard/metrics/` |
 
 *sylph 0.9.x is used as a sample-level prefilter; host-positive samples are passed to Bowtie2 for read-level removal. Host-negative samples skip Bowtie2 entirely.*
+
+**Summary (3 reps per dataset):**
+
+| Dataset | Runtime (mean ± SD) | Memory (mean ± SD) | F1 (mean) |
+|---------|---------------------|--------------------|-----------|
+| 5M_1pct_low_even_SE | 41.4 ± 8.8 s | ~3.08 GB | 1.0000 |
+| 10M_10pct_med_even_SE | 73.4 ± 3.6 s | ~3.55 GB | 0.9971 |
+| 30M_50pct_high_skewed_SE | 277.1 ± 10.1 s | ~3.64 GB | 0.9996 |
+| 60M_90pct_high_lognormal_SE | 654.7 ± 25.7 s | ~3.66 GB | 0.9959 |
 
 ---
 
