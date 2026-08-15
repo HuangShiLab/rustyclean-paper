@@ -156,10 +156,10 @@ Legend:
 
 | Dataset | Host % | Tool / mode | Key parameters | Status | Result location |
 |---------|--------|-------------|----------------|--------|-----------------|
-| 5M_1pct_low_even_SE | 1 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
-| 10M_10pct_med_even_SE | 10 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
-| 30M_50pct_high_skewed_SE | 50 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
-| 60M_90pct_high_lognormal_SE | 90 | RustyClean sylph | T2T sylph DB + hg39 bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 5M_1pct_low_even_SE | 1 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 10M_10pct_med_even_SE | 10 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 30M_50pct_high_skewed_SE | 50 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
+| 60M_90pct_high_lognormal_SE | 90 | RustyClean sylph | T2T sylph DB + Hostile T2T+HLA bowtie2 index, `--skip-qc`, 8 threads | 🔄 Running | `results_sylph_standard/` |
 
 *sylph 0.9.x is used as a sample-level prefilter; host-positive samples are passed to Bowtie2 for read-level removal. Host-negative samples skip Bowtie2 entirely.*
 
