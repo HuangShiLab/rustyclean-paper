@@ -652,7 +652,7 @@ datasets spanning 0--99% host fraction, 5--100 M reads, three abundance
 distributions, and both single-end and paired-end layouts (three
 replicates per dataset). Accuracy remained high across the entire panel:
 F1 ranged from 0.9958 to 1.0000 for datasets containing at least some
-microbial reads (0--99% host; Figure SX). The lowest value, F1 = 0.9958,
+microbial reads (0--99% host; Figure 4a). The lowest value, F1 = 0.9958,
 was observed on the two 90%-host 100 M-read datasets; the 99%-host 60
 M-read dataset was slightly lower at F1 = 0.9763 because the small
 microbial subset was more easily misclassified.
@@ -662,7 +662,7 @@ to 0.23 GB for the 0%-host sample, where sylph correctly classified the
 sample as host-negative and Bowtie2 was skipped entirely. Runtime scaled
 predictably with read count and host fraction: 35.5 s for 5 M reads at
 1% host, 14.5 min for 100 M reads at 50% host, and 17.4 min for 100 M
-reads at 90% host (Figure SY). The 100 M / 90% dataset is the most
+reads at 90% host (Figure 4b). The 100 M / 90% dataset is the most
 stressful condition in the panel; the sylph backend completed it more
 than 13× faster than KneadData and with comparable accuracy.
 
