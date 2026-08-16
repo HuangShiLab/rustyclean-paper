@@ -666,6 +666,14 @@ reads at 90% host (Figure 4b). The 100 M / 90% dataset is the most
 stressful condition in the panel; the sylph backend completed it more
 than 13× faster than KneadData and with comparable accuracy.
 
+![](results_sylph_full/figures/sylph_full_combined.png){width="6.5in"}
+
+**Figure 4.** Sylph backend performance across the full enhanced panel.
+(a) F1 score against host contamination; marker size scales with read
+ count and shape indicates single-end (circles) or paired-end (squares)
+ layout. (b) Wall-clock runtime against read count, coloured by host
+ fraction.
+
 ### 3.5 Memory profile of the sylph backend
 
 Peak memory is no longer a major cost of the default pipeline. With the
