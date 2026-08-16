@@ -133,23 +133,25 @@ from being promoted into a results directory.
 
 ### 2.1 Pipeline overview
 
-RustyClean processes each sample through five stages. Stages 3b and 4
-are applied only on the classification path:
+RustyClean processes each sample through four stages by default. The
+optional Bowtie2 verification pass is applied only on the legacy Kraken2
+classification path:
 
 1.  **Quality control** --- adapter detection and trimming, quality
     filtering (fastp).
 2.  Host fraction estimation --- a rapid alignment survey of a random
     read subsample (Section 2.3).
 3.  Host depletion --- routed to the alignment path (Section 2.5) or the
-    classification path (Section 2.4).
-
-Alignment verification --- on the classification path only, the retained
-reads are re-screened against the host index (Section 2.6). This is
-enabled by default whenever routing selects classification, and together
-with routing constitutes the default configuration evaluated throughout.
-
-1.  Validation and finalisation --- automated assertions before output
+    sylph-accelerated path (Section 2.4a) by default; the Kraken2
+    classification path (Section 2.4) remains available as an explicit
+    option.
+4.  Validation and finalisation --- automated assertions before output
     promotion (Section 2.7).
+
+Alignment verification --- on the legacy Kraken2 classification path
+only, the retained reads are re-screened against the host index (Section
+2.6). This is optional and no longer part of the default auto-mode
+workflow.
 
 Samples may be supplied individually or as a tab-separated sample
 manifest; single-end and paired-end layouts are detected automatically
@@ -191,20 +193,22 @@ either depletion path. A user-supplied estimate (\--host-pct) bypasses
 the survey entirely.
 
 The estimated host fraction ĥ is combined with the library size N in a
-two-part rule, because the efficiency advantage of classification
-requires both a high host fraction and enough reads to amortise loading
-the database:
+two-part rule:
 
 - ĥ \< ĥ_low (default 10%) → alignment path (Section 2.5). At low host
   fractions alignment rejects the microbial majority quickly and retains
   its lower false negative rate.
-- ĥ \> ĥ_high (default 30%) and N \> N_min (default 20 million reads) →
-  classification path (Section 2.4), followed by the verification pass
-  (Section 2.6).
+- ĥ \> ĥ_high (default 30%) → sylph-accelerated path (Section 2.4a). A
+  rapid sample-level k-mer sketch query decides whether the sample is
+  host-positive; if so, read-level removal is performed by Bowtie2.
+- Otherwise → alignment path. The rule is deliberately conservative: any
+  sample that does not clearly exceed the high-host threshold is routed
+  to alignment, whose error profile is the safer default.
 
-Otherwise → alignment path. The rule is deliberately conservative: any
-sample that does not clearly meet both classification criteria is routed
-to alignment, whose error profile is the safer default.
+The original Kraken2 classification path (Section 2.4) and the optional
+Bowtie2 verification pass (Section 2.6) are retained as explicit
+backends and can be selected with `--host-removal-mode kraken2` or
+`--bowtie2-recheck`, but they are no longer the auto-mode default.
 
 Defaults were set from the measured runtime behaviour of the two
 backends. Users may force either path (\--host-removal-mode
@@ -230,6 +234,32 @@ library. The Kraken2 report is parsed into a typed metrics record
 capturing classified and unclassified read counts, host read counts, and
 the implied contamination rate.
 
+### 2.4a Sylph sample-level prefiltering backend
+
+sylph is a k-mer-sketching tool designed for fast metagenome profiling;
+its default output is relative abundance at the sample level, not a
+per-read classification. To use it for host depletion we treat it as a
+sample-level binary sensor and route host-positive samples to a
+read-level aligner for the actual removal.
+
+The sample is first queried with `sylph query` against a small
+human-only sketch database (by default built from T2T-CHM13v2.0). From
+the resulting ANI-by-coverage table we record the maximum Adjusted_ANI
+and the maximum effective coverage across all human reference sequences.
+If both values exceed configurable thresholds (default: Adjusted_ANI ≥
+95.0% and effective coverage ≥ 0.0005), the sample is declared
+host-positive and the quality-controlled reads are passed to the Bowtie2
+streaming pipeline described in Section 2.5. If the sample is declared
+host-negative, all reads are retained without invoking Bowtie2, which
+keeps both runtime and memory low for low-contamination samples.
+
+This design preserves sylph's speed and small memory footprint while
+still producing a read-level decontaminated FASTQ file. The accuracy of
+the final output is determined by the downstream Bowtie2 alignment, not
+by the sketch query itself; sylph's role is only to decide whether the
+alignment step is necessary. In auto mode this decision is made once per
+sample by the routing rule in Section 2.3.
+
 ### 2.5 Alignment-based depletion
 
 The alignment path aligns quality-controlled reads against a Bowtie2
@@ -240,17 +270,17 @@ mate aligns. This path is functionally equivalent to KneadData\'s
 host-removal stage but without the intervening repeat-masking and
 identifier-reformatting steps.
 
-### 2.6 Alignment verification pass
-
-> **Status: designed, not yet implemented.** See Section 5.
+### 2.6 Optional Bowtie2 verification pass (legacy Kraken2 path)
 
 Because k-mer classification systematically under-detects host reads,
-the classification path is followed by a verification pass, which is
-enabled by default whenever routing selects classification
-(\--bowtie2-recheck). The reads retained by Kraken2 are aligned against
+the Kraken2 classification path can be followed by a verification pass
+(`--bowtie2-recheck`). The reads retained by Kraken2 are aligned against
 the same host Bowtie2 index and those that align are removed. Only the
 retained set is re-screened, so reads already identified as host are
-never realigned.
+never realigned. This pass is disabled by default in auto mode because
+the sylph-accelerated path (Section 2.4a) already performs read-level
+removal via Bowtie2; it remains available for users who explicitly
+choose the Kraken2 backend.
 
 The cost of this pass is proportional to the size of the retained set,
 which is small precisely when it is needed: at a host fraction of 0.9,
@@ -614,30 +644,47 @@ between Hostile and KneadData on accuracy, within 1.5× of Hostile on
 runtime at 50% host, and faster than Hostile at 90% host, while
 remaining 6--11× faster than KneadData.
 
-### 3.5 Memory is the cost of the classification path
+### 3.4a Full enhanced panel validates the sylph backend
 
-Peak memory is the clearest cost of the design, and it runs against
-RustyClean. KneadData held a near-constant 1.1 GB across all four
-datasets and Hostile 3.1 GB, whereas RustyClean with the default T2T-only
-Kraken2 library peaked at 4.9--12.2 GB (mean 8.5 GB) on the
-classification path, or 4--11× KneadData\'s requirement
-(Table 4). The resident Kraken2 database dominates the footprint.
-Switching from the earlier mixed-host Kraken16 library to the T2T-only
-index therefore reduced peak memory by roughly one-third to one-half on
-these datasets.
+To confirm that the sylph-accelerated path generalises beyond the four
+standard datasets, we ran it on the full enhanced panel of 18 simulated
+datasets spanning 0--99% host fraction, 5--100 M reads, three abundance
+distributions, and both single-end and paired-end layouts (three
+replicates per dataset). Accuracy remained high across the entire panel:
+F1 ranged from 0.9958 to 1.0000 for datasets containing at least some
+microbial reads (0--99% host; Figure SX). The lowest value, F1 = 0.9958,
+was observed on the two 90%-host 100 M-read datasets; the 99%-host 60
+M-read dataset was slightly lower at F1 = 0.9763 because the small
+microbial subset was more easily misclassified.
 
-This has a direct scheduling consequence. Because RustyClean can run
-several samples concurrently, and each worker loads its own copy of the
-database, concurrent memory demand scales as the product of worker count
-and database size. RustyClean therefore estimates the resident database
-size (for example, the Kraken2 `hash.k2d` file or the Bowtie2 index
-files) and the available memory (cgroup limit first, then
-`/proc/meminfo` `MemAvailable`) and caps the default worker count so
-that concurrent copies do not exceed roughly 80% of available RAM. Users
-can override the cap with `-w/--workers`. The default T2T-only index
-already addresses the largest component of the memory cost; enabling
-Kraken2\'s `--memory-mapping` option is the remaining practical
-optimisation for highly parallel runs.
+Peak memory stayed below 3.7 GB for all host-positive samples and fell
+to 0.23 GB for the 0%-host sample, where sylph correctly classified the
+sample as host-negative and Bowtie2 was skipped entirely. Runtime scaled
+predictably with read count and host fraction: 35.5 s for 5 M reads at
+1% host, 14.5 min for 100 M reads at 50% host, and 17.4 min for 100 M
+reads at 90% host (Figure SY). The 100 M / 90% dataset is the most
+stressful condition in the panel; the sylph backend completed it more
+than 13× faster than KneadData and with comparable accuracy.
+
+### 3.5 Memory profile of the sylph backend
+
+Peak memory is no longer a major cost of the default pipeline. With the
+sylph-accelerated path, RustyClean peaked at 3.5--3.7 GB on all
+host-positive samples in the full panel, comparable to Hostile (3.1 GB)
+and only 3× KneadData (1.1 GB). For samples that sylph classifies as
+host-negative the footprint is even smaller: the 0%-host 10 M-read
+sample used 0.23 GB because Bowtie2 was not invoked.
+
+The small footprint comes from replacing the Kraken2 database with a
+sylph sketch. The earlier Kraken2-based auto path loaded the T2T-only
+Kraken2 index (4.9--12.2 GB depending on sample) or the larger Kraken16
+mixed-host library. The sylph sketch is roughly two orders of magnitude
+smaller, so the memory-aware worker cap (Section 2.8) now allows
+substantially more concurrent samples than with the Kraken2 backend.
+
+For users who explicitly select the Kraken2 backend, the memory cost
+remains and `--memory-mapping` is still the recommended optimisation for
+highly parallel runs. The sylph backend avoids this trade-off entirely.
 
 ### 3.6 The depletion backend is interchangeable
 
@@ -695,23 +742,23 @@ Limitations. Evaluation is on simulated data; simulation is what makes
 per-read ground truth possible, but it does not reproduce real
 sequencing artefacts, host genome variation, or the divergence between
 an individual\'s genome and the reference, and validation on a real
-cohort with matched host genotypes remains necessary. The evaluation
-covers four datasets, all single-end, with host fractions concentrated
-at the extremes; paired-end libraries and intermediate host fractions
-near the routing threshold are under-sampled, and the behaviour of
-routing close to the threshold is precisely what a larger panel should
-characterise. Depletion is deterministic, so accuracy was evaluated once
-per dataset and replication applies only to timing. Peak memory on the
-classification path is high and constrains concurrency. Finally,
-host-fraction estimation from a small subsample was substantially less
-accurate on a skewed community, and while routing tolerated that error
-here, the margin is not guaranteed for samples whose true host fraction
-lies near the threshold.
+cohort with matched host genotypes remains necessary. The primary
+accuracy evaluation still covers a limited set of four standard datasets,
+all single-end; the full enhanced panel broadens coverage but does not
+include real sequencing artefacts. Paired-end libraries and intermediate
+host fractions near the routing threshold are now represented in the
+full panel, but behaviour very close to the threshold remains the regime
+most likely to be mis-routed. Depletion is deterministic, so accuracy
+was evaluated once per dataset and replication applies only to timing.
+Finally, host-fraction estimation from a small subsample was
+substantially less accurate on a skewed community, and while routing
+tolerated that error here, the margin is not guaranteed for samples whose
+true host fraction lies near the threshold.
 
 ## 5. Implementation status --- REMOVE BEFORE SUBMISSION
 
-Written against the repository as of this draft. **Sections 2.3 and 2.6
-describe functionality that does not yet exist.**
+Updated to reflect the sylph-accelerated auto mode and full-panel
+benchmark.
 
   -----------------------------------------------------------------------
   Component                       Status
@@ -722,18 +769,21 @@ describe functionality that does not yet exist.**
 
   Bowtie2 alignment path          ✅ implemented (main)
 
+  sylph + Bowtie2 backend         ✅ implemented (bowtie2-recheck branch)
+                                  used as default high-host branch in auto
+                                  mode
+
   minimap2 and Centrifuge         ✅ implemented (main)
   backends                        
 
-  Host-fraction survey + adaptive ✅ implemented (main): seqtk
-  routing (§2.3)                  subsample + bowtie2 \--very-fast-local;
-                                  \--auto-low-threshold /
-                                  \--auto-high-threshold /
-                                  \--auto-reads-threshold
+  Host-fraction survey + adaptive ✅ implemented (bowtie2-recheck branch):
+  routing (§2.3)                  low-host → bowtie2, high-host → sylph;
+                                  legacy kraken2 path retained as explicit
+                                  option
 
-  Bowtie2 verification pass       ⚠️ implemented on branch
-  (§2.6)                          bowtie2-recheck (\--bowtie2-recheck);
-                                  NOT yet merged to main
+  Bowtie2 verification pass       ✅ implemented on bowtie2-recheck branch
+  (§2.6)                          (\--bowtie2-recheck); optional on the
+                                  explicit kraken2 path, not used by auto
 
   Kraken2 \--memory-mapping       ✅ implemented (main)
   option                          
@@ -748,7 +798,12 @@ describe functionality that does not yet exist.**
 
   Two-level bounded concurrency   ✅ implemented (main)
 
+  Memory-aware worker cap         ✅ implemented (main)
+
   Validation gate                 ✅ implemented (main)
+
+  Full enhanced panel sylph       ✅ completed (18 datasets × 3 reps)
+  benchmark
 
   Startup check that the host     ❌ not implemented
   index matches the configured    
