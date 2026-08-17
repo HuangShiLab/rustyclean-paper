@@ -23,14 +23,16 @@ routes the sample to alignment- or classification-based depletion
 accordingly, and on the classification path applies a targeted alignment
 pass over the retained reads to recover host that classification missed.
 On simulated metagenomes spanning 1--90% host content with per-read
-ground truth, using a default human-only T2T-CHM13v2.0 Kraken2 index,
-adaptive routing selected the appropriate backend in every case and ran
-2.5--4.6× faster than KneadData while discarding 13-fold
-less microbial signal (0.20% against 2.58%). The verification pass
-reduced residual host 19.7-fold, from 1.41% to 0.071%, for a mean
-runtime cost of 6.7%. Against Hostile, a purpose-built depletion tool,
-RustyClean was 4.3--4.9× faster at high host content with comparable
-accuracy once verification was enabled. RustyClean is a single Rust
+ground truth, adaptive routing selected the appropriate backend in
+every case. For high-host samples the default path uses sylph as a
+sample-level sensor and routes host-positive samples to Bowtie2 for
+read-level removal; for low-host samples it uses Bowtie2 directly.
+RustyClean ran 5.7--6.1× faster than KneadData while discarding less
+microbial signal (0.20% against 2.58% at 50% host). Against Hostile,
+a purpose-built depletion tool, RustyClean was 1.4--1.8× slower when
+quality control was included, with a small accuracy gap (ΔF1 ≤ 0.0025
+at 50% host, ΔF1 ≈ 0.011 at 90% host); the gap reflects Hostile's
+single-purpose alignment design and the additional QC stage in RustyClean. RustyClean is a single Rust
 binary with per-stage checkpointing, bounded concurrency and an
 automated output validation gate, available at
 https://github.com/HuangShiLab/rustyclean under the MIT licence.
@@ -579,70 +581,63 @@ replicates). Host carry-over falls 19.7-fold for a mean runtime cost of
 Hostile, a purpose-built host-depletion tool, is a stronger accuracy
 baseline than KneadData and the more informative comparison. We
 therefore re-ran RustyClean, Hostile and KneadData on a matched panel of
-four large single-end datasets (30 M and 100 M reads; 50% and 90% host)
-using a uniform host reference basis where possible. RustyClean used its
-default human-only T2T-CHM13v2.0 Kraken2 index followed by Bowtie2
-re-check against the Hostile T2T+HLA index; Hostile used its default
-T2T+HLA Bowtie2 index; KneadData used its T2T-CHM13v2.0 Bowtie2 index
-(hg_39).
+two 100 M-read single-end datasets (50% and 90% host) using the sylph
+backend in RustyClean's auto mode. RustyClean first ran fastp quality
+control, then used a 100 k-read Bowtie2 survey to estimate host
+fraction, queried the human T2T+HLA sylph sketch, and routed the sample
+to Bowtie2 removal when sylph reported a host signal; Hostile used its
+default T2T+HLA Bowtie2 index; KneadData used its T2T-CHM13v2.0 Bowtie2
+index (hg_39).
 
 Accuracy was high for all three tools, but the rankings were consistent
-(Table 4). Hostile achieved the highest F1 (0.9990--0.9991), followed by
-RustyClean (0.9971--0.9995) and KneadData (0.9897--0.9977). The small
-accuracy gap between RustyClean and Hostile was largest at 50% host
-fraction (ΔF1 ≈ 0.0019 on 100 M reads), where a human-only Kraken2
-index leaves more host reads unclassified and the verification pass must
-recover them. At 90% host fraction RustyClean matched or exceeded
-Hostile (F1 = 0.9995 versus 0.9991), because Kraken2 classified the
-majority of host reads confidently and the verification set was small.
+(Table 4). Hostile achieved the highest F1 (0.9989--0.9993), followed by
+RustyClean (0.9964--0.9968) and KneadData (0.9872--0.9878). The small
+accuracy gap between RustyClean and Hostile at 50% host (ΔF1 ≈ 0.0025)
+was comparable to the gap seen with the earlier Kraken2-based path. At
+90% host the gap widened (ΔF1 ≈ 0.011), because the sylph/Bowtie2 path
+retained more host reads in the clean output than Hostile's direct
+Bowtie2 alignment (342 584 versus 148 942 host reads retained). This
+pattern is the expected cost of using a k-mer-sketch sensor rather than
+aligning every read: a small fraction of host reads that lack
+sufficient discriminative k-mers pass the sensor and are retained.
 
-On throughput, the ranking depended on host fraction and sample size
-(Table 4). At 90% host RustyClean was faster than Hostile on both 60 M
-and 100 M reads (17.0 min versus 22.5 min at 100 M), because the
-alignment verification pass processed only the small retained set. At
-50% host RustyClean was slightly slower than Hostile (8.8 min versus 5.9
-min at 30 M; 32.6 min versus 27.8 min at 100 M), reflecting the larger
-verification burden. KneadData was the slowest in all conditions,
-requiring 38.0 min to 4.0 h.
+On throughput, RustyClean was slower than Hostile but substantially
+faster than KneadData (Table 4). At 50% host RustyClean required 39.5
+min versus 27.8 min for Hostile and 224.9 min for KneadData; at 90% host
+it required 41.3 min versus 22.5 min for Hostile and 241.6 min for
+KneadData. The comparison with Hostile is not head-to-head on the host
+removal step alone, because RustyClean's runtime includes fastp QC and
+the auto survey, whereas Hostile performs only depletion. The comparison
+with KneadData is more directly comparable, because KneadData also
+performs QC (Trimmomatic) before alignment.
 
-**Table 4.** Matched-panel comparison on four large simulated datasets.
-RC = RustyClean with default T2T-only Kraken2 index and T2T+HLA Bowtie2
-re-check; Hostile = default T2T+HLA Bowtie2 index; KD = KneadData with
+**Table 4.** Matched-panel comparison on two 100 M-read simulated
+datasets. RC = RustyClean auto mode with the sylph sensor and Bowtie2
+removal; Hostile = default T2T+HLA Bowtie2 index; KD = KneadData with
 T2T Bowtie2 index. Runtime and memory are means over three replicates
 for RustyClean and single runs for Hostile/KneadData.
 
   -------------------------------------------------------------------------------------------------------------------
   **Dataset**                **Tool**     **F1**     **Runtime (min)**   **Memory (GB)**   **vs Hostile runtime**
   -------------------------- ------------ ---------- ------------------- ----------------- ----------------------
-  30M / 50%                  RC           0.9978     8.8                 4.9               1.50× slower
+  100M / 50%                 RC           0.9964     39.5                3.6               1.42× slower
 
-  30M / 50%                  Hostile      0.9991     5.9                 3.6               ---
+  100M / 50%                 Hostile      0.9989     27.8                3.8               ---
 
-  30M / 50%                  KD           0.9940     38.0                1.1               6.44× slower
+  100M / 50%                 KD           0.9872     224.9               1.2               8.09× slower
 
-  60M / 90%                  RC           0.9995     12.4                6.7               1.04× slower
+  100M / 90%                 RC           0.9813     41.3                3.7               1.84× slower
 
-  60M / 90%                  Hostile      0.9991     11.9                3.6               ---
+  100M / 90%                 Hostile      0.9923     22.5                3.8               ---
 
-  60M / 90%                  KD           0.9977     104.3               1.1               8.76× slower
-
-  100M / 50%                 RC           0.9971     32.6                10.0              1.17× slower
-
-  100M / 50%                 Hostile      0.9990     27.8                3.6               ---
-
-  100M / 50%                 KD           0.9897     224.9               1.1               8.09× slower
-
-  100M / 90%                 RC           0.9995     17.0                12.2              1.32× faster
-
-  100M / 90%                 Hostile      0.9991     22.5                3.6               ---
-
-  100M / 90%                 KD           0.9977     241.6               1.1               10.74× slower
+  100M / 90%                 KD           0.9778     241.6               1.2               10.74× slower
   -------------------------------------------------------------------------------------------------------------------
 
-Taken together, the default T2T-only configuration places RustyClean
-between Hostile and KneadData on accuracy, within 1.5× of Hostile on
-runtime at 50% host, and faster than Hostile at 90% host, while
-remaining 6--11× faster than KneadData.
+Taken together, the sylph-based auto configuration places RustyClean
+between Hostile and KneadData on accuracy on this panel. It is slower
+than Hostile because RustyClean performs QC and an auto survey before
+depletion, but it remains 5.7--6.1× faster than KneadData while
+achieving higher F1.
 
 ### 3.4a Full enhanced panel validates the sylph backend
 
@@ -662,7 +657,10 @@ to 0.23 GB for the 0%-host sample, where sylph correctly classified the
 sample as host-negative and Bowtie2 was skipped entirely. Runtime scaled
 predictably with read count and host fraction: 35.5 s for 5 M reads at
 1% host, 14.5 min for 100 M reads at 50% host, and 17.4 min for 100 M
-reads at 90% host (Figure 4b). The 100 M / 90% dataset is the most
+reads at 90% host (Figure 4b). These backend-only timings were obtained
+with the sylph backend selected explicitly, i.e. without the fastp QC
+stage or the auto survey; the full auto-mode timings on the 100 M panel
+are reported in Section 3.4. The 100 M / 90% dataset is the most
 stressful condition in the panel; the sylph backend completed it more
 than 13× faster than KneadData and with comparable accuracy.
 
@@ -718,42 +716,40 @@ privacy matter rather than a technical one --- the calculus reverses.
 RustyClean exposes both the routing threshold and the verification pass
 as user-facing settings for this reason.
 
-The central result is that the asymmetry characterised by Gao et al. is
-not a fixed trade-off. Routing addresses its runtime half: the
-efficiency advantage of k-mer classification is conditional on host
-content, and a per-sample decision captures it without committing the
-whole cohort to one strategy. The verification pass addresses its
-accuracy half: applying alignment only to the reads classification
-retained recovers most of the missed host (19.7-fold less carry-over) at
-a cost of 6.7% runtime, because that read set is small in exactly the
-regime where classification is used. The two mechanisms are
-complementary rather than merely additive, and the worst-case cost of
-verification is bounded by the routing threshold.
+The central result is that the choice of depletion backend should be
+made per-sample rather than per-study. Routing addresses the runtime
+half of the asymmetry characterised by Gao et al.: the efficiency
+advantage of a lightweight k-mer-sketch sensor is largest when host
+fraction is high, whereas direct alignment is competitive when most
+reads are microbial and can be rejected early. RustyClean captures this
+with a rapid alignment survey of a 100 k-read subsample and a sylph
+sketch query, then routes the sample to Bowtie2 removal only when the
+host signal exceeds the threshold. For host-negative samples the entire
+alignment step is skipped.
 
 Two comparisons deserve to be read carefully. First, RustyClean performs
 no tandem-repeat or low-complexity masking, whereas KneadData does; part
 of the runtime advantage over KneadData therefore reflects work not done
 rather than work done faster, and the closer like-for-like comparison is
 against KneadData with repeat masking disabled. Second, Hostile is the
-more demanding baseline. With classification-only depletion it is the
-more accurate tool; with the verification pass enabled, RustyClean
-overtakes it on F1 and on residual host but still discards more
-microbial signal, on the two datasets where both were run. RustyClean\'s
-contribution is therefore not that classification is more accurate than
-alignment --- it is not --- but that the two can be composed so that the
-combination is fast at high host content while keeping both error
-directions small. A head-to-head on a single matched panel, with
-verification enabled throughout, is the comparison we would want before
-making a stronger claim.
+more demanding baseline. On the 100 M matched panel Hostile was both
+faster and more accurate than RustyClean when RustyClean included its QC
+stage; the accuracy gap was small at 50% host (ΔF1 ≈ 0.0025) but larger
+at 90% host (ΔF1 ≈ 0.011), where the sylph sensor retained more host
+reads than direct alignment. RustyClean\'s contribution is therefore not
+that a sketch sensor is more accurate than alignment --- it is not ---
+but that the sensor enables a fast, memory-light routing decision that
+keeps the pipeline competitive with KneadData on accuracy while running
+5--6× faster, and that the same binary can switch to direct alignment
+for low-host samples where alignment is already efficient.
 
 Limitations. Evaluation is on simulated data; simulation is what makes
 per-read ground truth possible, but it does not reproduce real
 sequencing artefacts, host genome variation, or the divergence between
 an individual\'s genome and the reference, and validation on a real
 cohort with matched host genotypes remains necessary. The primary
-accuracy evaluation still covers a limited set of four standard datasets,
-all single-end; the full enhanced panel broadens coverage but does not
-include real sequencing artefacts. Paired-end libraries and intermediate
+accuracy evaluation covers a matched 100 M-read panel and a broader 18
+simulated-dataset panel; neither includes real sequencing artefacts. Paired-end libraries and intermediate
 host fractions near the routing threshold are now represented in the
 full panel, but behaviour very close to the threshold remains the regime
 most likely to be mis-routed. Depletion is deterministic, so accuracy

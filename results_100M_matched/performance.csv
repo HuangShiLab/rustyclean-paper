@@ -1,0 +1,11 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_auto_sylph,100M_90pct_high_lognormal_SE,1,2381,3722640,2026-08-17T06:49:54+08:00
+rustyclean_auto_sylph,100M_50pct_high_lognormal_SE,1,2556,3566164,2026-08-17T06:52:49+08:00
+rustyclean_auto_sylph,100M_50pct_high_lognormal_SE,2,2282,3568808,2026-08-17T07:30:51+08:00
+rustyclean_auto_sylph,100M_90pct_high_lognormal_SE,2,2711,3724756,2026-08-17T07:35:05+08:00
+rustyclean_auto_sylph,100M_50pct_high_lognormal_SE,3,2273,3566156,2026-08-17T08:08:45+08:00
+rustyclean_auto_sylph,100M_90pct_high_lognormal_SE,3,2347,3724464,2026-08-17T08:14:13+08:00
+kneaddata,100M_50pct_high_lognormal_SE,13494,1170156,2026-08-13T04:24:27+08:00
+kneaddata,100M_90pct_high_lognormal_SE,14498,1172512,2026-08-13T04:41:10+08:00
+hostile,100M_90pct_high_lognormal_SE,1348,3774940,2026-08-13T01:23:24+08:00
+hostile,100M_50pct_high_lognormal_SE,1668,3770052,2026-08-13T01:28:43+08:00
