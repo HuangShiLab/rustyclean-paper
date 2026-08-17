@@ -1,0 +1,3 @@
+dataset,rep,tool,accuracy,precision,recall,f1,tp,fp,tn,fn
+100M_50pct_high_lognormal_SE,1,rustyclean_auto_sylph_skipqc,0.996428,0.995296,0.996924,0.996109,40157346,189791,47360658,123924
+100M_90pct_high_lognormal_SE,1,rustyclean_auto_sylph_skipqc,0.996079,0.959090,0.996946,0.977652,8031391,342583,85242547,24600

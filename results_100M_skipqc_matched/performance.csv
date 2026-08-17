@@ -1,0 +1,3 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_auto_sylph_skipqc,100M_90pct_high_lognormal_SE,1,1477,3724688,2026-08-17T12:58:28+08:00
+rustyclean_auto_sylph_skipqc,100M_50pct_high_lognormal_SE,1,1633,3569276,2026-08-17T13:01:03+08:00

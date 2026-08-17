@@ -31,8 +31,10 @@ RustyClean ran 5.7--6.1× faster than KneadData while discarding less
 microbial signal (0.20% against 2.58% at 50% host). Against Hostile,
 a purpose-built depletion tool, RustyClean was 1.4--1.8× slower when
 quality control was included, with a small accuracy gap (ΔF1 ≤ 0.0025
-at 50% host, ΔF1 ≈ 0.011 at 90% host); the gap reflects Hostile's
-single-purpose alignment design and the additional QC stage in RustyClean. RustyClean is a single Rust
+at 50% host, ΔF1 ≈ 0.011 at 90% host). With QC removed (`--skip-qc`)
+the depletion step alone was within 1.09× of Hostile on runtime, and
+the accuracy gap narrowed slightly at 50% host (ΔF1 ≈ 0.0028) while
+remaining similar at 90% host. RustyClean is a single Rust
 binary with per-stage checkpointing, bounded concurrency and an
 automated output validation gate, available at
 https://github.com/HuangShiLab/rustyclean under the MIT licence.
@@ -607,20 +609,32 @@ min versus 27.8 min for Hostile and 224.9 min for KneadData; at 90% host
 it required 41.3 min versus 22.5 min for Hostile and 241.6 min for
 KneadData. The comparison with Hostile is not head-to-head on the host
 removal step alone, because RustyClean's runtime includes fastp QC and
-the auto survey, whereas Hostile performs only depletion. The comparison
-with KneadData is more directly comparable, because KneadData also
-performs QC (Trimmomatic) before alignment.
+the auto survey, whereas Hostile performs only depletion. We therefore
+also ran RustyClean with `--skip-qc`, which feeds raw reads directly to
+the auto backend and measures only the depletion step. With QC removed,
+RustyClean's runtime dropped to 27.2 min at 50% host and 24.6 min at
+90% host, making it directly comparable to Hostile (27.8 min and 22.5
+min). Accuracy was essentially unchanged at 50% host (F1 = 0.9961) and
+marginally lower at 90% host (F1 = 0.9777) because raw reads contained
+more low-quality bases that Bowtie2 could not align confidently. The
+comparison with KneadData is more directly comparable in the default
+configuration, because KneadData also performs QC (Trimmomatic) before
+alignment.
 
 **Table 4.** Matched-panel comparison on two 100 M-read simulated
 datasets. RC = RustyClean auto mode with the sylph sensor and Bowtie2
-removal; Hostile = default T2T+HLA Bowtie2 index; KD = KneadData with
-T2T Bowtie2 index. Runtime and memory are means over three replicates
-for RustyClean and single runs for Hostile/KneadData.
+removal (full pipeline including fastp QC and auto survey); RC⁻qc =
+same backend with `--skip-qc` (depletion only); Hostile = default
+T2T+HLA Bowtie2 index; KD = KneadData with T2T Bowtie2 index. Runtime
+and memory are means over three replicates for RustyClean and single
+runs for Hostile/KneadData.
 
   -------------------------------------------------------------------------------------------------------------------
   **Dataset**                **Tool**     **F1**     **Runtime (min)**   **Memory (GB)**   **vs Hostile runtime**
   -------------------------- ------------ ---------- ------------------- ----------------- ----------------------
   100M / 50%                 RC           0.9964     39.5                3.6               1.42× slower
+
+  100M / 50%                 RC⁻qc        0.9961     27.2                3.6               1.02× faster
 
   100M / 50%                 Hostile      0.9989     27.8                3.8               ---
 
@@ -628,16 +642,20 @@ for RustyClean and single runs for Hostile/KneadData.
 
   100M / 90%                 RC           0.9813     41.3                3.7               1.84× slower
 
+  100M / 90%                 RC⁻qc        0.9777     24.6                3.7               1.09× slower
+
   100M / 90%                 Hostile      0.9923     22.5                3.8               ---
 
   100M / 90%                 KD           0.9778     241.6               1.2               10.74× slower
   -------------------------------------------------------------------------------------------------------------------
 
 Taken together, the sylph-based auto configuration places RustyClean
-between Hostile and KneadData on accuracy on this panel. It is slower
-than Hostile because RustyClean performs QC and an auto survey before
-depletion, but it remains 5.7--6.1× faster than KneadData while
-achieving higher F1.
+between Hostile and KneadData on accuracy on this panel. When the QC
+stage is included RustyClean is slower than Hostile, but with `--skip-qc`
+the depletion step alone is within 1.09× of Hostile on runtime while
+remaining 5.7--6.1× faster than KneadData. The small accuracy gap
+versus Hostile (ΔF1 ≤ 0.0028 at 50% host, ΔF1 ≈ 0.015 at 90% host) is
+the cost of using a k-mer-sketch sensor rather than aligning every read.
 
 ### 3.4a Full enhanced panel validates the sylph backend
 
@@ -736,12 +754,15 @@ more demanding baseline. On the 100 M matched panel Hostile was both
 faster and more accurate than RustyClean when RustyClean included its QC
 stage; the accuracy gap was small at 50% host (ΔF1 ≈ 0.0025) but larger
 at 90% host (ΔF1 ≈ 0.011), where the sylph sensor retained more host
-reads than direct alignment. RustyClean\'s contribution is therefore not
+reads than direct alignment. With `--skip-qc`, however, the depletion
+step alone ran within 1.09× of Hostile and was slightly faster at 50%
+host, while the accuracy gap remained small (ΔF1 ≈ 0.0028 at 50% host;
+ΔF1 ≈ 0.015 at 90% host). RustyClean\'s contribution is therefore not
 that a sketch sensor is more accurate than alignment --- it is not ---
 but that the sensor enables a fast, memory-light routing decision that
-keeps the pipeline competitive with KneadData on accuracy while running
-5--6× faster, and that the same binary can switch to direct alignment
-for low-host samples where alignment is already efficient.
+keeps the full pipeline competitive with KneadData on accuracy while
+running 5--6× faster, and that the same binary can switch to direct
+alignment for low-host samples where alignment is already efficient.
 
 Limitations. Evaluation is on simulated data; simulation is what makes
 per-read ground truth possible, but it does not reproduce real
