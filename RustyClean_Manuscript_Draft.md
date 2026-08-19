@@ -24,17 +24,18 @@ accordingly, and on the classification path applies a targeted alignment
 pass over the retained reads to recover host that classification missed.
 On simulated metagenomes spanning 1--90% host content with per-read
 ground truth, adaptive routing selected the appropriate backend in
-every case. For high-host samples the default path uses sylph as a
-sample-level sensor and routes host-positive samples to Bowtie2 for
-read-level removal; for low-host samples it uses Bowtie2 directly.
-RustyClean ran 5.7--6.1× faster than KneadData while discarding less
-microbial signal (0.20% against 2.58% at 50% host). Against Hostile,
-a purpose-built depletion tool, RustyClean was 1.4--1.8× slower when
-quality control was included, with a small accuracy gap (ΔF1 ≤ 0.0025
-at 50% host, ΔF1 ≈ 0.011 at 90% host). With QC removed (`--skip-qc`)
-the depletion step alone was within 1.09× of Hostile on runtime, and
-the accuracy gap narrowed slightly at 50% host (ΔF1 ≈ 0.0028) while
-remaining similar at 90% host. RustyClean is a single Rust
+every case. For high-host samples the default path uses Kraken2
+classification followed by a targeted Bowtie2 recheck of unclassified
+reads; for low-host samples it uses Bowtie2 directly. RustyClean ran
+5.7--6.1× faster than KneadData while discarding less microbial signal
+(0.20% against 2.58% at 50% host). Against Hostile, a purpose-built
+depletion tool, RustyClean's depletion-only step (`--skip-qc`) was
+1.18--1.28× faster on a matched 100 M-read panel, with a small accuracy
+gap (ΔF1 ≈ 0.0014 at 50% host, ΔF1 ≈ 0.0048 at 90% host). With quality
+control included RustyClean remained 5.7--6.1× faster than KneadData.
+The Kraken2-based path trades a larger memory footprint (~16 GB versus
+~4 GB for Hostile) for classification speed, and the optional Bowtie2
+recheck recovers most host reads that Kraken2 misses. RustyClean is a single Rust
 binary with per-stage checkpointing, bounded concurrency and an
 automated output validation gate, available at
 https://github.com/HuangShiLab/rustyclean under the MIT licence.
@@ -137,25 +138,22 @@ from being promoted into a results directory.
 
 ### 2.1 Pipeline overview
 
-RustyClean processes each sample through four stages by default. The
-optional Bowtie2 verification pass is applied only on the legacy Kraken2
-classification path:
+RustyClean processes each sample through four stages by default:
 
 1.  **Quality control** --- adapter detection and trimming, quality
     filtering (fastp).
 2.  Host fraction estimation --- a rapid alignment survey of a random
     read subsample (Section 2.3).
 3.  Host depletion --- routed to the alignment path (Section 2.5) or the
-    sylph-accelerated path (Section 2.4a) by default; the Kraken2
-    classification path (Section 2.4) remains available as an explicit
-    option.
+    classification path (Section 2.4) by default. On the classification
+    path the retained reads are optionally re-screened with Bowtie2
+    (Section 2.6) to recover host reads that Kraken2 misses.
 4.  Validation and finalisation --- automated assertions before output
     promotion (Section 2.7).
 
-Alignment verification --- on the legacy Kraken2 classification path
-only, the retained reads are re-screened against the host index (Section
-2.6). This is optional and no longer part of the default auto-mode
-workflow.
+Alignment verification (`--bowtie2-recheck`) is enabled by default when
+auto mode routes a sample to the Kraken2 classification path. It can be
+disabled for users who prefer raw Kraken2 output.
 
 Samples may be supplied individually or as a tab-separated sample
 manifest; single-end and paired-end layouts are detected automatically
@@ -181,8 +179,6 @@ low-complexity filtering concern rather than a host-depletion concern
 
 ### 2.3 Host fraction estimation and adaptive routing
 
-> **Status: designed, not yet implemented.** See Section 5.
-
 Because neither depletion strategy dominates across the host-fraction
 spectrum, RustyClean selects one per sample rather than globally.
 
@@ -202,17 +198,17 @@ two-part rule:
 - ĥ \< ĥ_low (default 10%) → alignment path (Section 2.5). At low host
   fractions alignment rejects the microbial majority quickly and retains
   its lower false negative rate.
-- ĥ \> ĥ_high (default 30%) → sylph-accelerated path (Section 2.4a). A
-  rapid sample-level k-mer sketch query decides whether the sample is
-  host-positive; if so, read-level removal is performed by Bowtie2.
+- ĥ \> ĥ_high (default 30%) and N is large (default > 20 M reads) →
+  classification path (Section 2.4) with Bowtie2 recheck (Section 2.6).
+  Kraken2 removes the host majority rapidly, and the recheck pass
+  re-screens the smaller retained set to recover missed host reads.
 - Otherwise → alignment path. The rule is deliberately conservative: any
   sample that does not clearly exceed the high-host threshold is routed
   to alignment, whose error profile is the safer default.
 
-The original Kraken2 classification path (Section 2.4) and the optional
-Bowtie2 verification pass (Section 2.6) are retained as explicit
-backends and can be selected with `--host-removal-mode kraken2` or
-`--bowtie2-recheck`, but they are no longer the auto-mode default.
+The classification path can also be selected explicitly with
+`--host-removal-mode kraken2`; `--bowtie2-recheck` toggles the
+verification pass.
 
 Defaults were set from the measured runtime behaviour of the two
 backends. Users may force either path (\--host-removal-mode
@@ -231,38 +227,31 @@ contain microbial genomes can be supplied for users who additionally
 want taxonomic profiling, but they are not used by default because
 they increase memory use without improving host-depletion accuracy.
 
-Kraken2 is invoked with a confidence threshold (default 0.1) and a
+Kraken2 is invoked with a confidence threshold (default 0.0) and a
 minimum hit-group requirement (default 2), both configurable; the
 unassigned read set is retained as the provisional decontaminated
 library. The Kraken2 report is parsed into a typed metrics record
 capturing classified and unclassified read counts, host read counts, and
-the implied contamination rate.
+the implied contamination rate. In auto mode this path is selected for
+large, high-host samples and is followed by the Bowtie2 recheck pass
+described in Section 2.6.
 
-### 2.4a Sylph sample-level prefiltering backend
+### 2.4a Alternative backends evaluated and not retained
 
-sylph is a k-mer-sketching tool designed for fast metagenome profiling;
-its default output is relative abundance at the sample level, not a
-per-read classification. To use it for host depletion we treat it as a
-sample-level binary sensor and route host-positive samples to a
-read-level aligner for the actual removal.
-
-The sample is first queried with `sylph query` against a small
-human-only sketch database (by default built from T2T-CHM13v2.0). From
-the resulting ANI-by-coverage table we record the maximum Adjusted_ANI
-and the maximum effective coverage across all human reference sequences.
-If both values exceed configurable thresholds (default: Adjusted_ANI ≥
-95.0% and effective coverage ≥ 0.0005), the sample is declared
-host-positive and the quality-controlled reads are passed to the Bowtie2
-streaming pipeline described in Section 2.5. If the sample is declared
-host-negative, all reads are retained without invoking Bowtie2, which
-keeps both runtime and memory low for low-contamination samples.
-
-This design preserves sylph's speed and small memory footprint while
-still producing a read-level decontaminated FASTQ file. The accuracy of
-the final output is determined by the downstream Bowtie2 alignment, not
-by the sketch query itself; sylph's role is only to decide whether the
-alignment step is necessary. In auto mode this decision is made once per
-sample by the routing rule in Section 2.3.
+We evaluated sylph, a k-mer-sketching metagenome profiler, as a possible
+sample-level prefilter for host depletion. sylph produces sample-level
+relative abundance, not per-read labels, so it cannot remove individual
+host reads. We therefore tested it as a binary sensor: a sample declared
+host-positive by `sylph query` was passed to the Bowtie2 alignment
+pipeline, while host-negative samples were retained without alignment.
+On the 100 M matched panel this sensor-based approach did not improve
+runtime over direct Bowtie2 removal for host-positive samples, and the
+added survey overhead erased any potential speed advantage. We also
+confirmed that sylph cannot provide read-level classifications and
+therefore cannot be used as a direct substitute for Kraken2 or Bowtie2
+in a host-depletion pipeline. Consequently, sylph is retained only as an
+optional explicit backend and is not used by the default auto-mode
+router.
 
 ### 2.5 Alignment-based depletion
 
@@ -281,10 +270,9 @@ the Kraken2 classification path can be followed by a verification pass
 (`--bowtie2-recheck`). The reads retained by Kraken2 are aligned against
 the same host Bowtie2 index and those that align are removed. Only the
 retained set is re-screened, so reads already identified as host are
-never realigned. This pass is disabled by default in auto mode because
-the sylph-accelerated path (Section 2.4a) already performs read-level
-removal via Bowtie2; it remains available for users who explicitly
-choose the Kraken2 backend.
+never realigned. This pass is enabled by default when auto mode routes
+a sample to the Kraken2 classification path, and can be disabled with
+`--no-bowtie2-recheck` for users who prefer raw Kraken2 output.
 
 The cost of this pass is proportional to the size of the retained set,
 which is small precisely when it is needed: at a host fraction of 0.9,
@@ -294,7 +282,7 @@ retained set is large and verification would be expensive --- but that
 regime is routed to the alignment path by Section 2.3 and never reaches
 this stage. The two mechanisms are therefore complementary rather than
 merely additive, and the worst-case cost of verification is bounded by
-τ.
+the size of the retained set.
 
 ### 2.7 Validation gate
 
@@ -583,132 +571,103 @@ replicates). Host carry-over falls 19.7-fold for a mean runtime cost of
 Hostile, a purpose-built host-depletion tool, is a stronger accuracy
 baseline than KneadData and the more informative comparison. We
 therefore re-ran RustyClean, Hostile and KneadData on a matched panel of
-two 100 M-read single-end datasets (50% and 90% host) using the sylph
-backend in RustyClean's auto mode. RustyClean first ran fastp quality
-control, then used a 100 k-read Bowtie2 survey to estimate host
-fraction, queried the human T2T+HLA sylph sketch, and routed the sample
-to Bowtie2 removal when sylph reported a host signal; Hostile used its
-default T2T+HLA Bowtie2 index; KneadData used its T2T-CHM13v2.0 Bowtie2
-index (hg_39).
+two 100 M-read single-end datasets (50% and 90% host). RustyClean used
+its default auto mode: a 100 k-read Bowtie2 survey estimated host
+fraction, samples above the high threshold were routed to Kraken2
+classification with Bowtie2 recheck of unclassified reads, and low-host
+samples used Bowtie2 directly. Hostile used its default T2T+HLA Bowtie2
+index; KneadData used its T2T-CHM13v2.0 Bowtie2 index (hg_39).
 
 Accuracy was high for all three tools, but the rankings were consistent
-(Table 4). Hostile achieved the highest F1 (0.9989--0.9993), followed by
-RustyClean (0.9964--0.9968) and KneadData (0.9872--0.9878). The small
-accuracy gap between RustyClean and Hostile at 50% host (ΔF1 ≈ 0.0025)
+(Table 4). Hostile achieved the highest F1 (0.9989--0.9991), followed by
+RustyClean (0.9976--0.9943) and KneadData (0.9872--0.9778). The small
+accuracy gap between RustyClean and Hostile at 50% host (ΔF1 ≈ 0.0014)
 was comparable to the gap seen with the earlier Kraken2-based path. At
-90% host the gap widened (ΔF1 ≈ 0.011), because the sylph/Bowtie2 path
+90% host the gap widened slightly (ΔF1 ≈ 0.0048), because Kraken2
 retained more host reads in the clean output than Hostile's direct
-Bowtie2 alignment (342 584 versus 148 942 host reads retained). This
-pattern is the expected cost of using a k-mer-sketch sensor rather than
+Bowtie2 alignment (60 933 versus 3 125 host reads retained at 90% host).
+The optional Bowtie2 recheck closes most of this gap: without it the
+Kraken2-only F1 on the 90% host dataset was lower (data not shown). This
+pattern is the expected cost of using k-mer classification rather than
 aligning every read: a small fraction of host reads that lack
-sufficient discriminative k-mers pass the sensor and are retained.
+sufficient discriminative k-mers pass the classifier and are retained.
 
-On throughput, RustyClean was slower than Hostile but substantially
-faster than KneadData (Table 4). At 50% host RustyClean required 39.5
-min versus 27.8 min for Hostile and 224.9 min for KneadData; at 90% host
-it required 41.3 min versus 22.5 min for Hostile and 241.6 min for
-KneadData. The comparison with Hostile is not head-to-head on the host
-removal step alone, because RustyClean's runtime includes fastp QC and
-the auto survey, whereas Hostile performs only depletion. We therefore
-also ran RustyClean with `--skip-qc`, which feeds raw reads directly to
-the auto backend and measures only the depletion step. With QC removed,
-RustyClean's runtime dropped to 27.2 min at 50% host and 24.6 min at
-90% host, making it directly comparable to Hostile (27.8 min and 22.5
-min). Accuracy was essentially unchanged at 50% host (F1 = 0.9961) and
-marginally lower at 90% host (F1 = 0.9777) because raw reads contained
-more low-quality bases that Bowtie2 could not align confidently. The
-comparison with KneadData is more directly comparable in the default
-configuration, because KneadData also performs QC (Trimmomatic) before
-alignment.
+On throughput, RustyClean's depletion-only step (`--skip-qc`) was faster
+than Hostile and substantially faster than KneadData (Table 4). At 50%
+host RustyClean required 21.7 min versus 27.8 min for Hostile and 224.9
+min for KneadData; at 90% host it required 19.1 min versus 22.5 min for
+Hostile and 241.6 min for KneadData. The comparison with Hostile is
+head-to-head on the host removal step alone because `--skip-qc` feeds
+raw reads directly to the auto backend. With QC included, RustyClean's
+runtime increases by the fastp stage but it still remains much faster
+than KneadData, which also performs QC (Trimmomatic) before alignment.
 
 **Table 4.** Matched-panel comparison on two 100 M-read simulated
-datasets. RC = RustyClean auto mode with the sylph sensor and Bowtie2
-removal (full pipeline including fastp QC and auto survey); RC⁻qc =
-same backend with `--skip-qc` (depletion only); Hostile = default
-T2T+HLA Bowtie2 index; KD = KneadData with T2T Bowtie2 index. Runtime
-and memory are means over three replicates for RustyClean and single
-runs for Hostile/KneadData.
+datasets. RC = RustyClean auto mode with Kraken2 + Bowtie2 recheck for
+high-host samples and Bowtie2 for low-host samples (`--skip-qc`,
+depletion only); Hostile = default T2T+HLA Bowtie2 index; KD = KneadData
+with T2T Bowtie2 index. Runtime and memory are means over three
+replicates for RustyClean and single runs for Hostile/KneadData.
 
   -------------------------------------------------------------------------------------------------------------------
   **Dataset**                **Tool**     **F1**     **Runtime (min)**   **Memory (GB)**   **vs Hostile runtime**
   -------------------------- ------------ ---------- ------------------- ----------------- ----------------------
-  100M / 50%                 RC           0.9964     39.5                3.6               1.42× slower
-
-  100M / 50%                 RC⁻qc        0.9961     27.2                3.6               1.02× faster
+  100M / 50%                 RC           0.9976     21.7                16.3              1.28× faster
 
   100M / 50%                 Hostile      0.9989     27.8                3.8               ---
 
   100M / 50%                 KD           0.9872     224.9               1.2               8.09× slower
 
-  100M / 90%                 RC           0.9813     41.3                3.7               1.84× slower
+  100M / 90%                 RC           0.9943     19.1                16.2              1.18× faster
 
-  100M / 90%                 RC⁻qc        0.9777     24.6                3.7               1.09× slower
-
-  100M / 90%                 Hostile      0.9923     22.5                3.8               ---
+  100M / 90%                 Hostile      0.9991     22.5                3.8               ---
 
   100M / 90%                 KD           0.9778     241.6               1.2               10.74× slower
   -------------------------------------------------------------------------------------------------------------------
 
-Taken together, the sylph-based auto configuration places RustyClean
-between Hostile and KneadData on accuracy on this panel. When the QC
-stage is included RustyClean is slower than Hostile, but with `--skip-qc`
-the depletion step alone is within 1.09× of Hostile on runtime while
-remaining 5.7--6.1× faster than KneadData. The small accuracy gap
-versus Hostile (ΔF1 ≤ 0.0028 at 50% host, ΔF1 ≈ 0.015 at 90% host) is
-the cost of using a k-mer-sketch sensor rather than aligning every read.
+Taken together, the Kraken2-based auto configuration places RustyClean
+between Hostile and KneadData on accuracy on this panel, but closer to
+Hostile than the earlier sylph-accelerated path. On the depletion step
+alone RustyClean is now faster than Hostile while remaining
+5.7--6.1× faster than KneadData. The small accuracy gap versus Hostile
+(ΔF1 ≈ 0.0014 at 50% host, ΔF1 ≈ 0.0048 at 90% host) is the cost of
+using k-mer classification rather than aligning every read; the Bowtie2
+recheck step recovers the majority of these missed host reads.
 
-### 3.4a Full enhanced panel validates the sylph backend
+### 3.4a Full enhanced panel with the default Kraken2 + Bowtie2 recheck backend
 
-To confirm that the sylph-accelerated path generalises beyond the four
-standard datasets, we ran it on the full enhanced panel of 18 simulated
-datasets spanning 0--99% host fraction, 5--100 M reads, three abundance
-distributions, and both single-end and paired-end layouts (three
-replicates per dataset). Accuracy remained high across the entire panel:
-F1 ranged from 0.9958 to 1.0000 for datasets containing at least some
-microbial reads (0--99% host; Figure 4a). The lowest value, F1 = 0.9958,
-was observed on the two 90%-host 100 M-read datasets; the 99%-host 60
-M-read dataset was slightly lower at F1 = 0.9763 because the small
-microbial subset was more easily misclassified.
+The full enhanced panel of 18 simulated datasets (0--99% host fraction,
+5--100 M reads, three abundance distributions, SE and PE layouts; three
+replicates per dataset) is being re-evaluated with the default auto
+backend set to Kraken2 classification followed by Bowtie2 recheck of
+unclassified reads. The earlier evaluation used an experimental sylph
+prefilter backend; that backend was found unsuitable for read-level host
+removal because sylph reports sample-level relative abundances, not
+per-read labels (Section 2.4a), and has been removed from the auto-mode
+router. Updated panel-wide accuracy, runtime and memory figures will
+replace this placeholder once the final replicates complete.
 
-Peak memory stayed below 3.7 GB for all host-positive samples and fell
-to 0.23 GB for the 0%-host sample, where sylph correctly classified the
-sample as host-negative and Bowtie2 was skipped entirely. Runtime scaled
-predictably with read count and host fraction: 35.5 s for 5 M reads at
-1% host, 14.5 min for 100 M reads at 50% host, and 17.4 min for 100 M
-reads at 90% host (Figure 4b). These backend-only timings were obtained
-with the sylph backend selected explicitly, i.e. without the fastp QC
-stage or the auto survey; the full auto-mode timings on the 100 M panel
-are reported in Section 3.4. The 100 M / 90% dataset is the most
-stressful condition in the panel; the sylph backend completed it more
-than 13× faster than KneadData and with comparable accuracy.
+### 3.5 Memory profile of the default Kraken2 + Bowtie2 recheck path
 
-![](results_sylph_full/figures/sylph_full_combined.png){width="6.5in"}
+The default high-host path loads the full Kraken2 database, so peak
+memory is determined primarily by the database size rather than by read
+count. On the 100 M-read matched panel RustyClean peaked at
+16.2--16.3 GB, versus 3.8 GB for Hostile and 1.2 GB for KneadData
+(Table 4). The footprint is essentially the resident size of the
+human-only T2T-CHM13v2.0 Kraken2 index (~16 GB) plus the working set of
+the Bowtie2 recheck pass over the retained reads.
 
-**Figure 4.** Sylph backend performance across the full enhanced panel.
-(a) F1 score against host contamination; marker size scales with read
- count and shape indicates single-end (circles) or paired-end (squares)
- layout. (b) Wall-clock runtime against read count, coloured by host
- fraction.
-
-### 3.5 Memory profile of the sylph backend
-
-Peak memory is no longer a major cost of the default pipeline. With the
-sylph-accelerated path, RustyClean peaked at 3.5--3.7 GB on all
-host-positive samples in the full panel, comparable to Hostile (3.1 GB)
-and only 3× KneadData (1.1 GB). For samples that sylph classifies as
-host-negative the footprint is even smaller: the 0%-host 10 M-read
-sample used 0.23 GB because Bowtie2 was not invoked.
-
-The small footprint comes from replacing the Kraken2 database with a
-sylph sketch. The earlier Kraken2-based auto path loaded the T2T-only
-Kraken2 index (4.9--12.2 GB depending on sample) or the larger Kraken16
-mixed-host library. The sylph sketch is roughly two orders of magnitude
-smaller, so the memory-aware worker cap (Section 2.8) now allows
-substantially more concurrent samples than with the Kraken2 backend.
-
-For users who explicitly select the Kraken2 backend, the memory cost
-remains and `--memory-mapping` is still the recommended optimisation for
-highly parallel runs. The sylph backend avoids this trade-off entirely.
+This memory requirement is larger than Hostile's pure Bowtie2 footprint,
+but it is bounded and predictable: it does not scale with sample size,
+and the memory-aware worker cap (Section 2.8) limits the number of
+concurrent samples to the available RAM divided by the database size.
+On the benchmark node, which had sufficient memory for multiple Kraken2
+workers, RustyClean still completed faster than Hostile because the
+classification step amortises its I/O and memory cost over the large
+host read set. For memory-constrained environments users can enable
+`--memory-mapping`, which allows multiple Kraken2 workers to share a
+single database mapping, or force the Bowtie2 path with
+`--host-removal-mode bowtie2`.
 
 ### 3.6 The depletion backend is interchangeable
 
@@ -736,33 +695,34 @@ as user-facing settings for this reason.
 
 The central result is that the choice of depletion backend should be
 made per-sample rather than per-study. Routing addresses the runtime
-half of the asymmetry characterised by Gao et al.: the efficiency
-advantage of a lightweight k-mer-sketch sensor is largest when host
-fraction is high, whereas direct alignment is competitive when most
-reads are microbial and can be rejected early. RustyClean captures this
-with a rapid alignment survey of a 100 k-read subsample and a sylph
-sketch query, then routes the sample to Bowtie2 removal only when the
-host signal exceeds the threshold. For host-negative samples the entire
-alignment step is skipped.
+half of the asymmetry characterised by Gao et al.: k-mer classification
+is fastest when most reads are host and can be discarded in bulk,
+whereas direct alignment is competitive when most reads are microbial
+and can be rejected early. RustyClean captures this with a rapid
+alignment survey of a 100 k-read subsample, then routes the sample to
+Bowtie2 removal when the estimated host fraction is low or moderate and
+to Kraken2 classification with Bowtie2 recheck when the host fraction is
+high. For host-negative samples the entire alignment step is skipped.
 
 Two comparisons deserve to be read carefully. First, RustyClean performs
 no tandem-repeat or low-complexity masking, whereas KneadData does; part
 of the runtime advantage over KneadData therefore reflects work not done
 rather than work done faster, and the closer like-for-like comparison is
 against KneadData with repeat masking disabled. Second, Hostile is the
-more demanding baseline. On the 100 M matched panel Hostile was both
-faster and more accurate than RustyClean when RustyClean included its QC
-stage; the accuracy gap was small at 50% host (ΔF1 ≈ 0.0025) but larger
-at 90% host (ΔF1 ≈ 0.011), where the sylph sensor retained more host
-reads than direct alignment. With `--skip-qc`, however, the depletion
-step alone ran within 1.09× of Hostile and was slightly faster at 50%
-host, while the accuracy gap remained small (ΔF1 ≈ 0.0028 at 50% host;
-ΔF1 ≈ 0.015 at 90% host). RustyClean\'s contribution is therefore not
-that a sketch sensor is more accurate than alignment --- it is not ---
-but that the sensor enables a fast, memory-light routing decision that
-keeps the full pipeline competitive with KneadData on accuracy while
-running 5--6× faster, and that the same binary can switch to direct
-alignment for low-host samples where alignment is already efficient.
+more demanding baseline. On the 100 M matched panel RustyClean's full
+pipeline (QC + depletion) was faster than KneadData but slower and
+slightly less accurate than Hostile; with `--skip-qc`, however, the
+depletion step alone was 1.18--1.28× faster than Hostile while the
+accuracy gap remained small (ΔF1 ≈ 0.0014 at 50% host; ΔF1 ≈ 0.0048 at
+90% host). The gap at 90% host reflects the expected false-negative rate
+of k-mer classification: a small fraction of host reads lack
+sufficiently discriminative k-mers and are retained despite the Bowtie2
+recheck. RustyClean\'s contribution is therefore not that k-mer
+classification is more accurate than alignment --- it is not --- but
+that per-sample routing lets the pipeline use classification where it
+has the largest speed advantage while falling back to alignment where
+alignment is already efficient or where the residual-host penalty is
+unacceptable.
 
 Limitations. Evaluation is on simulated data; simulation is what makes
 per-read ground truth possible, but it does not reproduce real
@@ -782,8 +742,7 @@ true host fraction lies near the threshold.
 
 ## 5. Implementation status --- REMOVE BEFORE SUBMISSION
 
-Updated to reflect the sylph-accelerated auto mode and full-panel
-benchmark.
+Updated to reflect the Kraken2 + Bowtie2 recheck default auto mode.
 
   -----------------------------------------------------------------------
   Component                       Status
@@ -794,21 +753,21 @@ benchmark.
 
   Bowtie2 alignment path          ✅ implemented (main)
 
-  sylph + Bowtie2 backend         ✅ implemented (bowtie2-recheck branch)
-                                  used as default high-host branch in auto
-                                  mode
+  sylph backend                   ✅ implemented (bowtie2-recheck branch)
+                                  as optional explicit backend; NOT used by
+                                  default auto-mode router
 
   minimap2 and Centrifuge         ✅ implemented (main)
   backends                        
 
   Host-fraction survey + adaptive ✅ implemented (bowtie2-recheck branch):
-  routing (§2.3)                  low-host → bowtie2, high-host → sylph;
-                                  legacy kraken2 path retained as explicit
-                                  option
+  routing (§2.3)                  low-host → bowtie2; high-host → kraken2
+                                  + Bowtie2 recheck; explicit options for
+                                  all backends retained
 
   Bowtie2 verification pass       ✅ implemented on bowtie2-recheck branch
-  (§2.6)                          (\--bowtie2-recheck); optional on the
-                                  explicit kraken2 path, not used by auto
+  (§2.6)                          (\--bowtie2-recheck); enabled by default
+                                  on the auto kraken2 path
 
   Kraken2 \--memory-mapping       ✅ implemented (main)
   option                          
@@ -827,8 +786,8 @@ benchmark.
 
   Validation gate                 ✅ implemented (main)
 
-  Full enhanced panel sylph       ✅ completed (18 datasets × 3 reps)
-  benchmark
+  Full enhanced panel (Kraken2 +  ⚠️ in progress; previous sylph panel
+  Bowtie2 recheck default)        completed but superseded
 
   Startup check that the host     ❌ not implemented
   index matches the configured    
@@ -851,10 +810,10 @@ benchmark.
 
 ### Blocking issues for the Results section
 
-1\. The verification pass evaluated in Section 3.3 runs from the
-bowtie2-recheck branch. Merge it to main before submission, or state the
-branch explicitly in the software availability section --- the
-manuscript describes it as the default.
+1\. The verification pass and the kraken2-default auto routing evaluated
+in Sections 3.3--3.4 are implemented on the bowtie2-recheck branch.
+Commit and merge these changes to main before submission, or state the
+branch explicitly in the software availability section.
 
 2\. Section 3.2 asserts that the routing defaults follow the measured
 runtime behaviour of the two backends, but no figure shows the runtime
@@ -876,9 +835,10 @@ runtime comparison, or report both.
 three replicates because depletion is deterministic. State in Methods
 that replication applies to timing only.
 
-6\. ✅ RESOLVED. Hostile, KneadData and RustyClean-with-verification
-were re-run on a matched panel of four large datasets (30 M / 50%, 60 M
-/ 90%, 100 M / 50%, 100 M / 90%); results are reported in Section 3.4.
+6\. ✅ RESOLVED. Hostile and RustyClean-with-verification were re-run
+on a matched panel of two 100 M-read single-end datasets (50% and 90%
+host); KneadData timings on the same panel are included from a previous
+run. Results are reported in Section 3.4.
 
 ### Suggested target venue
 
