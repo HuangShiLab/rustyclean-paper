@@ -1,7 +1,7 @@
 # RustyClean: adaptive, composition-aware host depletion for short-read metagenomics
 
 **Authors:** Yufeng Zhang, [co-authors], Shi Huang\*
-**Affiliation:** [Institution] **Correspondence:** [email]
+**Affiliation:** Faculty of Dentistry, The University of Hong Kong, Hong Kong SAR, China **Correspondence:** [email]
 
 ## Abstract
 
