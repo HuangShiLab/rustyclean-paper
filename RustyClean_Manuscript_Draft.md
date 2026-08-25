@@ -25,14 +25,13 @@ ground truth, adaptive routing selected the appropriate backend in
 every case. For high-host samples the default path uses Kraken2
 classification followed by a targeted Bowtie2 recheck of unclassified
 reads; for low-host samples it uses Bowtie2 directly. RustyClean ran
-10--13× faster than KneadData on the host-removal step and 5.7--6.1×
-faster for the full QC-plus-depletion pipeline, while discarding less
-microbial signal (mean 0.20% against 2.58% across the four-dataset
-evaluation panel). Against Hostile, a
-purpose-built depletion tool, RustyClean's depletion-only step
-(`--skip-qc`) was 1.3--1.9× faster on a matched panel spanning 30--100 M
-reads and 50--90% host content, with a small accuracy gap on the 100 M
-subset (ΔF1 ≈ 0.0019 at 50% host, ΔF1 ≈ 0.0041 at 90% host).
+1.3--1.9× faster than Hostile and 6.6--10.7× faster than KneadData on
+the host-removal step on a matched panel spanning 30--100 M reads and
+50--90% host content. For the full QC-plus-depletion pipeline on the
+four-dataset panel it was 2.5--4.6× faster than KneadData, while
+discarding less microbial signal (mean 0.20% against 2.58%). Against
+Hostile the accuracy gap remained small (ΔF1 ≈ 0.0019 at 50% host,
+ΔF1 ≈ 0.0041 at 90% host).
 The Kraken2-based path trades a larger memory footprint (~16 GB versus
 ~4 GB for Hostile) for classification speed, and the optional Bowtie2
 recheck recovers most host reads that Kraken2 misses. RustyClean is a single Rust
