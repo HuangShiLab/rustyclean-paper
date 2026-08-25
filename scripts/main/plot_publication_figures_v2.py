@@ -12,19 +12,19 @@ from matplotlib.gridspec import GridSpec
 mpl.rcParams.update({
     "font.family": "sans-serif",
     "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans", "sans-serif"],
-    "font.size": 7,
-    "axes.labelsize": 8,
-    "axes.titlesize": 9,
-    "xtick.labelsize": 7,
-    "ytick.labelsize": 7,
-    "legend.fontsize": 7,
+    "font.size": 10,
+    "axes.labelsize": 11,
+    "axes.titlesize": 12,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "legend.fontsize": 10,
     "axes.spines.right": False,
     "axes.spines.top": False,
-    "axes.linewidth": 0.6,
-    "xtick.major.width": 0.6,
-    "ytick.major.width": 0.6,
-    "xtick.major.size": 2.5,
-    "ytick.major.size": 2.5,
+    "axes.linewidth": 0.8,
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.major.size": 4,
+    "ytick.major.size": 4,
     "legend.frameon": False,
     "figure.dpi": 300,
     "svg.fonttype": "none",
@@ -45,7 +45,7 @@ def add_errorbar(ax, x, vals, color, width=0.18, label=None):
     std = np.std(vals, ddof=1) if len(vals) > 1 else 0
     ax.bar(x, mean, width, color=color, label=label, zorder=3)
     if len(vals) > 1:
-        ax.errorbar(x, mean, yerr=std, fmt='none', color='black', capsize=2, capthick=0.6, linewidth=0.6, zorder=4)
+        ax.errorbar(x, mean, yerr=std, fmt='none', color='black', capsize=3, capthick=0.8, linewidth=0.8, zorder=4)
 
 
 def figure_error_profile(out_dir):
@@ -62,7 +62,7 @@ def figure_error_profile(out_dir):
     kd_microbial_loss = [3.956, 2.791, 1.425, 2.154]
     kd_host_carry = [0.269, 0.255, 0.250, 0.250]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(17.0, 5.5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.5, 3.5))
 
     # Panel A: microbial loss
     ax1.bar(x - width, rc_microbial_loss, width, color=COLORS['rc'], label='RustyClean')
@@ -114,7 +114,7 @@ def figure_matched_panel(out_dir):
     kd_rt = [38.0, 104.3, 224.9, 241.6]
     kd_mem = [1.1, 1.1, 1.1, 1.1]
 
-    fig = plt.figure(figsize=(17.0, 5.5))
+    fig = plt.figure(figsize=(7.5, 3.5))
     gs = GridSpec(1, 2, figure=fig, wspace=0.35)
 
     # Runtime
@@ -126,7 +126,7 @@ def figure_matched_panel(out_dir):
     ax1.set_ylabel('Runtime (min)')
     ax1.set_title('a  Host-depletion runtime')
     ax1.set_xticks(x)
-    ax1.set_xticklabels(datasets)
+    ax1.set_xticklabels(datasets, rotation=20, ha='right')
     ax1.set_yscale('log')
     ax1.set_ylim(1, 400)
     ax1.legend(loc='upper left')
@@ -140,7 +140,7 @@ def figure_matched_panel(out_dir):
     ax2.set_ylabel('Peak memory (GB)')
     ax2.set_title('b  Peak memory')
     ax2.set_xticks(x)
-    ax2.set_xticklabels(datasets)
+    ax2.set_xticklabels(datasets, rotation=20, ha='right')
     ax2.set_ylim(0, 20)
 
     plt.tight_layout()
@@ -151,7 +151,7 @@ def figure_matched_panel(out_dir):
 
 def figure_accuracy(out_dir):
     """Figure 3: Accuracy across host fractions and cross-species."""
-    fig = plt.figure(figsize=(17.0, 5.5))
+    fig = plt.figure(figsize=(7.5, 3.5))
     gs = GridSpec(1, 2, figure=fig, wspace=0.35)
 
     # Panel A: F1 by host fraction
@@ -160,12 +160,12 @@ def figure_accuracy(out_dir):
     f1_mean = [0.9995, 0.9998, 0.9998, 0.9974, 0.9994, 0.9975, 0.9987, 0.9963, 0.9796]
     # Approximate std across reps for error bars
     f1_std = [0.0001, 0.0001, 0.0001, 0.0002, 0.0001, 0.0002, 0.0001, 0.0002, 0.0003]
-    ax1.plot(host_pct, f1_mean, marker='o', color=COLORS['rc'], linewidth=1.2, markersize=5, zorder=3)
+    ax1.plot(host_pct, f1_mean, marker='o', color=COLORS['rc'], linewidth=1.5, markersize=7, zorder=3)
     ax1.fill_between(host_pct,
                      [m - s for m, s in zip(f1_mean, f1_std)],
                      [m + s for m, s in zip(f1_mean, f1_std)],
                      color=COLORS['rc'], alpha=0.15)
-    ax1.axhline(0.99, color='gray', linestyle='--', linewidth=0.6, alpha=0.7)
+    ax1.axhline(0.99, color='gray', linestyle='--', linewidth=0.8, alpha=0.7)
     ax1.set_xlabel('Host fraction (%)')
     ax1.set_ylabel('F1 score')
     ax1.set_title('a  Accuracy across host fractions')
@@ -173,13 +173,9 @@ def figure_accuracy(out_dir):
     ax1.set_xlim(-0.5, len(host_pct) - 0.5)
     ax1.set_xticks(range(len(host_pct)))
     ax1.set_xticklabels([str(p) for p in host_pct])
-    # annotate a few anchor points to make small changes readable
-    for i, (xp, yp) in enumerate(zip(range(len(host_pct)), f1_mean)):
-        if host_pct[i] in (0, 10, 50, 90, 99):
-            offset = 5 if host_pct[i] != 99 else -8
-            ax1.annotate(f'{yp:.3f}', xy=(xp, yp), xytext=(0, offset),
-                         textcoords='offset points', ha='center', va='bottom' if offset > 0 else 'top',
-                         fontsize=5.5)
+    # annotate the lowest point (99%) which is far from the title
+    ax1.annotate(f'{f1_mean[-1]:.3f}', xy=(len(host_pct) - 1, f1_mean[-1]), xytext=(0, -10),
+                 textcoords='offset points', ha='center', va='top', fontsize=9)
 
     # Panel B: Cross-species
     ax2 = fig.add_subplot(gs[0, 1])
@@ -194,16 +190,17 @@ def figure_accuracy(out_dir):
     ax2.set_title('b  Cross-species host depletion')
     ax2.set_xticks(x2)
     ax2.set_xticklabels(hosts, rotation=30, ha='right')
-    ax2.legend(loc='lower right')
+    ax2.legend(loc='center left', bbox_to_anchor=(1.02, 0.5))
     ax2.set_ylim(0.994, 1.0002)
-    # annotate bar tops
-    for bar in bars1 + bars2:
+    ax2.set_yticks([0.994, 0.996, 0.998, 1.000])
+    # annotate KneadData bar tops only; RustyClean bars are too close to 1.0
+    for bar in bars2:
         height = bar.get_height()
-        ax2.annotate(f'{height:.4f}',
+        ax2.annotate(f'{height:.3f}',
                      xy=(bar.get_x() + bar.get_width() / 2, height),
                      xytext=(0, 2),
                      textcoords='offset points',
-                     ha='center', va='bottom', fontsize=5.5, rotation=90)
+                     ha='center', va='bottom', fontsize=8)
 
     plt.tight_layout()
     for ext in ['png', 'svg', 'pdf']:
@@ -229,14 +226,14 @@ def figure_speedup(out_dir):
     speedup_vs_hostile = [hostile_rt[i] / rc_mean_rt[ds] for i, ds in enumerate(datasets)]
     speedup_vs_kd = [kd_rt[i] / rc_mean_rt[ds] for i, ds in enumerate(datasets)]
 
-    fig, ax = plt.subplots(figsize=(8.5, 6.0))
+    fig, ax = plt.subplots(figsize=(3.5, 3.5))
     bars1 = ax.bar(x - width/2, speedup_vs_hostile, width, color=COLORS['hostile'], label='vs Hostile')
     bars2 = ax.bar(x + width/2, speedup_vs_kd, width, color=COLORS['kd'], label='vs KneadData')
     ax.axhline(1.0, color='gray', linestyle='--', linewidth=0.6)
     ax.set_ylabel('Speedup')
     ax.set_title('RustyClean speedup on matched panel')
     ax.set_xticks(x)
-    ax.set_xticklabels(datasets)
+    ax.set_xticklabels(datasets, rotation=20, ha='right')
     ax.legend()
     # annotate bar tops
     for bar in bars1 + bars2:
@@ -245,7 +242,7 @@ def figure_speedup(out_dir):
                      xy=(bar.get_x() + bar.get_width() / 2, height),
                      xytext=(0, 2),
                      textcoords='offset points',
-                     ha='center', va='bottom', fontsize=6)
+                     ha='center', va='bottom', fontsize=9)
 
     plt.tight_layout()
     for ext in ['png', 'svg', 'pdf']:
@@ -282,21 +279,21 @@ def figure_supplementary_backends(out_dir):
 
     colors = {'Bowtie2': COLORS['rc'], 'minimap2': '#6B8E8A', 'Centrifuge': COLORS['centrifuge']}
 
-    fig, axes = plt.subplots(2, 2, figsize=(17.0, 11.0))
+    fig, axes = plt.subplots(2, 2, figsize=(7.5, 7.5))
     panels = [
-        ('F1 score', f1, axes[0, 0]),
-        ('Host reads retained (%)', host_carry, axes[0, 1]),
-        ('Microbial reads lost (%)', microbe_loss, axes[1, 0]),
-        ('Peak memory (GB)', peak_mem, axes[1, 1]),
+        ('a  F1 score', f1, axes[0, 0]),
+        ('b  Host reads retained (%)', host_carry, axes[0, 1]),
+        ('c  Microbial reads lost (%)', microbe_loss, axes[1, 0]),
+        ('d  Peak memory (GB)', peak_mem, axes[1, 1]),
     ]
 
     for title, data, ax in panels:
         for i, (tool, vals) in enumerate(data.items()):
-            ax.bar(x + (i - 1) * width, vals, width, label=tool if title == 'F1 score' else None, color=colors[tool])
+            ax.bar(x + (i - 1) * width, vals, width, label=tool if title.startswith('a') else None, color=colors[tool])
         ax.set_title(f'{title}')
         ax.set_xticks(x)
-        ax.set_xticklabels(datasets)
-        if title == 'F1 score':
+        ax.set_xticklabels(datasets, rotation=20, ha='right')
+        if title.startswith('a'):
             ax.legend(loc='lower left')
             ax.set_ylim(0.94, 1.0005)
 
