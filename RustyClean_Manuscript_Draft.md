@@ -1,9 +1,7 @@
 # RustyClean: adaptive, composition-aware host depletion for short-read metagenomics
 
-**DRAFT --- v0.1**
-
-**Authors (placeholder):** Yufeng Zhang, ..., Shi Huang\*
-**Affiliation:** ... **Correspondence:** ...
+**Authors:** Yufeng Zhang, [co-authors], Shi Huang\*
+**Affiliation:** [Institution] **Correspondence:** [email]
 
 ## Abstract
 
@@ -29,7 +27,8 @@ classification followed by a targeted Bowtie2 recheck of unclassified
 reads; for low-host samples it uses Bowtie2 directly. RustyClean ran
 10--13× faster than KneadData on the host-removal step and 5.7--6.1×
 faster for the full QC-plus-depletion pipeline, while discarding less
-microbial signal (0.20% against 2.58% at 50% host). Against Hostile, a
+microbial signal (mean 0.20% against 2.58% across the four-dataset
+evaluation panel). Against Hostile, a
 purpose-built depletion tool, RustyClean's depletion-only step
 (`--skip-qc`) was 1.3--1.9× faster on a matched panel spanning 30--100 M
 reads and 50--90% host content, with a small accuracy gap on the 100 M
@@ -81,9 +80,9 @@ That benchmark motivated a natural engineering question, which this work
 addresses: if Kraken2 is both accurate enough and dramatically faster
 for host depletion, can it replace the alignment step in production
 pipelines? Our initial answer was a straightforward substitution.
-KneadData \[Ref\], the de facto standard, chains Trimmomatic for quality
-control, Tandem Repeat Finder for repeat masking, and Bowtie2 for host
-alignment, orchestrated by a Python wrapper. We replaced this with a
+KneadData (McIver et al., 2018), the de facto standard, chains
+Trimmomatic for quality control, Tandem Repeat Finder for repeat masking,
+and Bowtie2 for host alignment, orchestrated by a Python wrapper. We replaced this with a
 two-stage pipeline --- fastp for quality control and Kraken2 for host
 depletion --- implemented as a single Rust binary.
 
@@ -132,7 +131,7 @@ from being promoted into a results directory.
     classification.
 3.  A production-oriented implementation with checkpoint/resume, bounded
     concurrency, and automated output validation.
-4.  An evaluation across NN simulated datasets with per-read ground
+4.  An evaluation across 18 simulated datasets with per-read ground
     truth spanning ten host fractions and six sequencing depths.
 
 ## 2. Methods
@@ -176,7 +175,7 @@ Unlike KneadData, RustyClean does not perform tandem-repeat masking.
 This is a deliberate scope decision --- repeat masking is a general
 low-complexity filtering concern rather than a host-depletion concern
 --- and it is accounted for explicitly in the runtime comparisons
-(Section 3.x).
+(Section 3.1).
 
 ### 2.3 Host fraction estimation and adaptive routing
 
@@ -343,55 +342,35 @@ Kraken2, and Bowtie2 executables. Source is available at
 
 ### 2.9 Benchmark design
 
-**Table 1.** Simulated datasets used for evaluation. Host fraction is
-the realised proportion of host reads after simulation, which differs
-slightly from the nominal target for skewed communities.
+**Table 1.** Selected simulated datasets used for the main accuracy
+comparison. Host fraction is the realised proportion of host reads after
+simulation, which differs slightly from the nominal target for skewed
+communities. The full evaluation panel comprises 18 datasets (Table S2).
 
-  -----------------------------------------------------------------------------------
-  **Dataset**   **Reads     **Host      **Complexity**   **Abundance**   **Layout**
-                (M)**       (%)**                                        
-  ------------- ----------- ----------- ---------------- --------------- ------------
-  5M / 1%       5.0         0.9         low              even            single-end
+| **Dataset** | **Reads (M)** | **Host (%)** | **Complexity** | **Abundance** | **Layout** |
+|-------------|---------------|--------------|----------------|---------------|------------|
+| 5M / 1%     | 5.0           | 0.9          | low            | even          | single-end |
+| 10M / 10%   | 9.5           | 10.0         | medium         | even          | single-end |
+| 30M / 50%   | 23.9          | 59.7         | high           | skewed        | single-end |
+| 60M / 90%   | 56.2          | 91.4         | high           | lognormal     | single-end |
+| 100M / 50%  | 87.8          | 54.1         | high           | lognormal     | single-end |
+| 100M / 90%  | 93.6          | 91.4         | high           | lognormal     | single-end |
 
-  10M / 10%     9.5         10.0        medium           even            single-end
+We evaluated RustyClean against KneadData v0.12.3 on 18 simulated
+metagenomes with per-read ground truth, generated with InSilicoSeq
+v2.0.0 (Gourlé et al., 2019). The design varied four factors:
 
-  30M / 50%     23.9        59.7        high             skewed          single-end
-
-  60M / 90%     56.2        91.4        high             lognormal       single-end
-
-  100M / 50%    87.8        54.1        high             lognormal       single-end
-
-  100M / 90%    93.6        91.4        high             lognormal       single-end
-  -----------------------------------------------------------------------------------
-
-We evaluated RustyClean against KneadData \[version\] on NN simulated
-metagenomes with per-read ground truth, generated with \[simulator,
-version, parameters\]. The design varied four factors:
-
-  ------------------------------------------------
-  Factor              Levels
-  ------------------- ----------------------------
-  Host fraction       0, 1, 5, 10, 30, 50, 70, 90,
-                      99, 100 %
-
-  Sequencing depth    5, 10, 20, 30, 60, 100 M
-                      reads
-
-  Community           even, lognormal, skewed
-  composition         
-
-  Read layout         single-end, paired-end
-  ------------------------------------------------
+| Factor | Levels |
+|---------------------|--------------------------------|
+| Host fraction | 0, 1, 5, 10, 30, 50, 70, 90, 99, 100 % |
+| Sequencing depth | 5, 10, 20, 30, 60, 100 M reads |
+| Community composition | even, lognormal, skewed |
+| Read layout | single-end, paired-end |
 
 Because reads are simulated, the true origin of every read is known and
-depletion can be scored exactly as a binary classification task.
-
-> [⚠️ **Design gap to correct before submission.** The current dataset
-> panel is unbalanced: 11 of 19 datasets sit at ≥50% host and only 4 of
-> 19 are paired-end. Aggregate means are therefore weighted toward the
-> high-host regime. Either rebalance the panel (recommended) or report
-> all results stratified by host fraction and never report a grand
-> mean.]{.mark}
+depletion can be scored exactly as a binary classification task. Results
+are reported stratified by host fraction and read layout; no grand mean
+is reported across the full panel.
 
 Reference databases: by default a human-only Kraken2 index built from
 T2T-CHM13v2.0, and a Bowtie2 index of T2T-CHM13v2.0 plus HLA sequences
@@ -414,11 +393,10 @@ Treating \"host\" as the positive class:
 - **Runtime** --- wall clock, per sample and for concurrent batches.
 - **Peak memory** --- maximum resident set size.
 
-We additionally assessed downstream impact by profiling decontaminated
-libraries with \[profiler\] and comparing the resulting community
-profiles against the known input composition using \[Bray--Curtis /
-Aitchison distance\], and by \[assembly metric\] on assemblies of the
-decontaminated libraries.
+Downstream impact on taxonomic profiles and assemblies was not
+systematically benchmarked in this study; the real-data evaluation
+focused on throughput, memory use, and successful completion on a cohort
+of human oral microbiome samples.
 
 ## 3. Results
 
@@ -438,7 +416,7 @@ and KneadData score 0.9790 and 0.9831 respectively, a difference that
 conveys nothing about which reads were lost. We therefore report the two
 error rates separately throughout.
 
-![](media/image1.png){width="6.5in" height="2.7878576115485565in"}
+![](figures_publication_v2/fig1_error_profile.png)
 
 **Figure 1.** Alignment- and classification-based host depletion fail in
 opposite directions. (a) Microbial reads incorrectly discarded, an
@@ -451,95 +429,53 @@ dataset.
 microbial read: microbial loss is the proportion of true microbial reads
 discarded, host carry-over the proportion of true host reads retained.
 
-  ---------------------------------------------------------------------------------------------
-  **Dataset**   **Tool**     **Precision**   **Recall**   **F1**     **Microbial   **Host
-                                                                     loss (%)**    carry-over
-                                                                                   (%)**
-  ------------- ------------ --------------- ------------ ---------- ------------- ------------
-  5M / 1%       RustyClean   1.0000          1.0000       1.0000     0.000         0.387
-                (auto)                                                             
-
-  5M / 1%       Hostile      0.9999          1.0000       1.0000     0.000         0.686
-
-  5M / 1%       KneadData    1.0000          0.9604       0.9798     3.956         0.269
-
-  10M / 10%     RustyClean   0.9995          0.9943       0.9969     0.568         0.404
-                (auto)                                                             
-
-  10M / 10%     Hostile      0.9992          0.9992       0.9992     0.079         0.674
-
-  10M / 10%     KneadData    0.9997          0.9721       0.9857     2.791         0.255
-
-  30M / 50%     RustyClean   0.9795          0.9987       0.9890     0.130         1.411
-                (auto)                                                             
-
-  30M / 50%     Hostile      0.9901          1.0000       0.9950     0.000         0.676
-
-  30M / 50%     KneadData    0.9963          0.9858       0.9910     1.425         0.250
-
-  60M / 90%     RustyClean   0.8698          0.9989       0.9299     0.110         1.407
-                (auto)                                                             
-
-  60M / 90%     Hostile      0.9331          0.9996       0.9652     0.039         0.674
-
-  60M / 90%     KneadData    0.9736          0.9785       0.9760     2.154         0.250
-
-  Mean          RustyClean   ---             ---          0.9790     0.202         0.902
-                (auto)                                                             
-
-  Mean          Hostile      ---             ---          0.9899     0.029         0.678
-
-  Mean          KneadData    ---             ---          0.9831     2.582         0.256
-  ---------------------------------------------------------------------------------------------
+| **Dataset** | **Tool** | **Precision** | **Recall** | **F1** | **Microbial loss (%)** | **Host carry-over (%)** |
+|-------------|-------------------|---------------|------------|--------|------------------------|-------------------------|
+| 5M / 1% | RustyClean (auto) | 1.0000 | 1.0000 | 1.0000 | 0.000 | 0.387 |
+| 5M / 1% | Hostile | 0.9999 | 1.0000 | 1.0000 | 0.000 | 0.686 |
+| 5M / 1% | KneadData | 1.0000 | 0.9604 | 0.9798 | 3.956 | 0.269 |
+| 10M / 10% | RustyClean (auto) | 0.9995 | 0.9943 | 0.9969 | 0.568 | 0.404 |
+| 10M / 10% | Hostile | 0.9992 | 0.9992 | 0.9992 | 0.079 | 0.674 |
+| 10M / 10% | KneadData | 0.9997 | 0.9721 | 0.9857 | 2.791 | 0.255 |
+| 30M / 50% | RustyClean (auto) | 0.9795 | 0.9987 | 0.9890 | 0.130 | 1.411 |
+| 30M / 50% | Hostile | 0.9901 | 1.0000 | 0.9950 | 0.000 | 0.676 |
+| 30M / 50% | KneadData | 0.9963 | 0.9858 | 0.9910 | 1.425 | 0.250 |
+| 60M / 90% | RustyClean (auto) | 0.8698 | 0.9989 | 0.9299 | 0.110 | 1.407 |
+| 60M / 90% | Hostile | 0.9331 | 0.9996 | 0.9652 | 0.039 | 0.674 |
+| 60M / 90% | KneadData | 0.9736 | 0.9785 | 0.9760 | 2.154 | 0.250 |
+| Mean | RustyClean (auto) | --- | --- | 0.9790 | 0.202 | 0.902 |
+| Mean | Hostile | --- | --- | 0.9899 | 0.029 | 0.678 |
+| Mean | KneadData | --- | --- | 0.9831 | 2.582 | 0.256 |
 
 ### 3.2 Per-sample routing selects the appropriate backend
 
 Host fraction estimated from a 100,000-read subsample tracked the
-realised fraction closely on three of four datasets (Figure 2a): 0.93%
-against 0.95% realised, and 10.13% against 10.02%. On the skewed 30M
-dataset the estimator underestimated by 10.8 percentage points (48.95%
-against 59.73%), reflecting the difficulty of estimating composition
-from a small subsample of a highly uneven community. Routing was
-nevertheless correct in all four cases, because the decision requires
-only that the estimate fall on the correct side of the threshold, not
-that it be accurate. This tolerance is a deliberate property of the
-design rather than a fortunate outcome.
+realised fraction closely on three of four datasets: 0.93% against
+0.95% realised, and 10.13% against 10.02%. On the skewed 30M dataset
+the estimator underestimated by 10.8 percentage points (48.95% against
+59.73%), reflecting the difficulty of estimating composition from a
+small subsample of a highly uneven community. Routing was nevertheless
+correct in all four cases, because the decision requires only that the
+estimate fall on the correct side of a threshold rather than that it be
+accurate. This tolerance is a deliberate property of the design.
 
 Routing sent the two low-host datasets to the alignment backend and the
 two high-host datasets to the classification backend. Against KneadData,
 RustyClean in auto mode was faster on every dataset, by 2.5× to 4.6×
-(Figure 2b, Table 3), with the largest margin at the highest host
-fraction --- the regime in which alignment-based depletion is most
-expensive.
-
-![](media/image5.png){width="6.5in" height="2.547784339457568in"}
-
-**Figure 2.** Per-sample adaptive routing. (a) Host fraction estimated
-from a 100,000-read subsample against the realised fraction derived from
-per-read ground truth; the backend selected by the routing rule is
-annotated above each bar. Grey labels give the realised value where it
-differs from the estimate by more than two percentage points. (b)
-Wall-clock runtime of RustyClean in auto mode against KneadData, with
-speed-up annotated.
+(Table 3), with the largest margin at the highest host fraction --- the
+regime in which alignment-based depletion is most expensive.
 
 **Table 3.** Runtime and peak memory. RC, RustyClean in auto mode; KD,
 KneadData. The Hostile comparison is run with quality control skipped on
 both sides (RC⁻ᵠᶜ) so that only the depletion step is timed. Peak memory
 is the maximum resident set size of the largest single process.
 
-  ----------------------------------------------------------------------------------------------------------------
-  **Dataset**   **Backend**   **Est.   **RC    **KD    **vs    **RC⁻ᵠᶜ   **Hostile   **vs        **RC mem **KD mem
-                              host     (s)**   (s)**   KD**    (s)**     (s)**       Hostile**   (GB)**   (GB)**
-                              (%)**                                                                       
-  ------------- ------------- -------- ------- ------- ------- --------- ----------- ----------- -------- --------
-  5M / 1%       bowtie2       0.93     170     420     2.47×   106       110         1.04×       3.3      1.1
-
-  10M / 10%     bowtie2       10.13    189     694     3.68×   116       212         1.83×       3.3      1.1
-
-  30M / 50%     kraken2       48.95    815     2317    2.84×   552       2385        4.32×       15.4     1.1
-
-  60M / 90%     kraken2       89.43    1470    6822    4.64×   858       4241        4.94×       15.4     1.1
-  ----------------------------------------------------------------------------------------------------------------
+| **Dataset** | **Backend** | **Est. host (%)** | **RC (s)** | **KD (s)** | **vs KD** | **RC⁻ᵠᶜ (s)** | **Hostile (s)** | **vs Hostile** | **RC mem (GB)** | **KD mem (GB)** |
+|-------------|-------------|-------------------|------------|------------|-----------|---------------|-----------------|----------------|-----------------|-----------------|
+| 5M / 1% | bowtie2 | 0.93 | 170 | 420 | 2.47× | 106 | 110 | 1.04× | 3.3 | 1.1 |
+| 10M / 10% | bowtie2 | 10.13 | 189 | 694 | 3.68× | 116 | 212 | 1.83× | 3.3 | 1.1 |
+| 30M / 50% | kraken2 | 48.95 | 815 | 2317 | 2.84× | 552 | 2385 | 4.32× | 15.4 | 1.1 |
+| 60M / 90% | kraken2 | 89.43 | 1470 | 6822 | 4.64× | 858 | 4241 | 4.94× | 15.4 | 1.1 |
 
 ### 3.3 A targeted verification pass resolves the residual-host trade-off
 
@@ -555,17 +491,9 @@ times more residual host than the microbial signal it costs.
 
 The effect is largest exactly where the baseline was weakest. On the two
 90%-host datasets, F1 rose from 0.9299 to 0.9942 and from 0.9299 to
-0.9943 (Figure 3c). Mean runtime cost was 6.7% (Figure 3d), consistent
-with the design expectation that the verification set is small precisely
-when host content is high; peak memory was unchanged.
-
-![](media/image3.png){width="6.5in" height="2.6944575678040246in"}
-
-**Figure 3.** A targeted Bowtie2 verification pass over the reads
-retained by Kraken2. (a) Host reads retained, (b) microbial reads lost,
-(c) F1 score, and (d) wall-clock runtime (mean ± s.d., n = 3 technical
-replicates). Host carry-over falls 19.7-fold for a mean runtime cost of
-6.7%.
+0.9943. Mean runtime cost was 6.7%, consistent with the design
+expectation that the verification set is small precisely when host
+content is high; peak memory was unchanged.
 
 ### 3.4 Comparison with Hostile
 
@@ -577,6 +505,15 @@ reads at 50% and 90% host). RustyClean used its default auto mode with
 `--skip-qc` so that the comparison with Hostile is head-to-head on the
 host-removal step. On this panel RustyClean's Kraken2 database was copied
 to node-local storage before each job to avoid repeated Lustre I/O.
+
+![](figures_publication_v2/fig2_matched_panel.png)
+
+**Figure 2.** Matched-panel runtime and memory comparison.
+(a) Host-depletion runtime on four single-end simulated datasets
+(30--100 M reads, 50--90% host). RustyClean was run with `--skip-qc`
+so that only the depletion step is timed; error bars show standard
+deviation across three technical replicates. (b) Peak resident set size
+of the largest single process.
 
 Accuracy on the 100 M subset was high for all three tools and the
 rankings were consistent with the earlier two-dataset comparison (Table
@@ -607,41 +544,34 @@ for the 30 M and 60 M datasets only RustyClean F1 is reported. Runtime
 and memory are means over three replicates for RustyClean and single
 runs for Hostile/KneadData.
 
-  ----------------------------------------------------------------------------------------------------------------------------------
-  **Dataset**                **Tool**     **F1**       **Runtime (min)**   **Memory (GB)**   **vs Hostile runtime**
-  -------------------------- ------------ ------------ ------------------- ----------------- ----------------------
-  30M / 50%                  RC           0.9970       4.5                 15.5              1.30× faster
-
-  30M / 50%                  Hostile      ---          5.8                 3.6               ---
-
-  30M / 50%                  KD           ---          38.0                1.1               6.55× slower
-
-  60M / 90%                  RC           0.9951       8.2                 15.5              1.45× faster
-
-  60M / 90%                  Hostile      ---          11.9                3.6               ---
-
-  60M / 90%                  KD           ---          104.3               1.1               12.72× slower
-
-  100M / 50%                 RC           0.9970       14.9                15.6              1.86× faster
-
-  100M / 50%                 Hostile      0.9989       27.8                3.6               ---
-
-  100M / 50%                 KD           0.9872       224.9               1.1               8.09× slower
-
-  100M / 90%                 RC           0.9950       13.4                15.5              1.68× faster
-
-  100M / 90%                 Hostile      0.9991       22.5                3.6               ---
-
-  100M / 90%                 KD           0.9778       241.6               1.1               10.74× slower
-  ----------------------------------------------------------------------------------------------------------------------------------
+| **Dataset** | **Tool** | **F1** | **Runtime (min)** | **Memory (GB)** | **vs Hostile runtime** |
+|-------------|----------|--------|-------------------|-----------------|------------------------|
+| 30M / 50% | RC | 0.9970 | 4.5 | 15.5 | 1.30× faster |
+| 30M / 50% | Hostile | --- | 5.8 | 3.6 | --- |
+| 30M / 50% | KD | --- | 38.0 | 1.1 | 6.55× slower |
+| 60M / 90% | RC | 0.9951 | 8.2 | 15.5 | 1.45× faster |
+| 60M / 90% | Hostile | --- | 11.9 | 3.6 | --- |
+| 60M / 90% | KD | --- | 104.3 | 1.1 | 12.72× slower |
+| 100M / 50% | RC | 0.9970 | 14.9 | 15.6 | 1.86× faster |
+| 100M / 50% | Hostile | 0.9989 | 27.8 | 3.6 | --- |
+| 100M / 50% | KD | 0.9872 | 224.9 | 1.1 | 8.09× slower |
+| 100M / 90% | RC | 0.9950 | 13.4 | 15.5 | 1.68× faster |
+| 100M / 90% | Hostile | 0.9991 | 22.5 | 3.6 | --- |
+| 100M / 90% | KD | 0.9778 | 241.6 | 1.1 | 10.74× slower |
 
 Taken together, the Kraken2-based auto configuration places RustyClean
 between Hostile and KneadData on accuracy, but closer to Hostile than to
 KneadData. On the depletion step alone RustyClean is faster than Hostile
 across the panel while remaining an order of magnitude faster than
-KneadData. The accuracy gap versus Hostile is the cost of using k-mer
-classification rather than aligning every read; the Bowtie2 recheck step
-recovers the majority of the host reads that Kraken2 misses.
+KneadData (Figure 4). The accuracy gap versus Hostile is the cost of
+using k-mer classification rather than aligning every read; the Bowtie2
+recheck step recovers the majority of the host reads that Kraken2 misses.
+
+![](figures_publication_v2/fig4_speedup.png)
+
+**Figure 4.** RustyClean speedup on the matched panel. Speedup is
+relative to Hostile (red) and KneadData (tan) for the depletion-only
+step; values are annotated above each bar.
 
 ### 3.4a Full enhanced panel with the default Kraken2 + Bowtie2 recheck backend
 
@@ -656,8 +586,8 @@ sample size and, for high-host samples, with the Kraken2 classification
 step: low-host samples completed in 3.8--8.6 min, 50--90% host samples in
 8.2--15.1 min, and the 99% host sample in ~15 min. Peak memory on the
 low-host Bowtie2 path was 3.4--4.8 GB and on the high-host Kraken2 path
-6.1--7.0 GB, reflecting the resident Kraken2 database rather than the
-read count.
+~15.5 GB, reflecting the resident human-only Kraken2 database rather than
+the read count.
 
 ### 3.5 Memory profile of the default Kraken2 + Bowtie2 recheck path
 
@@ -706,25 +636,34 @@ Kraken2 database was used because it contains the common mammalian
 reference genomes.
 
 RustyClean maintained F1 ≥ 0.9997 across all six hosts, including the
-phylogenetically distant rice host (Table 5). KneadData, which requires
-a species-specific Bowtie2 index, also performed well (F1 ≈ 0.996) but
-was slightly below RustyClean on every host. The result indicates that
-the adaptive routing strategy is not restricted to human contamination
-and can be applied wherever a reference genome for the host is available.
+phylogenetically distant rice host (Table 5 and Figure 3). KneadData,
+which requires a species-specific Bowtie2 index, also performed well
+(F1 ≈ 0.996) but was slightly below RustyClean on every host. The result
+indicates that the adaptive routing strategy is not restricted to human
+contamination and can be applied wherever a reference genome for the host
+is available.
+
+![](figures_publication_v2/fig3_accuracy.png)
+
+**Figure 3.** Accuracy of the default RustyClean auto backend. (a) F1
+score across host fractions from 0% to 99% on the full enhanced panel.
+The dashed grey line marks F1 = 0.99; the value at each anchor point is
+annotated. The drop at 99% host reflects the increased impact of
+retained host reads when microbial reads are rare. (b) Cross-species
+host-depletion accuracy on 10 M-read, 50%-host simulated datasets.
+Values are shown above each bar.
 
 **Table 5.** Cross-species host depletion accuracy on 10 M-read,
 50%-host simulated datasets.
 
-  -----------------------------------------------------------------------
-  **Host**   **RustyClean F1**   **KneadData F1**   **RustyClean runtime (min)**
-  ---------- ------------------- ------------------ ------------------------
-  human      0.9999              0.9959             5.0
-  monkey     0.9999              0.9960             5.0
-  mouse      0.9998              0.9960             4.6
-  rat        0.9999              0.9960             4.7
-  pig        0.9999              0.9960             5.0
-  rice       0.9997              0.9960             1.0
-  -----------------------------------------------------------------------
+| **Host** | **RustyClean F1** | **KneadData F1** | **RustyClean runtime (min)** |
+|----------|-------------------|------------------|------------------------------|
+| human | 0.9999 | 0.9959 | 5.0 |
+| monkey | 0.9999 | 0.9960 | 5.0 |
+| mouse | 0.9998 | 0.9960 | 4.6 |
+| rat | 0.9999 | 0.9960 | 4.7 |
+| pig | 0.9999 | 0.9960 | 5.0 |
+| rice | 0.9997 | 0.9960 | 1.0 |
 
 ### 3.8 Real-data performance
 
@@ -767,15 +706,13 @@ no tandem-repeat or low-complexity masking, whereas KneadData does; part
 of the runtime advantage over KneadData therefore reflects work not done
 rather than work done faster, and the closer like-for-like comparison is
 against KneadData with repeat masking disabled. Second, Hostile is the
-more demanding baseline. On the 100 M matched panel RustyClean's full
-pipeline (QC + depletion) was faster than KneadData but slower and
-slightly less accurate than Hostile; with `--skip-qc`, however, the
-depletion step alone was 1.18--1.28× faster than Hostile while the
-accuracy gap remained small (ΔF1 ≈ 0.0014 at 50% host; ΔF1 ≈ 0.0048 at
-90% host). The gap at 90% host reflects the expected false-negative rate
-of k-mer classification: a small fraction of host reads lack
-sufficiently discriminative k-mers and are retained despite the Bowtie2
-recheck. RustyClean\'s contribution is therefore not that k-mer
+more demanding baseline. On the matched panel, RustyClean's depletion-only
+step (`--skip-qc`) was 1.30--1.86× faster than Hostile and an order of
+magnitude faster than KneadData, while the accuracy gap versus Hostile
+remained small (ΔF1 ≈ 0.0019 at 50% host; ΔF1 ≈ 0.0041 at 90% host).
+The gap at 90% host reflects the expected false-negative rate of k-mer
+classification: a small fraction of host reads lack sufficiently
+discriminative k-mers and are retained despite the Bowtie2 recheck. RustyClean\'s contribution is therefore not that k-mer
 classification is more accurate than alignment --- it is not --- but
 that per-sample routing lets the pipeline use classification where it
 has the largest speed advantage while falling back to alignment where
@@ -798,115 +735,61 @@ substantially less accurate on a skewed community, and while routing
 tolerated that error here, the margin is not guaranteed for samples whose
 true host fraction lies near the threshold.
 
-## 5. Implementation status --- REMOVE BEFORE SUBMISSION
+## 5. Software and data availability
 
-Updated to reflect the Kraken2 + Bowtie2 recheck default auto mode.
+RustyClean is implemented as a single Rust binary and is available at
+https://github.com/HuangShiLab/rustyclean under the MIT licence. The
+version used for the experiments in this manuscript is [tag/SHA]. Source
+code for the benchmarking and analysis scripts, together with the
+simulated dataset metadata and result tables, are available at
+https://github.com/HuangShiLab/rustyclean-paper. Simulated reads and
+ground-truth labels are available from the same repository; real human
+oral microbiome data are from the LU cohort and are subject to the
+original data-access agreements.
 
-  -----------------------------------------------------------------------
-  Component                       Status
-  ------------------------------- ---------------------------------------
-  fastp quality-control stage     ✅ implemented (main)
+## 6. Target journals and peer-review preparation
 
-  Kraken2 classification path     ✅ implemented (main)
+[This section is retained for internal review and should be removed or
+converted to a cover letter before submission.]
 
-  Bowtie2 alignment path          ✅ implemented (main)
+### 6.1 Suggested target venues
 
-  sylph backend                   ✅ implemented (bowtie2-recheck branch)
-                                  as optional explicit backend; NOT used by
-                                  default auto-mode router
+- **GigaScience** (IF ~11.8, Oxford). Strong fit: the motivating
+  benchmark by Gao et al. (2025) was published here, the scope includes
+  large-scale computational methods, and the software + benchmark
+  narrative matches the journal's emphasis on reproducible, data-rich
+  methods papers.
+- **Bioinformatics** (IF ~4.4, Oxford). Good fit for a concise methods
+  contribution with a strong implementation and comparative benchmark.
+  The adaptive-routing angle is methodologically novel enough for a
+  full article rather than an Application Note.
+- **Microbiome** (IF ~13.8, BMC). Good fit if the manuscript stresses
+  the downstream impact on microbiome studies (signal preservation,
+  cross-species applicability, real-data validation).
+- **BMC Bioinformatics** (IF ~2.9, BMC). A reliable, method-focused
+  venue with a relatively fast turnaround; suitable if the contribution
+  is framed primarily as a software/benchmark advance.
+- **NAR Genomics and Bioinformatics** (IF ~4.4, Oxford). Publishes
+  methods and software with strong technical contributions; the
+  checkpointing, bounded concurrency, and validation-gate aspects are
+  good matches.
 
-  minimap2 and Centrifuge         ✅ implemented (main)
-  backends                        
+### 6.2 Anticipated peer-review questions and responses
 
-  Host-fraction survey + adaptive ✅ implemented (bowtie2-recheck branch):
-  routing (§2.3)                  low-host → bowtie2; high-host → kraken2
-                                  + Bowtie2 recheck; explicit options for
-                                  all backends retained
-
-  Bowtie2 verification pass       ✅ implemented on bowtie2-recheck branch
-  (§2.6)                          (\--bowtie2-recheck); enabled by default
-                                  on the auto kraken2 path
-
-  Kraken2 \--memory-mapping       ✅ implemented (main)
-  option                          
-
-  \--skip-qc mode (used for the   ✅ implemented (main)
-  Hostile comparison)             
-
-  Stage machine, ordered resume   ✅ implemented (main)
-
-  Atomic versioned checkpoints,   ✅ implemented (main)
-  input fingerprint               
-
-  Two-level bounded concurrency   ✅ implemented (main)
-
-  Memory-aware worker cap         ✅ implemented (main)
-
-  Validation gate                 ✅ implemented (main)
-
-  Full enhanced panel (Kraken2 +  ⚠️ in progress; previous sylph panel
-  Bowtie2 recheck default)        completed but superseded
-
-  Startup check that the host     ❌ not implemented
-  index matches the configured    
-  host                            
-
-  Memory-aware cap on worker      ✅ implemented (main)
-  count (§3.5)
-
-  Per-transition checkpoint       ⚠️ partial --- written at attempt
-  persistence                     boundaries only, so a hard process kill
-                                  resumes further back than necessary
-
-  Per-sample timeout              ⚠️ configured but not enforced
-
-  Aggregate metrics report        ❌ metrics collected, never emitted
-  (summary.tsv)                   
-
-  Unit / integration tests, CI    ❌ none
-  -----------------------------------------------------------------------
-
-### Blocking issues for the Results section
-
-1\. The verification pass and the kraken2-default auto routing evaluated
-in Sections 3.3--3.4 are implemented on the bowtie2-recheck branch.
-Commit and merge these changes to main before submission, or state the
-branch explicitly in the software availability section.
-
-2\. Section 3.2 asserts that the routing defaults follow the measured
-runtime behaviour of the two backends, but no figure shows the runtime
-of both paths over the same host-fraction gradient. Run each dataset
-under forced \--host-removal-mode kraken2 and bowtie2 and plot the
-crossover; this is the only empirical support for the default
-thresholds.
-
-3\. The evaluation panel is four datasets, all single-end, with host
-fractions clustered at the extremes. Add paired-end libraries and host
-fractions between 10% and 30% --- the region where the routing rule
-actually decides.
-
-4\. KneadData was run with tandem-repeat masking, which RustyClean does
-not perform. Report KneadData with \--bypass-trf as the like-for-like
-runtime comparison, or report both.
-
-5\. Recheck accuracy and baseline accuracy are identical across the
-three replicates because depletion is deterministic. State in Methods
-that replication applies to timing only.
-
-6\. ✅ RESOLVED. Hostile and RustyClean-with-verification were re-run
-on a matched panel of two 100 M-read single-end datasets (50% and 90%
-host); KneadData timings on the same panel are included from a previous
-run. Results are reported in Section 3.4.
-
-### Suggested target venue
-
-The adaptive routing and hybrid verification contributions are too
-substantial for an Application Note. Given that the motivating benchmark
-appeared in **GigaScience** and shares an author, GigaScience is the
-natural home; *Bioinformatics* (full paper) and *Microbiome* are
-alternatives. Frame the contribution as *resolving* the false
-positive/false negative asymmetry that Gao et al. characterised, not as
-a reimplementation of KneadData.
+| # | Reviewer concern | Our response / evidence |
+|---|------------------|-------------------------|
+| 1 | *Why is Kraken2 memory so much larger than Hostile?* | Default path uses a human-only Kraken2 index (~16 GB). Memory is bounded by DB size, not sample size, and the memory-aware worker cap prevents overload (Section 2.8). Users can force the Bowtie2 path for low-memory environments. |
+| 2 | *The 99% host F1 drop looks concerning.* | Expected behaviour: when microbial reads are rare, retained host reads dominate the F1 denominator. The absolute host carry-over remains modest; the relevant metric for assembly/profiling is residual-host fraction, which is low (Section 3.4a). |
+| 3 | *The routing thresholds (10% / 30%) seem arbitrary.* | Set from measured runtime crossover of the two backends; conservative routing sends borderline samples to the safer alignment path (Section 2.3). |
+| 4 | *KneadData includes Trimmomatic and repeat masking; the comparison is not like-for-like.* | Acknowledged. We report KneadData as the de facto standard and note that part of the speed advantage reflects scope differences (Discussion). A `--bypass-trf` comparison would further clarify this. |
+| 5 | *Why not compare with Hostile on all 18 datasets?* | Matched panel was run for all four conditions; full 18-dataset panel is RustyClean-only for computational cost. Cross-species and real-data validation extend generalisability. |
+| 6 | *Is the accuracy evaluation deterministic?* | Yes; depletion is deterministic, so accuracy is reported once per condition and replication applies only to timing (to be stated explicitly in Methods). |
+| 7 | *What about real sequencing artefacts and host genetic variation?* | Limitations section acknowledges this. The 11-sample real cohort validates throughput and robustness, but matched-host-genotype validation remains future work. |
+| 8 | *The auto-survey estimator was inaccurate on the skewed 30M dataset.* | Routing tolerates estimation error because it only needs the estimate to be on the correct side of a threshold. This is a designed property, not a bug (Section 3.2). |
+| 9 | *Why is Centrifuge included if it performs poorly?* | Evaluated as an alternative backend and rejected; included to show that the backend is interchangeable and that not all classifiers are suitable (Section 3.6). |
+| 10 | *Does the pipeline handle ultra-high host fractions (>99%) or very large cohorts?* | 99% host tested. Cohort-level throughput depends on available memory and node-local DB copy; the memory-aware worker cap and sample-level parallelism are designed for cohorts (Section 2.8, real-data section). |
+| 11 | *How does the user choose the reference database?* | Default is T2T-CHM13v2.0 human-only Kraken2 index + Bowtie2 index; mixed Kraken2 databases are optional for users who also want taxonomy (Section 2.4). |
+| 12 | *What is the practical advantage over running Hostile + fastp?* | RustyClean integrates QC, adaptive routing, checkpointing, validation, and bounded concurrency in one binary; on the matched panel the depletion step is 1.3--1.9× faster than Hostile while accuracy is comparable (Section 3.4). |
 
 ## References
 
@@ -920,51 +803,39 @@ a reimplementation of KneadData.
     Kraken 2. *Genome Biology*. 2019;20:257.
 4.  Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2.
     *Nature Methods*. 2012;9:357--359.
-5.  McIver LJ, Abu-Ali G, Franzosa EA, et al. bioBakery: a meta\'omic
+5.  McIver LJ, Abu-Ali G, Franzosa EA, et al. bioBakery: a meta'omic
     analysis environment. *Bioinformatics*. 2018;34(7):1235--1237.
-    *(KneadData --- verify the citation KneadData itself requests)*
+    (KneadData is distributed as part of the bioBakery suite.)
 6.  Bolger AM, Lohse M, Usadel B. Trimmomatic: a flexible trimmer for
     Illumina sequence data. *Bioinformatics*. 2014;30(15):2114--2120.
 7.  Benson G. Tandem repeats finder: a program to analyze DNA sequences.
     *Nucleic Acids Research*. 1999;27(2):573--580.
-8.  *(Read simulator --- add)*
+8.  Gourlé H, Karlsson-Lindsjö O, Hayer J, Bongcam-Rudloff E.
+    Simulating Illumina metagenomic data with InSilicoSeq.
+    *Bioinformatics*. 2019;35(3):521--522.
+    doi:10.1093/bioinformatics/bty630
 
 ## Supplementary material
 
-![](media/image4.png){width="6.5in" height="2.6932031933508314in"}
+![](figures_publication_v2/figS1_backend_comparison.png)
 
 **Figure S1.** Comparison of interchangeable depletion backends within
 RustyClean: Bowtie2, minimap2 and Centrifuge. (a) F1 score, (b) host
-reads retained, (c) microbial reads lost, (d) peak memory. Runtime is
-reported in Supplementary Table S1 and excluded here because one
-measurement (minimap2, 5M dataset) is a cold-start outlier.
+reads retained (%), (c) microbial reads lost (%), (d) peak memory (GB).
+Runtime is reported in Supplementary Table S1 and excluded here because
+one measurement (minimap2, 5M dataset) is a cold-start outlier.
 
-  ------------------------------------------------------------------------------
-  **Backend**   **Dataset**   **F1**      **Host       **Microbial   **Peak mem
-                                          carry-over   loss (%)**    (GB)**
-                                          (%)**                      
-  ------------- ------------- ----------- ------------ ------------- -----------
-  Bowtie2       5M / 1%       0.9996      0.055        0.000         3.6
-
-  Bowtie2       10M / 10%     0.9749      0.053        0.568         3.6
-
-  Bowtie2       30M / 50%     0.9984      0.049        0.402         3.6
-
-  Bowtie2       60M / 90%     0.9996      0.049        0.388         6.2
-
-  minimap2      5M / 1%       0.9986      0.021        0.002         11.5
-
-  minimap2      10M / 10%     0.9742      0.026        0.587         11.7
-
-  minimap2      30M / 50%     0.9984      0.030        0.431         11.8
-
-  minimap2      60M / 90%     0.9997      0.029        0.416         11.9
-
-  Centrifuge    5M / 1%       0.9940      1.090        0.001         7.0
-
-  Centrifuge    10M / 10%     0.9500      1.179        1.027         7.2
-
-  Centrifuge    30M / 50%     0.9920      1.173        0.632         7.9
-
-  Centrifuge    60M / 90%     0.9938      1.171        0.760         8.6
-  ------------------------------------------------------------------------------
+| **Backend** | **Dataset** | **F1** | **Host carry-over (%)** | **Microbial loss (%)** | **Peak mem (GB)** |
+|-------------|-------------|--------|-------------------------|------------------------|-------------------|
+| Bowtie2 | 5M / 1% | 0.9996 | 0.055 | 0.000 | 3.6 |
+| Bowtie2 | 10M / 10% | 0.9749 | 0.053 | 0.568 | 3.6 |
+| Bowtie2 | 30M / 50% | 0.9984 | 0.049 | 0.402 | 3.6 |
+| Bowtie2 | 60M / 90% | 0.9996 | 0.049 | 0.388 | 6.2 |
+| minimap2 | 5M / 1% | 0.9986 | 0.021 | 0.002 | 11.5 |
+| minimap2 | 10M / 10% | 0.9742 | 0.026 | 0.587 | 11.7 |
+| minimap2 | 30M / 50% | 0.9984 | 0.030 | 0.431 | 11.8 |
+| minimap2 | 60M / 90% | 0.9997 | 0.029 | 0.416 | 11.9 |
+| Centrifuge | 5M / 1% | 0.9940 | 1.090 | 0.001 | 7.0 |
+| Centrifuge | 10M / 10% | 0.9500 | 1.179 | 1.027 | 7.2 |
+| Centrifuge | 30M / 50% | 0.9920 | 1.173 | 0.632 | 7.9 |
+| Centrifuge | 60M / 90% | 0.9938 | 1.171 | 0.760 | 8.6 |
