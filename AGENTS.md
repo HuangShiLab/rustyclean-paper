@@ -30,37 +30,43 @@
 ## 2. 仓库结构
 
 ```
-rustyclean_benchmark/
-├── README.md                      # 项目主文档（极简方案 + 完整方案）
-├── PROJECT_SUMMARY.md             # 项目总结与下一步计划
-├── benchmark_plan.md              # 详细 benchmark 设计方案
-├── competitiveness_analysis.md    # RustyClean 竞争力分析
-├── distinction_from_gao.md        # 与 Gao et al. (2024) 的关键区别
-├── storage_analysis.md            # 存储空间分析
-├── minimal/                       # 极简验证方案（推荐先跑）
-│   ├── README.md
-│   ├── setup_minimal_env.sh       # 极简环境安装
-│   ├── run_minimal.sh             # 一键运行极简验证
-│   ├── generate_one_dataset.py    # 单个数据集生成
-│   ├── analyze_minimal.py         # 极简结果分析 + 可视化
-│   └── upgrade_to_standard.sh     # 极简 → 标准方案升级
-├── scripts/                       # 标准/完整方案脚本
-│   ├── setup_env.sh               # 完整环境安装
-│   ├── generate_simulated_data.sh # 基础 4 个模拟数据集
-│   ├── generate_enhanced_data.sh  # 增强 18+ 个模拟数据集
-│   ├── run_benchmark.sh           # 主 benchmark（3 次重复）
-│   ├── analyze_accuracy.py        # 准确性分析
-│   ├── analyze_performance.py     # 性能分析 + 基础可视化
-│   ├── plot_publication_figures.py# 投稿级可视化
-│   ├── downstream_analysis.sh     # 下游分析
-│   └── generate_report.py         # 报告生成
-├── data/                          # 运行时生成：模拟/增强数据集
-├── results/                       # 运行时生成：工具输出、日志、指标
-├── analysis/                      # 运行时生成：汇总 CSV、图表、report.md
-└── minimal_env/                   # 运行时生成：极简方案环境、数据库、基因组
+rustyclean-paper/
+├── manuscript/                    # 论文稿件
+│   ├── RustyClean_Manuscript_Draft.md
+│   └── RustyClean_Manuscript_Draft.docx
+├── figures/                       # 投稿级图表（fig1–fig4 + figS1）
+├── data/                          # 运行时生成的数据集与结果指标
+│   ├── simulated/                 # 基础模拟数据集
+│   ├── enhanced/                  # 增强模拟数据集
+│   ├── results_100M_matched/      # 100M 匹配面板结果
+│   ├── results_100M_skipqc_matched/
+│   ├── benchmark_results/         # Hostile / KneadData 对比指标
+│   └── analysis/                  # 汇总 CSV 与基础可视化
+├── scripts/                       # 代码与流程脚本
+│   ├── main/                      # 标准/完整方案脚本
+│   │   ├── setup_env.sh
+│   │   ├── generate_simulated_data.sh
+│   │   ├── generate_enhanced_data.sh
+│   │   ├── run_benchmark.sh
+│   │   ├── analyze_accuracy.py
+│   │   ├── analyze_performance.py
+│   │   ├── plot_publication_figures_v2.py
+│   │   ├── downstream_analysis.sh
+│   │   └── generate_report.py
+│   ├── hpc/                       # SLURM 集群提交脚本
+│   ├── benchmark/                 # Hostile / KneadData 对比脚本
+│   ├── minimal/                   # 极简验证方案
+│   └── rustyclean_src/            # RustyClean 源码备份
+├── others/                        # 早期探索与辅助文档
+│   ├── old_manuscripts/
+│   ├── planning_docs/
+│   └── tmp_scripts/
+├── README.md                      # 项目主文档
+├── AGENTS.md                      # 本文件
+└── LICENSE
 ```
 
-> 注意：`data/`、`results/`、`analysis/`、`minimal_env/` 均由脚本在运行时创建，不在 Git 中。
+> 注意：`data/` 下的 `simulated/`、`enhanced/`、`results/` 子目录以及 `minimal_env/` 均由脚本在运行时创建，不在 Git 中。
 
 ---
 
@@ -106,7 +112,7 @@ rustyclean_benchmark/
 
 ```bash
 # 1. 安装环境（仅需一次，约 30 分钟）
-bash minimal/setup_minimal_env.sh
+bash scripts/minimal/setup_minimal_env.sh
 
 # 2. 加载环境配置
 source minimal_env/env.sh
@@ -116,10 +122,10 @@ cd minimal_env/genomes && bash download_genomes.sh
 cd /Users/macstudio/Projects/rustyclean_benchmark
 
 # 4. 运行极简验证（约 2–4 小时）
-bash minimal/run_minimal.sh
+bash scripts/minimal/run_minimal.sh
 
 # 5. 查看结果
-ls minimal/results/
+ls scripts/minimal/results/
 # ├── metrics/performance.csv
 # ├── accuracy.csv
 # └── figures/figure_speedup.png
@@ -129,44 +135,44 @@ ls minimal/results/
 
 ```bash
 # 1. 安装完整环境
-bash scripts/setup_env.sh
+bash scripts/main/setup_env.sh
 
 # 2. 激活 conda 环境
 conda activate rustyclean-benchmark
 
 # 3. 生成增强模拟数据（18 个数据集）
-bash scripts/generate_enhanced_data.sh
+bash scripts/main/generate_enhanced_data.sh
 
 # 4. 运行 benchmark（3 次重复）
-bash scripts/run_benchmark.sh ./data/enhanced ./results
+bash scripts/main/run_benchmark.sh ./data/enhanced ./results
 
 # 5. 下游分析
-bash scripts/downstream_analysis.sh ./results ./data/enhanced
+bash scripts/main/downstream_analysis.sh ./results ./data/enhanced
 
 # 6. 准确性分析
-python scripts/analyze_accuracy.py ./data/enhanced ./results ./analysis
+python scripts/main/analyze_accuracy.py ./data/enhanced ./results ./data/analysis
 
 # 7. 性能分析与基础可视化
-python scripts/analyze_performance.py ./results ./analysis
+python scripts/main/analyze_performance.py ./results ./data/analysis
 
 # 8. 投稿级可视化
-python scripts/plot_publication_figures.py ./results ./analysis/figures
+python scripts/main/plot_publication_figures_v2.py ./results ./figures
 
 # 9. 生成报告
-python scripts/generate_report.py ./results ./analysis/report.md
+python scripts/main/generate_report.py ./results ./manuscript/report.md
 ```
 
 ### 4.3 从极简方案升级
 
 ```bash
-bash minimal/upgrade_to_standard.sh
+bash scripts/minimal/upgrade_to_standard.sh
 ```
 
 该脚本会：
-1. 备份 `minimal/results/` 到 `results/minimal_baseline/`。
-2. 调用 `scripts/generate_enhanced_data.sh` 生成剩余数据集。
-3. 调用 `scripts/run_benchmark.sh` 对 18 个数据集跑 3 次重复。
-4. 调用 `scripts/downstream_analysis.sh`。
+1. 备份 `scripts/minimal/results/` 到 `results/minimal_baseline/`。
+2. 调用 `scripts/main/generate_enhanced_data.sh` 生成剩余数据集。
+3. 调用 `scripts/main/run_benchmark.sh` 对 18 个数据集跑 3 次重复。
+4. 调用 `scripts/main/downstream_analysis.sh`。
 5. 调用分析、可视化、报告脚本。
 
 ---
@@ -177,24 +183,24 @@ bash minimal/upgrade_to_standard.sh
 
 | 脚本 | 职责 |
 |------|------|
-| `minimal/setup_minimal_env.sh` | 创建 `rustyclean-minimal` conda 环境、安装基础工具、下载 MiniKraken2、设置 KneadData DB、克隆/编译 RustyClean、准备微生物基因组列表、生成 `env.sh`。 |
-| `scripts/setup_env.sh` | 创建 `rustyclean-benchmark` conda 环境、安装完整工具集、下载数据库、准备基因组列表。 |
-| `minimal/run_minimal.sh` | 生成 4 个核心数据集、运行 RustyClean vs KneadData、记录性能、调用 `analyze_minimal.py`、打印摘要。 |
-| `scripts/generate_simulated_data.sh` | 生成 4 个基础模拟数据集（InsilicoSeq）。 |
-| `scripts/generate_enhanced_data.sh` | 生成 18+ 个增强数据集，覆盖不同宿主比例、大小、复杂度、分布、SE/PE。 |
-| `scripts/run_benchmark.sh` | 扫描 `data_dir/*/completed.flag`，对每个数据集跑 3 次重复，记录 `performance.csv` 与 `file_sizes.csv`。 |
-| `scripts/downstream_analysis.sh` | 依次执行 Taxonomy（Kraken2/Bracken）、Assembly（MEGAHIT）、CheckM2、Diversity 分析。 |
+| `scripts/minimal/setup_minimal_env.sh` | 创建 `rustyclean-minimal` conda 环境、安装基础工具、下载 MiniKraken2、设置 KneadData DB、克隆/编译 RustyClean、准备微生物基因组列表、生成 `env.sh`。 |
+| `scripts/main/setup_env.sh` | 创建 `rustyclean-benchmark` conda 环境、安装完整工具集、下载数据库、准备基因组列表。 |
+| `scripts/minimal/run_minimal.sh` | 生成 4 个核心数据集、运行 RustyClean vs KneadData、记录性能、调用 `analyze_minimal.py`、打印摘要。 |
+| `scripts/main/generate_simulated_data.sh` | 生成 4 个基础模拟数据集（InsilicoSeq）。 |
+| `scripts/main/generate_enhanced_data.sh` | 生成 18+ 个增强数据集，覆盖不同宿主比例、大小、复杂度、分布、SE/PE。 |
+| `scripts/main/run_benchmark.sh` | 扫描 `data_dir/*/completed.flag`，对每个数据集跑 3 次重复，记录 `performance.csv` 与 `file_sizes.csv`。 |
+| `scripts/main/downstream_analysis.sh` | 依次执行 Taxonomy（Kraken2/Bracken）、Assembly（MEGAHIT）、CheckM2、Diversity 分析。 |
 
 ### 5.2 Python 脚本（分析层）
 
 | 脚本 | 职责 |
 |------|------|
-| `minimal/generate_one_dataset.py` | 被 `run_minimal.sh` 调用，使用 `iss` 生成单个数据集的宿主/微生物 reads、合并、生成 ground truth 标签与 `metadata.json`。 |
-| `minimal/analyze_minimal.py` | 解析 `performance.csv`，计算速度/内存对比；读取 ground truth 与工具输出 FASTQ，计算 Accuracy/Precision/Recall/F1；生成 `figure_speedup.png/svg` 与 `figure_accuracy.png`。 |
-| `scripts/analyze_accuracy.py` | 标准方案准确性分析：遍历所有数据集与 3 次重复，输出 `analysis/accuracy.csv` 与 `analysis/accuracy_summary.csv`。 |
-| `scripts/analyze_performance.py` | 标准方案性能分析：输出 `01_runtime_comparison.png`、`02_speedup.png`、`03_memory_comparison.png`、`04_throughput.png` 与 `performance_summary.csv`；进行 Wilcoxon 统计检验。 |
-| `scripts/plot_publication_figures.py` | 投稿级可视化：生成 4 张多面板图（figure_1_runtime、figure_2_memory_throughput、figure_3_accuracy、figure_4_comprehensive），导出 SVG/PDF/TIFF/PNG。 |
-| `scripts/generate_report.py` | 读取 `performance_summary.csv`、`accuracy_summary.csv`、原始 `performance.csv` 与图表目录，生成 Markdown 报告。 |
+| `scripts/minimal/generate_one_dataset.py` | 被 `run_minimal.sh` 调用，使用 `iss` 生成单个数据集的宿主/微生物 reads、合并、生成 ground truth 标签与 `metadata.json`。 |
+| `scripts/minimal/analyze_minimal.py` | 解析 `performance.csv`，计算速度/内存对比；读取 ground truth 与工具输出 FASTQ，计算 Accuracy/Precision/Recall/F1；生成 `figure_speedup.png/svg` 与 `figure_accuracy.png`。 |
+| `scripts/main/analyze_accuracy.py` | 标准方案准确性分析：遍历所有数据集与 3 次重复，输出 `data/analysis/accuracy.csv` 与 `data/analysis/accuracy_summary.csv`。 |
+| `scripts/main/analyze_performance.py` | 标准方案性能分析：输出 `01_runtime_comparison.png`、`02_speedup.png`、`03_memory_comparison.png`、`04_throughput.png` 与 `performance_summary.csv`；进行 Wilcoxon 统计检验。 |
+| `scripts/main/plot_publication_figures_v2.py` | 投稿级可视化：生成 4 张多面板图（figure_1_runtime、figure_2_memory_throughput、figure_3_accuracy、figure_4_comprehensive），导出 SVG/PDF/TIFF/PNG。 |
+| `scripts/main/generate_report.py` | 读取 `performance_summary.csv`、`accuracy_summary.csv`、原始 `performance.csv` 与图表目录，生成 Markdown 报告。 |
 
 ---
 

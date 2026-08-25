@@ -15,13 +15,13 @@
 cd rustyclean_benchmark
 
 # 2. 设置环境（仅需一次，~30 分钟）
-bash minimal/setup_minimal_env.sh
+bash scripts/minimal/setup_minimal_env.sh
 
 # 3. 运行极简验证（~2-4 小时）
-bash minimal/run_minimal.sh
+bash scripts/minimal/run_minimal.sh
 
 # 4. 查看结果
-ls minimal/results/
+ls scripts/minimal/results/
 # ├── performance.csv       # 速度对比
 # ├── accuracy.csv          # 准确性对比  
 # └── figures/
@@ -31,7 +31,7 @@ ls minimal/results/
 
 极简方案包含 **4 个核心数据集**：10M/30M/60M reads，覆盖 10%-90% 宿主污染，含 SE 和 PE 模式。
 
-> 结果满意后，一键升级：`bash minimal/upgrade_to_standard.sh`
+> 结果满意后，一键升级：`bash scripts/minimal/upgrade_to_standard.sh`
 
 ---
 
@@ -44,28 +44,28 @@ ls minimal/results/
 cd rustyclean_benchmark
 
 # 2. 设置环境（安装所有依赖、数据库）
-bash scripts/setup_env.sh
+bash scripts/main/setup_env.sh
 
 # 3. 激活环境
 conda activate rustyclean-benchmark
 
 # 4. 生成增强模拟数据（18 个数据集）
-bash scripts/generate_enhanced_data.sh
+bash scripts/main/generate_enhanced_data.sh
 
 # 5. 运行 benchmark（3 次重复）
-bash scripts/run_benchmark.sh
+bash scripts/main/run_benchmark.sh
 
 # 6. 下游分析（组装、多样性、MAG）
-bash scripts/downstream_analysis.sh ./results
+bash scripts/main/downstream_analysis.sh ./results
 
 # 7. 分析准确性
-python scripts/analyze_accuracy.py ./data/enhanced ./results
+python scripts/main/analyze_accuracy.py ./data/enhanced ./results
 
 # 8. 生成投稿级可视化
-python scripts/plot_publication_figures.py ./results ./analysis/figures
+python scripts/main/plot_publication_figures_v2.py ./results ./data/figures
 
 # 9. 生成最终报告
-python scripts/generate_report.py ./results
+python scripts/main/generate_report.py ./results
 ```
 
 ---
@@ -90,7 +90,7 @@ python scripts/generate_report.py ./results
 
 ## 与 Hostile 的公平对比（仅去宿主步骤）
 
-在 `benchmark/fair_hostile_skipqc/` 中，我们把 **RustyClean AUTO + `--skip-qc`** 与 **Hostile** 进行公平对比：两者都只测量去宿主步骤，不包含 QC，以排除 fastp / Trimmomatic 等环节对时间的干扰。
+在 `scripts/benchmark/` 中，我们把 **RustyClean AUTO + `--skip-qc`** 与 **Hostile** 进行公平对比：两者都只测量去宿主步骤，不包含 QC，以排除 fastp / Trimmomatic 等环节对时间的干扰。
 
 ### 数据集
 
@@ -106,8 +106,8 @@ python scripts/generate_report.py ./results
 ### 运行
 
 ```bash
-cd benchmark/fair_hostile_skipqc
-sbatch run_benchmark.sh
+cd scripts/benchmark
+sbatch fair_hostile_skipqc_run_benchmark.sh
 ```
 
 HPC 脚本请求 `amd` 分区 1 节点 / 16 CPU / 64 GB，限时 24 小时。
@@ -125,13 +125,13 @@ HPC 脚本请求 `amd` 分区 1 节点 / 16 CPU / 64 GB，限时 24 小时。
 | 60M_90pct_high_lognormal_SE | rustyclean_auto_skipqc | 858 | 15.5 | kraken2 |
 | 60M_90pct_high_lognormal_SE | hostile_raw | 4241 | 3.4 | bowtie2 |
 
-完整 metrics 见 `benchmark/results/fair_hostile_skipqc_results.csv`。
+完整 metrics 见 `data/benchmark_results/fair_hostile_skipqc_results.csv`。
 
 ---
 
 ## RustyClean AUTO（含 QC）vs KneadData 全流程对比
 
-在 `benchmark/auto_vs_kneaddata/` 中，对比两个工具的**完整流程**：RustyClean（fastp QC + AUTO 自适应去宿主）vs KneadData（Trimmomatic QC + Bowtie2 去宿主）。
+在 `scripts/benchmark/` 中，对比两个工具的**完整流程**：RustyClean（fastp QC + AUTO 自适应去宿主）vs KneadData（Trimmomatic QC + Bowtie2 去宿主）。
 
 ### 数据集
 
@@ -140,7 +140,7 @@ HPC 脚本请求 `amd` 分区 1 节点 / 16 CPU / 64 GB，限时 24 小时。
 ### 运行
 
 ```bash
-cd benchmark/auto_vs_kneaddata
+cd scripts/benchmark
 sbatch run_benchmark.sh
 ```
 
@@ -157,7 +157,7 @@ sbatch run_benchmark.sh
 | 60M_90pct_high_lognormal_SE | rustyclean_auto | 1470 | 15.5 | kraken2 |
 | 60M_90pct_high_lognormal_SE | kneaddata | 6822 | 1.1 | bowtie2 |
 
-完整 metrics 见 `benchmark/results/auto_vs_kneaddata_metrics.csv`。
+完整 metrics 见 `data/benchmark_results/auto_vs_kneaddata_metrics.csv`。
 
 > 注意：KneadData 默认流程会生成大量 TRF 中间文件（最后一个 60M 数据集占约 66 GB 临时文件），而 RustyClean 的中间文件和峰值内存均显著更小。
 
@@ -165,12 +165,13 @@ sbatch run_benchmark.sh
 
 ## 综合对比图
 
-`benchmark/figures/rc_hostile_kneaddata_comparison.{png,svg,pdf}` 汇总了 RustyClean 与 Hostile / KneadData 在 4 个模拟数据集上的运行时间、峰值内存和 F1-score：
+`figures/fig2_matched_panel.{png,svg,pdf}` 汇总了 RustyClean 与 Hostile / KneadData 在 4 个模拟数据集上的运行时间、峰值内存和 F1-score：
 
-- **上行**：与 Hostile 的公平对比（均不包含 QC）
-- **下行**：与 KneadData 的全流程对比（均包含 QC）
+- **fig2**：与 Hostile / KneadData 的匹配面板对比
+- **fig3**：18 个模拟数据集的准确性（F1-score）
+- **fig4**：相对加速比与内存效率
 
-该图由 `benchmark/scripts/plot_rc_hostile_kneaddata.py` 基于 `benchmark/results/fair_hostile_skipqc_results.csv`、`auto_vs_kneaddata_metrics.csv` 和 `accuracy_comparison.csv` 生成。
+相关分析脚本位于 `scripts/main/` 和 `scripts/benchmark/`。
 
 ---
 
@@ -221,25 +222,25 @@ sbatch benchmark_bowtie2_recheck_v2.sh
 cd rustyclean_benchmark
 
 # 2. 设置环境（安装所有依赖、数据库）
-bash scripts/setup_env.sh
+bash scripts/main/setup_env.sh
 
 # 3. 激活环境
 conda activate rustyclean-benchmark
 
 # 4. 生成模拟测试数据
-bash scripts/generate_simulated_data.sh
+bash scripts/main/generate_simulated_data.sh
 
 # 5. 运行 benchmark
-bash scripts/run_benchmark.sh
+bash scripts/main/run_benchmark.sh
 
 # 6. 分析准确性（模拟数据）
-python scripts/analyze_accuracy.py ./data/simulated ./results
+python scripts/main/analyze_accuracy.py ./data/simulated ./results
 
 # 7. 分析性能并生成可视化
-python scripts/analyze_performance.py ./results
+python scripts/main/analyze_performance.py ./results
 
 # 8. 生成最终报告
-python scripts/generate_report.py ./results
+python scripts/main/generate_report.py ./results
 ```
 
 ---
@@ -247,28 +248,30 @@ python scripts/generate_report.py ./results
 ## 文件结构
 
 ```
-rustyclean_benchmark/
-├── benchmark_plan.md              # 详细 benchmark 设计方案
+rustyclean-paper/
+├── manuscript/                    # 论文稿件
+│   ├── RustyClean_Manuscript_Draft.md
+│   └── RustyClean_Manuscript_Draft.docx
+├── figures/                       # 投稿级图表（fig1–fig4 + figS1）
+├── data/                          # 结果数据与指标
+│   ├── results_100M_matched/
+│   ├── results_100M_skipqc_matched/
+│   ├── benchmark_results/
+│   ├── analysis/
+│   └── *.csv
+├── scripts/                       # 代码与流程脚本
+│   ├── main/                      # 主流程脚本（数据生成、benchmark、分析、可视化）
+│   ├── hpc/                       # SLURM 集群提交脚本
+│   ├── benchmark/                 # 与 Hostile / KneadData 对比的脚本
+│   ├── minimal/                   # 极简验证方案
+│   └── rustyclean_src/            # RustyClean 源码备份
+├── others/                        # 早期探索与辅助文档
+│   ├── old_manuscripts/
+│   ├── planning_docs/
+│   └── tmp_scripts/
 ├── README.md                      # 本文件
-├── scripts/
-│   ├── setup_env.sh              # 环境安装脚本
-│   ├── generate_simulated_data.sh # 生成模拟数据
-│   ├── run_benchmark.sh          # 执行 benchmark
-│   ├── analyze_accuracy.py       # 准确性分析
-│   ├── analyze_performance.py    # 性能分析+可视化
-│   └── generate_report.py        # 报告生成
-├── data/
-│   └── simulated/                # 模拟数据集（自动生成）
-└── results/
-    ├── rustyclean/               # RustyClean 输出
-    ├── kneaddata/                # KneadData 输出
-    ├── logs/                     # 运行日志
-    ├── metrics/                  # 性能指标
-    └── analysis/                 # 分析结果
-        ├── figures/              # 可视化图表
-        ├── accuracy.csv          # 准确性数据
-        ├── performance_summary.csv
-        └── report.md             # 最终报告
+├── AGENTS.md                      # AI Agent 指南
+└── LICENSE
 ```
 
 ---
@@ -373,20 +376,21 @@ export KNEADDATA_DB=$HOME/benchmark_env/databases/kneaddata_human_db
 
 ## 输出示例
 
-运行完成后，在 `results/analysis/` 目录下：
+运行完成后，在 `data/analysis/` 目录下：
 
 ```
-analysis/
-├── figures/
-│   ├── 01_runtime_comparison.png      # 运行时间对比
-│   ├── 02_speedup.png                 # 加速比
-│   ├── 03_memory_comparison.png       # 内存对比
-│   └── 04_throughput.png             # 吞吐量对比
+data/analysis/
 ├── accuracy.csv                      # 准确性原始数据
 ├── accuracy_summary.csv              # 准确性汇总
 ├── performance_summary.csv           # 性能汇总
-└── report.md                         # 最终报告
+└── figures/                          # 基础可视化图表
+    ├── 01_runtime_comparison.png     # 运行时间对比
+    ├── 02_speedup.png                # 加速比
+    ├── 03_memory_comparison.png      # 内存对比
+    └── 04_throughput.png             # 吞吐量对比
 ```
+
+投稿级图表输出到 `figures/` 目录。
 
 ---
 

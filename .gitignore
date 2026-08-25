@@ -33,17 +33,20 @@ __pycache__/
 ground_truth_labels.txt
 
 # Runtime output directories (generated on HPC)
-data/
+/data/simulated/
+/data/enhanced/
+/data/results/
+/data/analysis/
 /results/
-/analysis/
-minimal/results/
+/scripts/minimal/data/
+/scripts/minimal/results/
 
 # Cargo build artifacts for local rustyclean copies
-rustyclean_src/target/
+/scripts/rustyclean_src/target/
 target/
 
 # Local RustyClean source copies that belong to the rustyclean repo, not this paper repo
-rustyclean_src/
+/scripts/rustyclean_src/*.rs
 pipeline.rs
 
 # Accidental empty tool marker files
