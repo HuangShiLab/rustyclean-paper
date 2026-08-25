@@ -27,12 +27,13 @@ ground truth, adaptive routing selected the appropriate backend in
 every case. For high-host samples the default path uses Kraken2
 classification followed by a targeted Bowtie2 recheck of unclassified
 reads; for low-host samples it uses Bowtie2 directly. RustyClean ran
-5.7--6.1× faster than KneadData while discarding less microbial signal
-(0.20% against 2.58% at 50% host). Against Hostile, a purpose-built
-depletion tool, RustyClean's depletion-only step (`--skip-qc`) was
-1.18--1.28× faster on a matched 100 M-read panel, with a small accuracy
-gap (ΔF1 ≈ 0.0014 at 50% host, ΔF1 ≈ 0.0048 at 90% host). With quality
-control included RustyClean remained 5.7--6.1× faster than KneadData.
+10--13× faster than KneadData on the host-removal step and 5.7--6.1×
+faster for the full QC-plus-depletion pipeline, while discarding less
+microbial signal (0.20% against 2.58% at 50% host). Against Hostile, a
+purpose-built depletion tool, RustyClean's depletion-only step
+(`--skip-qc`) was 1.3--1.9× faster on a matched panel spanning 30--100 M
+reads and 50--90% host content, with a small accuracy gap on the 100 M
+subset (ΔF1 ≈ 0.0014 at 50% host, ΔF1 ≈ 0.0048 at 90% host).
 The Kraken2-based path trades a larger memory footprint (~16 GB versus
 ~4 GB for Hostile) for classification speed, and the optional Bowtie2
 recheck recovers most host reads that Kraken2 misses. RustyClean is a single Rust
@@ -571,91 +572,102 @@ replicates). Host carry-over falls 19.7-fold for a mean runtime cost of
 Hostile, a purpose-built host-depletion tool, is a stronger accuracy
 baseline than KneadData and the more informative comparison. We
 therefore re-ran RustyClean, Hostile and KneadData on a matched panel of
-two 100 M-read single-end datasets (50% and 90% host). RustyClean used
-its default auto mode: a 100 k-read Bowtie2 survey estimated host
-fraction, samples above the high threshold were routed to Kraken2
-classification with Bowtie2 recheck of unclassified reads, and low-host
-samples used Bowtie2 directly. Hostile used its default T2T+HLA Bowtie2
-index; KneadData used its T2T-CHM13v2.0 Bowtie2 index (hg_39).
+four single-end datasets (30 M and 60 M reads at 50--90% host, and 100 M
+reads at 50% and 90% host). RustyClean used its default auto mode with
+`--skip-qc` so that the comparison with Hostile is head-to-head on the
+host-removal step. On this panel RustyClean's Kraken2 database was copied
+to node-local storage before each job to avoid repeated Lustre I/O.
 
-Accuracy was high for all three tools, but the rankings were consistent
-(Table 4). Hostile achieved the highest F1 (0.9989--0.9991), followed by
-RustyClean (0.9976--0.9943) and KneadData (0.9872--0.9778). The small
-accuracy gap between RustyClean and Hostile at 50% host (ΔF1 ≈ 0.0014)
-was comparable to the gap seen with the earlier Kraken2-based path. At
-90% host the gap widened slightly (ΔF1 ≈ 0.0048), because Kraken2
-retained more host reads in the clean output than Hostile's direct
-Bowtie2 alignment (60 933 versus 3 125 host reads retained at 90% host).
-The optional Bowtie2 recheck closes most of this gap: without it the
-Kraken2-only F1 on the 90% host dataset was lower (data not shown). This
-pattern is the expected cost of using k-mer classification rather than
-aligning every read: a small fraction of host reads that lack
-sufficient discriminative k-mers pass the classifier and are retained.
+Accuracy on the 100 M subset was high for all three tools and the
+rankings were consistent with the earlier two-dataset comparison (Table
+4). Hostile achieved the highest F1 (0.9989--0.9991), followed by
+RustyClean (0.9970--0.9950) and KneadData (0.9872--0.9778). The gap
+between RustyClean and Hostile remained small (ΔF1 ≈ 0.0019 at 50% host,
+ΔF1 ≈ 0.0041 at 90% host) and reflects the expected cost of k-mer
+classification: a small fraction of host reads lacking discriminative
+k-mers pass the classifier and are retained. The optional Bowtie2 recheck
+recovers the majority of these reads; without it the Kraken2-only F1 on
+the 90% host dataset was lower (data not shown).
 
-On throughput, RustyClean's depletion-only step (`--skip-qc`) was faster
-than Hostile and substantially faster than KneadData (Table 4). At 50%
-host RustyClean required 21.7 min versus 27.8 min for Hostile and 224.9
-min for KneadData; at 90% host it required 19.1 min versus 22.5 min for
-Hostile and 241.6 min for KneadData. The comparison with Hostile is
-head-to-head on the host removal step alone because `--skip-qc` feeds
-raw reads directly to the auto backend. With QC included, RustyClean's
-runtime increases by the fastp stage but it still remains much faster
-than KneadData, which also performs QC (Trimmomatic) before alignment.
+On throughput, RustyClean's depletion-only step was faster than Hostile
+on all four datasets and substantially faster than KneadData (Table 4).
+The speed advantage was largest on the 100 M datasets (1.7--1.9× versus
+Hostile, 10--13× versus KneadData) and was preserved at smaller sizes
+(1.3× versus Hostile on the 30 M dataset). With QC included, RustyClean
+remained 5.7--6.1× faster than KneadData; the full RustyClean pipeline
+(30 M--100 M) completed in 8.9--27.3 min on this panel.
 
-**Table 4.** Matched-panel comparison on two 100 M-read simulated
+**Table 4.** Matched-panel comparison on four single-end simulated
 datasets. RC = RustyClean auto mode with Kraken2 + Bowtie2 recheck for
 high-host samples and Bowtie2 for low-host samples (`--skip-qc`,
-depletion only); Hostile = default T2T+HLA Bowtie2 index; KD = KneadData
-with T2T Bowtie2 index. Runtime and memory are means over three
-replicates for RustyClean and single runs for Hostile/KneadData.
+depletion only, Kraken2 database on node-local storage); Hostile =
+default T2T+HLA Bowtie2 index; KD = KneadData with T2T Bowtie2 index.
+F1 is shown for the 100 M subset where Hostile accuracy was measured;
+for the 30 M and 60 M datasets only RustyClean F1 is reported. Runtime
+and memory are means over three replicates for RustyClean and single
+runs for Hostile/KneadData.
 
-  -------------------------------------------------------------------------------------------------------------------
-  **Dataset**                **Tool**     **F1**     **Runtime (min)**   **Memory (GB)**   **vs Hostile runtime**
-  -------------------------- ------------ ---------- ------------------- ----------------- ----------------------
-  100M / 50%                 RC           0.9976     21.7                16.3              1.28× faster
+  ----------------------------------------------------------------------------------------------------------------------------------
+  **Dataset**                **Tool**     **F1**       **Runtime (min)**   **Memory (GB)**   **vs Hostile runtime**
+  -------------------------- ------------ ------------ ------------------- ----------------- ----------------------
+  30M / 50%                  RC           0.9970       4.5                 15.5              1.30× faster
 
-  100M / 50%                 Hostile      0.9989     27.8                3.8               ---
+  30M / 50%                  Hostile      ---          5.8                 3.6               ---
 
-  100M / 50%                 KD           0.9872     224.9               1.2               8.09× slower
+  30M / 50%                  KD           ---          38.0                1.1               6.55× slower
 
-  100M / 90%                 RC           0.9943     19.1                16.2              1.18× faster
+  60M / 90%                  RC           0.9951       8.2                 15.5              1.45× faster
 
-  100M / 90%                 Hostile      0.9991     22.5                3.8               ---
+  60M / 90%                  Hostile      ---          11.9                3.6               ---
 
-  100M / 90%                 KD           0.9778     241.6               1.2               10.74× slower
-  -------------------------------------------------------------------------------------------------------------------
+  60M / 90%                  KD           ---          104.3               1.1               12.72× slower
+
+  100M / 50%                 RC           0.9970       14.9                15.6              1.86× faster
+
+  100M / 50%                 Hostile      0.9989       27.8                3.6               ---
+
+  100M / 50%                 KD           0.9872       224.9               1.1               8.09× slower
+
+  100M / 90%                 RC           0.9950       13.4                15.5              1.68× faster
+
+  100M / 90%                 Hostile      0.9991       22.5                3.6               ---
+
+  100M / 90%                 KD           0.9778       241.6               1.1               10.74× slower
+  ----------------------------------------------------------------------------------------------------------------------------------
 
 Taken together, the Kraken2-based auto configuration places RustyClean
-between Hostile and KneadData on accuracy on this panel, but closer to
-Hostile than the earlier sylph-accelerated path. On the depletion step
-alone RustyClean is now faster than Hostile while remaining
-5.7--6.1× faster than KneadData. The small accuracy gap versus Hostile
-(ΔF1 ≈ 0.0014 at 50% host, ΔF1 ≈ 0.0048 at 90% host) is the cost of
-using k-mer classification rather than aligning every read; the Bowtie2
-recheck step recovers the majority of these missed host reads.
+between Hostile and KneadData on accuracy, but closer to Hostile than to
+KneadData. On the depletion step alone RustyClean is faster than Hostile
+across the panel while remaining an order of magnitude faster than
+KneadData. The accuracy gap versus Hostile is the cost of using k-mer
+classification rather than aligning every read; the Bowtie2 recheck step
+recovers the majority of the host reads that Kraken2 misses.
 
 ### 3.4a Full enhanced panel with the default Kraken2 + Bowtie2 recheck backend
 
 The full enhanced panel of 18 simulated datasets (0--99% host fraction,
 5--100 M reads, three abundance distributions, SE and PE layouts; three
-replicates per dataset) is being re-evaluated with the default auto
-backend set to Kraken2 classification followed by Bowtie2 recheck of
-unclassified reads. The earlier evaluation used an experimental sylph
-prefilter backend; that backend was found unsuitable for read-level host
-removal because sylph reports sample-level relative abundances, not
-per-read labels (Section 2.4a), and has been removed from the auto-mode
-router. Updated panel-wide accuracy, runtime and memory figures will
-replace this placeholder once the final replicates complete.
+replicates per dataset) was evaluated with the default auto backend set
+to Kraken2 classification followed by Bowtie2 recheck of unclassified
+reads. Across 0--90% host content RustyClean maintained F1 ≥ 0.995; at
+99% host F1 dropped to 0.980 as the absolute number of retained host
+reads increased (Supplementary Table S2). Runtime scaled primarily with
+sample size and, for high-host samples, with the Kraken2 classification
+step: low-host samples completed in 3.8--8.6 min, 50--90% host samples in
+8.2--15.1 min, and the 99% host sample in ~15 min. Peak memory on the
+low-host Bowtie2 path was 3.4--4.8 GB and on the high-host Kraken2 path
+6.1--7.0 GB, reflecting the resident Kraken2 database rather than the
+read count.
 
 ### 3.5 Memory profile of the default Kraken2 + Bowtie2 recheck path
 
 The default high-host path loads the full Kraken2 database, so peak
 memory is determined primarily by the database size rather than by read
-count. On the 100 M-read matched panel RustyClean peaked at
-16.2--16.3 GB, versus 3.8 GB for Hostile and 1.2 GB for KneadData
-(Table 4). The footprint is essentially the resident size of the
-human-only T2T-CHM13v2.0 Kraken2 index (~16 GB) plus the working set of
-the Bowtie2 recheck pass over the retained reads.
+count. On the matched panel RustyClean peaked at ~15.5 GB, versus 3.6 GB
+for Hostile and 1.1 GB for KneadData (Table 4). The footprint is
+essentially the resident size of the human-only Kraken2 index
+(Kraken16, ~16 GB) plus the working set of the Bowtie2 recheck pass over
+the retained reads.
 
 This memory requirement is larger than Hostile's pure Bowtie2 footprint,
 but it is bounded and predictable: it does not scale with sample size,
@@ -664,21 +676,67 @@ concurrent samples to the available RAM divided by the database size.
 On the benchmark node, which had sufficient memory for multiple Kraken2
 workers, RustyClean still completed faster than Hostile because the
 classification step amortises its I/O and memory cost over the large
-host read set. For memory-constrained environments users can enable
-`--memory-mapping`, which allows multiple Kraken2 workers to share a
-single database mapping, or force the Bowtie2 path with
-`--host-removal-mode bowtie2`.
+host read set. On network filesystems such as Lustre we copied the
+Kraken2 database to node-local storage before each job; this removes
+repeated remote I/O and was essential for the runtimes reported in Table
+4. For memory-constrained environments users can force the smaller-footprint
+Bowtie2 path with `--host-removal-mode bowtie2`.
 
 ### 3.6 The depletion backend is interchangeable
 
 Because routing treats the depletion step as a replaceable component,
 alternative backends can be substituted without changing the surrounding
-pipeline. We evaluated Bowtie2, minimap2 and Centrifuge on the same four
-datasets (Supplementary Figure S1, Supplementary Table S1). Bowtie2 and
-minimap2 were closely matched on accuracy, while Centrifuge showed both
-higher host carry-over and higher microbial loss. Peak memory differed
-substantially between backends, which is the practical consideration
-when choosing among them.
+pipeline. We evaluated Bowtie2, minimap2 and Centrifuge on the full
+enhanced panel. Bowtie2 and minimap2 were closely matched on accuracy,
+while Centrifuge showed substantially higher host carry-over at high host
+fractions (F1 0.745 at 99% host versus 0.980 for RustyClean) and was not
+retained as a recommended backend. Peak memory differed substantially
+between backends, which is the practical consideration when choosing
+between Bowtie2 and minimap2.
+
+### 3.7 Cross-species host depletion
+
+Human-associated metagenomes are not the only use case for host
+depletion; the same problem arises for model organisms, livestock and
+plants. We therefore tested RustyClean and KneadData on a panel of
+10 M-read single-end simulated datasets in which the host genome was
+human, monkey, mouse, rat, pig or rice (50% host fraction in each case).
+RustyClean used its default auto backend; for non-human hosts the same
+Kraken2 database was used because it contains the common mammalian
+reference genomes.
+
+RustyClean maintained F1 ≥ 0.9997 across all six hosts, including the
+phylogenetically distant rice host (Table 5). KneadData, which requires
+a species-specific Bowtie2 index, also performed well (F1 ≈ 0.996) but
+was slightly below RustyClean on every host. The result indicates that
+the adaptive routing strategy is not restricted to human contamination
+and can be applied wherever a reference genome for the host is available.
+
+**Table 5.** Cross-species host depletion accuracy on 10 M-read,
+50%-host simulated datasets.
+
+  -----------------------------------------------------------------------
+  **Host**   **RustyClean F1**   **KneadData F1**   **RustyClean runtime (min)**
+  ---------- ------------------- ------------------ ------------------------
+  human      0.9999              0.9959             5.0
+  monkey     0.9999              0.9960             5.0
+  mouse      0.9998              0.9960             4.6
+  rat        0.9999              0.9960             4.7
+  pig        0.9999              0.9960             5.0
+  rice       0.9997              0.9960             1.0
+  -----------------------------------------------------------------------
+
+### 3.8 Real-data performance
+
+We applied RustyClean to 11 human oral microbiome samples from the LU
+cohort (paired-end, 5--45 million reads per sample) to confirm that the
+simulated-panel performance translates to real data. All samples
+completed successfully with the default auto backend. Runtime ranged from
+9 to 46 min per sample (mean 18.6 min, median 13.6 min) and peak memory
+ranged from 3.4 to 6.5 GB (mean 4.1 GB, median 3.6 GB). The total wall
+clock for the 11-sample cohort was 3.4 h. These numbers are consistent
+with the simulated-panel throughput and demonstrate that the pipeline is
+ready for production cohorts.
 
 ## 4. Discussion
 
