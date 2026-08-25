@@ -32,9 +32,10 @@ four-dataset panel it was 2.5--4.6× faster than KneadData, while
 discarding less microbial signal (mean 0.20% against 2.58%). Against
 Hostile the accuracy gap remained small (ΔF1 ≈ 0.0019 at 50% host,
 ΔF1 ≈ 0.0041 at 90% host).
-The Kraken2-based path trades a larger memory footprint (~16 GB versus
-~4 GB for Hostile) for classification speed, and the optional Bowtie2
-recheck recovers most host reads that Kraken2 misses. RustyClean is a single Rust
+The Kraken2-based path trades a larger memory footprint (~15.5 GB for
+the T2T-only human index versus ~3.6 GB for Hostile) for classification
+speed, and the optional Bowtie2 recheck recovers most host reads that
+Kraken2 misses. RustyClean is a single Rust
 binary with per-stage checkpointing, bounded concurrency and an
 automated output validation gate, available at
 https://github.com/HuangShiLab/rustyclean under the MIT licence.
@@ -594,9 +595,9 @@ The default high-host path loads the full Kraken2 database, so peak
 memory is determined primarily by the database size rather than by read
 count. On the matched panel RustyClean peaked at ~15.5 GB, versus 3.6 GB
 for Hostile and 1.1 GB for KneadData (Table 4). The footprint is
-essentially the resident size of the human-only Kraken2 index
-(Kraken16, ~16 GB) plus the working set of the Bowtie2 recheck pass over
-the retained reads.
+essentially the resident size of the T2T-only human Kraken2 index
+(~15.5 GB) plus the working set of the Bowtie2 recheck pass over the
+retained reads.
 
 This memory requirement is larger than Hostile's pure Bowtie2 footprint,
 but it is bounded and predictable: it does not scale with sample size,
@@ -777,7 +778,7 @@ converted to a cover letter before submission.]
 
 | # | Reviewer concern | Our response / evidence |
 |---|------------------|-------------------------|
-| 1 | *Why is Kraken2 memory so much larger than Hostile?* | Default path uses a human-only Kraken2 index (~16 GB). Memory is bounded by DB size, not sample size, and the memory-aware worker cap prevents overload (Section 2.8). Users can force the Bowtie2 path for low-memory environments. |
+| 1 | *Why is Kraken2 memory so much larger than Hostile?* | Default path uses a T2T-only human Kraken2 index (~15.5 GB). Memory is bounded by DB size, not sample size, and the memory-aware worker cap prevents overload (Section 2.8). Users can force the Bowtie2 path for low-memory environments. |
 | 2 | *The 99% host F1 drop looks concerning.* | Expected behaviour: when microbial reads are rare, retained host reads dominate the F1 denominator. The absolute host carry-over remains modest; the relevant metric for assembly/profiling is residual-host fraction, which is low (Section 3.4a). |
 | 3 | *The routing thresholds (10% / 30%) seem arbitrary.* | Set from measured runtime crossover of the two backends; conservative routing sends borderline samples to the safer alignment path (Section 2.3). |
 | 4 | *KneadData includes Trimmomatic and repeat masking; the comparison is not like-for-like.* | Acknowledged. We report KneadData as the de facto standard and note that part of the speed advantage reflects scope differences (Discussion). A `--bypass-trf` comparison would further clarify this. |
