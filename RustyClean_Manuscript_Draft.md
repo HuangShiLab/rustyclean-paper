@@ -32,7 +32,7 @@ evaluation panel). Against Hostile, a
 purpose-built depletion tool, RustyClean's depletion-only step
 (`--skip-qc`) was 1.3--1.9× faster on a matched panel spanning 30--100 M
 reads and 50--90% host content, with a small accuracy gap on the 100 M
-subset (ΔF1 ≈ 0.0014 at 50% host, ΔF1 ≈ 0.0048 at 90% host).
+subset (ΔF1 ≈ 0.0019 at 50% host, ΔF1 ≈ 0.0041 at 90% host).
 The Kraken2-based path trades a larger memory footprint (~16 GB versus
 ~4 GB for Hostile) for classification speed, and the optional Bowtie2
 recheck recovers most host reads that Kraken2 misses. RustyClean is a single Rust
