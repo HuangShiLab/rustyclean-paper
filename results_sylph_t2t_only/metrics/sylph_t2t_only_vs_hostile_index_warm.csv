@@ -1,5 +1,0 @@
-dataset,host_pct,hostile_index_runtime_warm,t2t_only_runtime_warm
-5M_1pct_low_even_SE,1,36.305,36.519999999999996
-10M_10pct_med_even_SE,10,71.155,71.88499999999999
-30M_50pct_high_skewed_SE,50,270.905,282.56
-60M_90pct_high_lognormal_SE,90,639.635,902.1399999999999
