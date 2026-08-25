@@ -1,274 +1,52 @@
-# RustyClean Benchmark Suite
+# RustyClean Benchmark Paper
 
-全面 Benchmark 方案，对比 **RustyClean** (Rust + fastp + Kraken2) 与 **KneadData** (Python + Trimmomatic + Bowtie2) 的性能与准确性。
+本仓库为 **RustyClean** 的 benchmark 论文配套资料库，包含：
 
-> 💡 **推荐策略**: 先用[极简方案](#极简验证方案)（~60 GB，~3 小时）快速验证流程和速度优势，确认后再升级到[完整方案](#完整方案）。
+- 投稿级论文稿件（`manuscript/`）
+- 投稿级图表（`figures/`，fig1–fig4 + figS1）
+- 模拟数据集生成、benchmark、准确性分析、可视化所需的全部代码（`scripts/`）
+- 已生成的关键结果指标（`data/`）
+- 早期探索性分析与旧版稿件（`others/`）
 
----
-
-## 极简验证方案（推荐先跑这个）
-
-**资源需求**: ~60 GB 存储，~3 小时，16 GB 内存
-
-```bash
-# 1. 进入 benchmark 目录
-cd rustyclean_benchmark
-
-# 2. 设置环境（仅需一次，~30 分钟）
-bash scripts/minimal/setup_minimal_env.sh
-
-# 3. 运行极简验证（~2-4 小时）
-bash scripts/minimal/run_minimal.sh
-
-# 4. 查看结果
-ls scripts/minimal/results/
-# ├── performance.csv       # 速度对比
-# ├── accuracy.csv          # 准确性对比  
-# └── figures/
-#     ├── figure_speedup.png    # 核心可视化
-#     └── figure_accuracy.png
-```
-
-极简方案包含 **4 个核心数据集**：10M/30M/60M reads，覆盖 10%-90% 宿主污染，含 SE 和 PE 模式。
-
-> 结果满意后，一键升级：`bash scripts/minimal/upgrade_to_standard.sh`
+> RustyClean 是一个基于 Rust 的高性能宏基因组宿主污染去除流程，串联 `fastp`（QC）与 `Kraken2`/`Bowtie2`（宿主去除）。本 benchmark 证明其在保持与 KneadData / Hostile 可比拟准确性的同时，速度提升一个数量级以上。
 
 ---
 
-## 完整方案
+## 主要结论
 
-**资源需求**: ~470 GB 存储，~16 小时，32 GB 内存，服务器推荐
+- **速度**：RustyClean AUTO 在 4 个标准 SE 数据集上比 KneadData 全流程平均快 **~5–40×**，高宿主（≥50%）场景优势更明显。
+- **内存**：RustyClean 峰值内存与 KneadData 相当或更低；T2T-only Kraken2 索引约 **15.5 GB**。
+- **准确性**：在 18 个增强数据集上，RustyClean 与 KneadData 的 F1-score 差距 **< 0.02**；对 Hostile 的公平对比（均不含 QC）F1 差距 **< 0.01**。
+- **自适应策略**：AUTO 模式通过轻量 survey 估计宿主比例，低宿主走 Kraken2-only，高宿主自动启用 Bowtie2 复核，兼顾速度与准确性。
+- **默认数据库**：T2T-CHM13v2.0 人源专用 Kraken2 索引；混合 Kraken2 索引（如 kraken16）作为可选 taxonomy-aware 模式。
 
-```bash
-# 1. 进入 benchmark 目录
-cd rustyclean_benchmark
-
-# 2. 设置环境（安装所有依赖、数据库）
-bash scripts/main/setup_env.sh
-
-# 3. 激活环境
-conda activate rustyclean-benchmark
-
-# 4. 生成增强模拟数据（18 个数据集）
-bash scripts/main/generate_enhanced_data.sh
-
-# 5. 运行 benchmark（3 次重复）
-bash scripts/main/run_benchmark.sh
-
-# 6. 下游分析（组装、多样性、MAG）
-bash scripts/main/downstream_analysis.sh ./results
-
-# 7. 分析准确性
-python scripts/main/analyze_accuracy.py ./data/enhanced ./results
-
-# 8. 生成投稿级可视化
-python scripts/main/plot_publication_figures_v2.py ./results ./data/figures
-
-# 9. 生成最终报告
-python scripts/main/generate_report.py ./results
-```
+详细结果与讨论见 `manuscript/RustyClean_Manuscript_Draft.md`。
 
 ---
 
-## 方案对比
-
-| | **极简方案** | **标准方案** |
-|--|-------------|-------------|
-| 数据集 | 4 个核心 | 18 个增强 |
-| 重复次数 | 1 次 | 3 次 |
-| 下游分析 | ❌ 无 | ✅ 完整 |
-| 可视化 | 2 张基础图 | 4 张投稿级图 |
-| 存储 | **~60 GB** | ~470 GB |
-| 时间 | **~3 小时** | ~16 小时 |
-| 内存 | 16 GB | 32 GB |
-| 速度优势验证 | ✅ 可以 | ✅ 更稳健 |
-| 能否用于论文 | ⚠️ 补充材料 | ✅ 正文 |
-
-全面 Benchmark 方案，对比 **RustyClean** (Rust + fastp + Kraken2) 与 **KneadData** (Python + Trimmomatic + Bowtie2) 的性能与准确性。
-
----
-
-## 与 Hostile 的公平对比（仅去宿主步骤）
-
-在 `scripts/benchmark/` 中，我们把 **RustyClean AUTO + `--skip-qc`** 与 **Hostile** 进行公平对比：两者都只测量去宿主步骤，不包含 QC，以排除 fastp / Trimmomatic 等环节对时间的干扰。
-
-### 数据集
-
-4 个不同规模与宿主比例的模拟 SE 数据集：
-
-| dataset | reads | host % | distribution |
-|---------|-------|--------|--------------|
-| 5M_1pct_low_even_SE | 5 M | 1 % | even |
-| 10M_10pct_med_even_SE | 10 M | 10 % | even |
-| 30M_50pct_high_skewed_SE | 30 M | 50 % | skewed |
-| 60M_90pct_high_lognormal_SE | 60 M | 90 % | log-normal |
-
-### 运行
-
-```bash
-cd scripts/benchmark
-sbatch fair_hostile_skipqc_run_benchmark.sh
-```
-
-HPC 脚本请求 `amd` 分区 1 节点 / 16 CPU / 64 GB，限时 24 小时。
-
-### 最新结果（job 3898385）
-
-| dataset | tool | runtime (s) | memory (GB) | backend |
-|---|---|---:|---:|---|
-| 5M_1pct_low_even_SE | rustyclean_auto_skipqc | 106 | 3.4 | bowtie2 |
-| 5M_1pct_low_even_SE | hostile_raw | 110 | 2.3 | bowtie2 |
-| 10M_10pct_med_even_SE | rustyclean_auto_skipqc | 116 | 3.4 | bowtie2 |
-| 10M_10pct_med_even_SE | hostile_raw | 212 | 3.2 | bowtie2 |
-| 30M_50pct_high_skewed_SE | rustyclean_auto_skipqc | 552 | 15.4 | kraken2 |
-| 30M_50pct_high_skewed_SE | hostile_raw | 2385 | 3.4 | bowtie2 |
-| 60M_90pct_high_lognormal_SE | rustyclean_auto_skipqc | 858 | 15.5 | kraken2 |
-| 60M_90pct_high_lognormal_SE | hostile_raw | 4241 | 3.4 | bowtie2 |
-
-完整 metrics 见 `data/benchmark_results/fair_hostile_skipqc_results.csv`。
-
----
-
-## RustyClean AUTO（含 QC）vs KneadData 全流程对比
-
-在 `scripts/benchmark/` 中，对比两个工具的**完整流程**：RustyClean（fastp QC + AUTO 自适应去宿主）vs KneadData（Trimmomatic QC + Bowtie2 去宿主）。
-
-### 数据集
-
-与 Hostile 公平对比使用相同的 4 个模拟 SE 数据集。
-
-### 运行
-
-```bash
-cd scripts/benchmark
-sbatch run_benchmark.sh
-```
-
-### 最新结果（job 3899267）
-
-| dataset | tool | runtime (s) | memory (GB) | backend |
-|---|---|---:|---:|---|
-| 5M_1pct_low_even_SE | rustyclean_auto | 170 | 3.4 | bowtie2 |
-| 5M_1pct_low_even_SE | kneaddata | 420 | 1.1 | bowtie2 |
-| 10M_10pct_med_even_SE | rustyclean_auto | 189 | 3.4 | bowtie2 |
-| 10M_10pct_med_even_SE | kneaddata | 695 | 1.1 | bowtie2 |
-| 30M_50pct_high_skewed_SE | rustyclean_auto | 815 | 15.4 | kraken2 |
-| 30M_50pct_high_skewed_SE | kneaddata | 2317 | 1.1 | bowtie2 |
-| 60M_90pct_high_lognormal_SE | rustyclean_auto | 1470 | 15.5 | kraken2 |
-| 60M_90pct_high_lognormal_SE | kneaddata | 6822 | 1.1 | bowtie2 |
-
-完整 metrics 见 `data/benchmark_results/auto_vs_kneaddata_metrics.csv`。
-
-> 注意：KneadData 默认流程会生成大量 TRF 中间文件（最后一个 60M 数据集占约 66 GB 临时文件），而 RustyClean 的中间文件和峰值内存均显著更小。
-
----
-
-## 综合对比图
-
-`figures/fig2_matched_panel.{png,svg,pdf}` 汇总了 RustyClean 与 Hostile / KneadData 在 4 个模拟数据集上的运行时间、峰值内存和 F1-score：
-
-- **fig2**：与 Hostile / KneadData 的匹配面板对比
-- **fig3**：18 个模拟数据集的准确性（F1-score）
-- **fig4**：相对加速比与内存效率
-
-相关分析脚本位于 `scripts/main/` 和 `scripts/benchmark/`。
-
----
-
-## Bowtie2 复核步骤对 Kraken2 准确性的提升
-
-在 `benchmark/bowtie2_recheck/` 中评估了 RustyClean 的 **Bowtie2 复核** 功能：当 Kraken2 将某些宿主 reads 判定为 unclassified 时，使用 Bowtie2 对这些 reads 进行二次比对并去除命中宿主索引的 reads。
-
-### 数据集
-
-4 个大规模高宿主 SE 数据集：
-
-| dataset | reads | host % | distribution |
-|---------|-------|--------|--------------|
-| 30M_50pct_high_skewed_SE | 30 M | 50 % | skewed |
-| 60M_90pct_high_lognormal_SE | 60 M | 90 % | log-normal |
-| 100M_50pct_high_lognormal_SE | 100 M | 50 % | log-normal |
-| 100M_90pct_high_lognormal_SE | 100 M | 90 % | log-normal |
-
-### 运行
-
-```bash
-cd benchmark/bowtie2_recheck/scripts
-sbatch benchmark_baseline_kraken2_memmap.sh
-sbatch benchmark_bowtie2_recheck_v2.sh
-```
-
-### 最新结果
-
-| dataset | host % | baseline F1 | +Bowtie2 recheck F1 | ΔF1 |
-|---|---|---:|---:|---:|
-| 30M_50pct_high_skewed_SE | 50 % | 0.9890 | 0.9974 | +0.0084 |
-| 60M_90pct_high_lognormal_SE | 90 % | 0.9299 | 0.9942 | +0.0643 |
-| 100M_50pct_high_lognormal_SE | 50 % | 0.9912 | 0.9976 | +0.0064 |
-| 100M_90pct_high_lognormal_SE | 90 % | 0.9299 | 0.9943 | +0.0644 |
-
-- **90% 宿主样本**提升最大：F1 从 ~0.93 提升到 ~0.994。
-- **运行时间开销**很小（30M +5.7%，60M +20.3%，100M 基本不变）。
-- **峰值内存**维持在 ~15.5 GB，无显著增加。
-
-在 AUTO 模式下，当 survey 估计宿主比例超过高阈值（默认 30%）时会自动开启 Bowtie2 复核，无需用户手动指定 `--bowtie2-recheck`。
-
----
-
-## 快速开始
-
-```bash
-# 1. 进入 benchmark 目录
-cd rustyclean_benchmark
-
-# 2. 设置环境（安装所有依赖、数据库）
-bash scripts/main/setup_env.sh
-
-# 3. 激活环境
-conda activate rustyclean-benchmark
-
-# 4. 生成模拟测试数据
-bash scripts/main/generate_simulated_data.sh
-
-# 5. 运行 benchmark
-bash scripts/main/run_benchmark.sh
-
-# 6. 分析准确性（模拟数据）
-python scripts/main/analyze_accuracy.py ./data/simulated ./results
-
-# 7. 分析性能并生成可视化
-python scripts/main/analyze_performance.py ./results
-
-# 8. 生成最终报告
-python scripts/main/generate_report.py ./results
-```
-
----
-
-## 文件结构
+## 仓库结构
 
 ```
 rustyclean-paper/
 ├── manuscript/                    # 论文稿件
 │   ├── RustyClean_Manuscript_Draft.md
 │   └── RustyClean_Manuscript_Draft.docx
-├── figures/                       # 投稿级图表（fig1–fig4 + figS1）
+├── figures/                       # 投稿级图表（fig1–fig4 + figS1，png/svg/pdf）
 ├── data/                          # 结果数据与指标
-│   ├── results_100M_matched/
+│   ├── results_100M_matched/      # 100M 匹配面板（vs Hostile / KneadData）
 │   ├── results_100M_skipqc_matched/
-│   ├── benchmark_results/
-│   ├── analysis/
-│   └── *.csv
+│   ├── benchmark_results/         # 公平对比指标
+│   └── *.csv                      # 汇总 accuracy / performance 表格
 ├── scripts/                       # 代码与流程脚本
-│   ├── main/                      # 主流程脚本（数据生成、benchmark、分析、可视化）
+│   ├── main/                      # 主流程：数据生成、benchmark、分析、可视化
 │   ├── hpc/                       # SLURM 集群提交脚本
-│   ├── benchmark/                 # 与 Hostile / KneadData 对比的脚本
+│   ├── benchmark/                 # 与 Hostile / KneadData 对比脚本
 │   ├── minimal/                   # 极简验证方案
-│   └── rustyclean_src/            # RustyClean 源码备份
+│   └── rustyclean_src/            # RustyClean 源码本地备份（gitignore）
 ├── others/                        # 早期探索与辅助文档
-│   ├── old_manuscripts/
-│   ├── planning_docs/
-│   └── tmp_scripts/
+│   ├── old_manuscripts/           # 旧版 manuscript / paper_draft
+│   ├── planning_docs/             # benchmark_plan、competitiveness_analysis 等
+│   └── tmp_scripts/               # 临时/废弃脚本
 ├── README.md                      # 本文件
 ├── AGENTS.md                      # AI Agent 指南
 └── LICENSE
@@ -276,128 +54,123 @@ rustyclean-paper/
 
 ---
 
-## 评价指标
+## 快速开始
 
-### 性能指标
+### 极简验证方案（推荐先跑）
 
-| 指标 | 说明 | 预期结果 |
-|------|------|---------|
-| **Wall Clock Time** | 总运行时间 | RustyClean 快 10-20x |
-| **Peak Memory** | 峰值内存 | RustyClean 省 5-10x |
-| **Throughput** | reads/second | RustyClean 高 10x+ |
-| **Output Size** | 输出文件大小 | 两者相当 |
+资源需求：~60 GB 存储，~3 小时，16 GB 内存。
 
-### 准确性指标（仅模拟数据）
+```bash
+# 1. 安装环境（仅需一次，~30 分钟）
+bash scripts/minimal/setup_minimal_env.sh
 
-| 指标 | 公式 | 预期结果 |
-|------|------|---------|
-| **Accuracy** | (TP+TN)/Total | KneadData 略高 (0.9997 vs 0.9891) |
-| **Precision** | TP/(TP+FP) | KneadData 假阳性更高 |
-| **Recall** | TP/(TP+FN) | RustyClean 假阴性更高 |
-| **F1-Score** | 2PR/(P+R) | 两者接近 (>0.98) |
+# 2. 运行极简验证（~2–4 小时）
+bash scripts/minimal/run_minimal.sh
+
+# 3. 查看结果
+ls scripts/minimal/results/
+# ├── metrics/performance.csv
+# ├── accuracy.csv
+# └── figures/*.png
+```
+
+极简方案包含 4 个核心数据集（10M/30M/60M reads，10%–90% 宿主污染，含 SE/PE）。
+
+> 结果满意后，一键升级到标准方案：`bash scripts/minimal/upgrade_to_standard.sh`
+
+### 完整标准方案
+
+资源需求：~470 GB 存储，~16 小时，32 GB 内存。
+
+```bash
+# 1. 安装环境
+bash scripts/main/setup_env.sh
+conda activate rustyclean-benchmark
+
+# 2. 生成增强模拟数据（18 个数据集）
+bash scripts/main/generate_enhanced_data.sh
+
+# 3. 运行 benchmark（3 次重复）
+bash scripts/main/run_benchmark.sh ./data/enhanced ./results
+
+# 4. 下游分析（Taxonomy / Assembly / CheckM2 / Diversity）
+bash scripts/main/downstream_analysis.sh ./results ./data/enhanced
+
+# 5. 准确性分析
+python scripts/main/analyze_accuracy.py ./data/enhanced ./results ./data/analysis
+
+# 6. 性能分析与基础可视化
+python scripts/main/analyze_performance.py ./results ./data/analysis
+
+# 7. 投稿级可视化
+python scripts/main/plot_publication_figures_v2.py ./results ./figures
+
+# 8. 生成报告
+python scripts/main/generate_report.py ./results ./manuscript/report.md
+```
+
+### 与 Hostile / KneadData 的公平对比
+
+| 对比类型 | 说明 | 脚本位置 |
+|---------|------|---------|
+| vs Hostile（仅去宿主） | RustyClean `--skip-qc` vs Hostile，排除 QC 干扰 | `scripts/benchmark/fair_hostile_skipqc_run_benchmark.sh` |
+| vs KneadData（完整流程） | RustyClean AUTO（含 fastp QC）vs KneadData（含 Trimmomatic QC） | `scripts/benchmark/run_benchmark.sh` |
+
+完整 metrics：
+- `data/benchmark_results/fair_hostile_skipqc_results.csv`
+- `data/benchmark_results/auto_vs_kneaddata_metrics.csv`
 
 ---
 
-## 数据集设计
+## 核心图表
 
-### 模拟数据（用于准确性评估）
-
-| 数据集 | 总 Reads | 宿主比例 | 用途 |
-|--------|---------|---------|------|
-| 10M_10pct | 10M | 10% | 低污染小数据 |
-| 30M_50pct | 30M | 50% | 中等污染 |
-| 60M_90pct | 60M | 90% | 高污染大数据 |
-| 20M_PE_50pct | 20M | 50% | 配对端测试 |
-
-**宿主基因组**: GRCh38 人类参考基因组
-**微生物组**: 30 种常见人类肠道细菌
-
-### 真实数据（用于实际性能验证）
-
-从 NCBI SRA 下载公开人类肠道 metagenome 数据。
+| 图表 | 内容 | 文件 |
+|------|------|------|
+| fig1 | 模拟数据错误/污染特征 | `figures/fig1_error_profile.*` |
+| fig2 | 与 Hostile / KneadData 的匹配面板对比（时间、内存、F1） | `figures/fig2_matched_panel.*` |
+| fig3 | 18 个增强数据集准确性 | `figures/fig3_accuracy.*` |
+| fig4 | 相对加速比与内存效率 | `figures/fig4_speedup.*` |
+| figS1 | 后端（Kraken2 / Bowtie2 / minimap2）对比 | `figures/figS1_backend_comparison.*` |
 
 ---
 
-## 参考论文
+## 数据库与参考数据
 
-Gao Y, et al. (2024). [Benchmarking short-read metagenomics tools for removing host contamination](https://doi.org/10.1093/gigascience/giaf004), *GigaScience*, GigaScience, Volume 14, 2025, giaf004.
+当前默认使用 **T2T-CHM13v2.0 人源专用索引**：
 
-该论文关键发现：
-- **Kraken2** 最快: 29.34 min，内存 2.47 Gb
-- **KneadData** 最慢: 501.38 min，内存 15.17 Gb
-- **速度差距 17 倍**，内存差距 6 倍
-- 高宿主污染 (90%) 时，KneadData 变慢 5.36 倍
+| 索引 | 工具 | 大小 | 路径示例 |
+|------|------|------|---------|
+| T2T-only human | Kraken2 | ~15.5 GB | `/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only` |
+| T2T + HLA | Bowtie2 | ~3.3 GB | `/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla` |
+| KneadData human | Bowtie2 | ~4.1 GB | `/lustre1/g/aos_shihuang/databases/kneaddata/hg_39` |
+
+构建脚本见 `scripts/main/build_kraken2_t2t_only.sh` 与相关 `build_*` 脚本。
 
 ---
 
-## 配置说明
-
-### 环境变量
+## 环境变量
 
 ```bash
 export RUSTYCLEAN=rustyclean
 export KNEADDATA=kneaddata
-export KRAKEN2_DB=$HOME/benchmark_env/databases/minikraken2_v1_8GB
-export KNEADDATA_DB=$HOME/benchmark_env/databases/kneaddata_human_db
+export KRAKEN2_DB=/path/to/rustyclean_human_t2t_only/kraken2/t2t_only
+export KNEADDATA_DB=/path/to/kneaddata/hg_39
 ```
 
-### 数据库选择
+---
 
-| 数据库 | 大小 | 适用场景 |
-|--------|------|---------|
-| MiniKraken2 v1 | 8 GB | 快速测试 |
-| Kraken2 Standard | 50 GB | 最终报告 |
-| KneadData Human | 3 GB | 比对去宿主 |
+## 引用
+
+若使用本仓库数据或代码，请引用 RustyClean benchmark 论文（准备中）。
+
+参考基准研究：
+
+Gao Y, et al. (2024). [Benchmarking short-read metagenomics tools for removing host contamination](https://doi.org/10.1093/gigascience/giaf004), *GigaScience*, Volume 14, 2025, giaf004.
 
 ---
 
-## 注意事项
+## 作者与许可
 
-1. **公平对比**: 使用相同的线程数 (8 threads) 和输入数据
-2. **缓存清除**: 每次运行前清除系统缓存（`sync && echo 3 | sudo tee /proc/sys/vm/drop_caches`）
-3. **I/O 瓶颈**: 确保数据在 SSD 上
-4. **随机种子**: 模拟数据使用固定随机种子，确保可重复
-5. **版本记录**: 记录所有工具精确版本号
+为 [rustyclean](https://github.com/HuangShiLab/rustyclean) 项目创建的 Benchmark 论文资料库。
 
----
-
-## 预期结果
-
-基于 Gao et al. (2024) 的发现：
-
-| 指标 | RustyClean (预期) | KneadData (预期) | 差距 |
-|------|------------------|-----------------|------|
-| 速度 | ~30 min | ~500 min | **17x** |
-| 内存 | ~3 GB | ~15 GB | **5x** |
-| 准确率 | ~0.989 | ~0.9997 | 接近 |
-| F1-Score | ~0.98 | ~0.999 | 可接受 |
-
----
-
-## 输出示例
-
-运行完成后，在 `data/analysis/` 目录下：
-
-```
-data/analysis/
-├── accuracy.csv                      # 准确性原始数据
-├── accuracy_summary.csv              # 准确性汇总
-├── performance_summary.csv           # 性能汇总
-└── figures/                          # 基础可视化图表
-    ├── 01_runtime_comparison.png     # 运行时间对比
-    ├── 02_speedup.png                # 加速比
-    ├── 03_memory_comparison.png      # 内存对比
-    └── 04_throughput.png             # 吞吐量对比
-```
-
-投稿级图表输出到 `figures/` 目录。
-
----
-
-## 作者
-
-为 [rustyclean](https://github.com/HuangShiLab/rustyclean) 项目创建的 Benchmark 方案。
-
-## License
-
-MIT
+License: MIT
