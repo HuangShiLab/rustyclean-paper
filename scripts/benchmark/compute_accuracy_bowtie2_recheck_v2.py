@@ -70,12 +70,13 @@ def find_clean_file(outdir: Path) -> Path:
 
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <project_dir> <output_csv>", file=sys.stderr)
+    if len(sys.argv) not in (3, 4):
+        print(f"Usage: {sys.argv[0]} <project_dir> <output_csv> [tool_label]", file=sys.stderr)
         sys.exit(1)
 
     project_dir = Path(sys.argv[1])
     out_csv = Path(sys.argv[2])
+    tool_label = sys.argv[3] if len(sys.argv) == 4 else "rustyclean_bt2recheck"
     data_dir = Path("/scr/u/shihuang/rustyclean-paper/data/enhanced")
     out_base = project_dir / "results"
 
@@ -105,7 +106,7 @@ def main():
             rows.append({
                 "dataset": dataset,
                 "rep": rep,
-                "tool": "rustyclean_bt2recheck",
+                "tool": tool_label,
                 "accuracy": f"{metrics['accuracy']:.6f}",
                 "precision": f"{metrics['precision']:.6f}",
                 "recall": f"{metrics['recall']:.6f}",
