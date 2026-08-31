@@ -32,7 +32,7 @@ time_log="$OUT/time.log"
     --kraken2-db "$KRAKEN_DB" \
     --host-index "$HOST_INDEX" \
     --auto-survey \
-    --bowtie2-recheck \
+    --bowtie2-recheck "$HOST_INDEX" \
     --kraken2-memory-mapping \
     --checkpoint-dir "$OUT/.checkpoints" \
     -o "$OUT" \

@@ -129,14 +129,17 @@ Superseded but still in `scripts/main/`: `plot_publication_figures.py` (→ `_v2
 
 ## E. Reproducibility notes
 
-1. **Exp 4 and Exp 7 were produced by the `bowtie2-recheck` branch, not `main`.**
-   That branch has diverged: its `choose_auto_backend()` takes three arguments
-   (host %, low, high) while `main`'s takes five (adds read count and a 20M-read
-   threshold). The routing rule that generated those results is **not** the rule
-   `main` implements, and not the rule the manuscript describes.
-2. The branch also carries a fix `main` lacks — `fix(pipeline): surface kraken2
-   stderr and exit status on failure`. On `main`, Kraken2 failure is still detected
-   by string-matching stderr rather than by exit status.
+1. **Exp 4 and Exp 7 were produced by the `bowtie2-recheck` branch, before it was
+   merged.** That branch's `choose_auto_backend()` took three arguments (host %,
+   low, high); `main` now takes five, having restored the read-count condition.
+   Every dataset in those experiments exceeds the 20M-read threshold, so the
+   backend selected is unchanged, but the rule that produced the results is not
+   byte-for-byte the rule `main` implements.
+2. `--bowtie2-recheck` now takes the Bowtie2 index prefix as its value: supplying
+   the index enables the verification pass, omitting the flag disables it, and
+   `--no-bowtie2-recheck` no longer exists. Scripts written against the old bare
+   flag must pass an index. The exit-status fix for Kraken2 failures is on both
+   `main` and `legacy-main-no-recheck`.
 3. `data/results_100M_skipqc_matched/accuracy.csv` stores the Hostile rows with the
    **opposite positive class** to the RustyClean rows; metrics computed from that
    file without transposing are wrong.

@@ -380,12 +380,14 @@ for i,(v,lab,col) in enumerate(big):
 txt(s,"Remarkably consistent: host carry-over falls from 1.41 % to 0.07 % on all four datasets, "
       "and F1 at 90 % host rises from 0.930 to 0.994.",
     MG,4.94,CW,0.54,size=13.5,bold=True,color=INK,sp=1.10,label="cons")
-rect(s,MG,5.48,CW,1.02,fill=INK,rad=0.06)
-txt(s,"Not merged",MG+0.30,5.60,1.5,0.28,size=13,bold=True,color=RUST_LT,label="nm")
-txt(s,"The --bowtie2-recheck flag lives on the bowtie2-recheck branch, not on main. Anyone "
-      "installing RustyClean today does not get the configuration these results describe.",
-    MG+1.80,5.58,CW-2.10,0.56,size=12.5,color=WHITE,sp=1.10,label="nmb")
-note(s,"Strongest single result in the deck. But it is on a branch — say so.")
+rect(s,MG,5.44,CW,1.12,fill=INK,rad=0.06)
+txt(s,"Now on main",MG+0.30,5.56,1.7,0.28,size=13,bold=True,color=RUST_LT,label="nm")
+txt(s,"--bowtie2-recheck has been merged and now takes the Bowtie2 index it verifies "
+      "against, so supplying the index is what enables the pass. These results were produced "
+      "before the merge, by the branch, with the same verification logic.",
+    MG+2.00,5.54,CW-2.30,0.80,size=11.8,color=WHITE,sp=1.08,label="nmb")
+note(s,"Strongest single result in the deck. The flag is on main now; the numbers came from "
+       "the branch, with identical verification logic.")
 
 # ============================================================ 10 EXP 5 BACKENDS
 s=slide(prs); title(s,"Experiment 5 — depletion backends","Results · interchangeable components")
@@ -510,9 +512,10 @@ s=slide(prs); title(s,"What to run next","Priority order")
 items=[("1","Reconcile the Hostile runtime contradiction",
         "Re-run Hostile on 60M and 100M on the same node with the same settings. Until this "
         "resolves, no speed claim against Hostile can be quoted.",RUST),
-       ("2","Merge --bowtie2-recheck into main",
-        "The default method in every result above ships only on a branch. Merge it, or state the "
-        "branch explicitly wherever results are reported.",RUST),
+       ("2","Run the Kraken2 index ablation",
+        "Every committed result used kraken16, a mixed database, not the human-only index the "
+        "manuscript describes. benchmark_k2_index_ablation.sh measures how much of the 1.41% "
+        "host carry-over is the index rather than the method.",RUST),
        ("3","Fix the transposed class labels",
         "results_100M_skipqc_matched/accuracy.csv stores Hostile with the opposite positive class. "
         "Anyone reading that file without checking will draw the wrong conclusion.",RUST_DK),

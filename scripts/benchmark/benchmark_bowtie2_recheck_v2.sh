@@ -95,7 +95,7 @@ for dataset in "${DATASETS[@]}"; do
             --kraken2-db "$KRAKEN_DB" \
             --host-index "$HOST_INDEX" \
             --auto-survey \
-            --bowtie2-recheck \
+            --bowtie2-recheck "$HOST_INDEX" \
             --kraken2-memory-mapping \
             --checkpoint-dir "$ds_out/.checkpoints" \
             -o "$ds_out" \
