@@ -19,8 +19,23 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-ARM_A_ACC = REPO / "data/benchmark_results/accuracy_bowtie2_recheck.csv"
-ARM_A_PERF = REPO / "data/benchmark_results/performance_bowtie2_recheck.csv"
+
+
+def arm_a(name):
+    """Arm A from the current run if it exists, otherwise from the v1 archive."""
+    fresh = REPO / "data/benchmark_results" / name
+    if fresh.exists():
+        return fresh
+    archived = REPO / "archive/v1/data/benchmark_results" / name
+    if archived.exists():
+        print(f"note: arm A taken from the v1 archive ({archived.relative_to(REPO)}); "
+              f"rerun stage 4 to compare against fresh results", file=sys.stderr)
+        return archived
+    return fresh
+
+
+ARM_A_ACC = arm_a("accuracy_bowtie2_recheck.csv")
+ARM_A_PERF = arm_a("performance_bowtie2_recheck.csv")
 ARM_B_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(
     "/lustre1/g/aos_shihuang/rustyclean-paper/k2_index_ablation/metrics")
 

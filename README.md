@@ -30,29 +30,29 @@ Detailed results and discussion are in `manuscript/RustyClean_Manuscript_Draft.m
 
 ```
 rustyclean-paper/
-├── manuscript/                    # Manuscript draft
-│   ├── RustyClean_Manuscript_Draft.md
-│   └── RustyClean_Manuscript_Draft.docx
-├── figures/                       # Publication-quality figures (fig1–fig4 + figS1)
-├── data/                          # Result data and metrics
-│   ├── results_100M_matched/      # 100M matched panel (vs Hostile / KneadData)
-│   ├── results_100M_skipqc_matched/
-│   ├── benchmark_results/         # Fair comparison metrics
-│   └── *.csv                      # Aggregated accuracy / performance tables
-├── scripts/                       # Code and workflow scripts
-│   ├── main/                      # Main pipeline: data generation, benchmark, analysis, figures
-│   ├── hpc/                       # SLURM cluster submission scripts
-│   ├── benchmark/                 # Scripts for comparison against Hostile / KneadData
-│   ├── minimal/                   # Minimal validation workflow
-│   └── rustyclean_src/            # Local RustyClean source backup (gitignored)
+├── RUN_ALL.md                     # Full rerun from scratch — start here
+├── scripts/
+│   ├── run_all.sh                 # Submits every stage in dependency order
+│   ├── hpc/config.sh              # Single source of truth for all database paths
+│   ├── main/                      # Index builds, data generation, analysis, figures
+│   ├── benchmark/                 # Comparisons against Hostile / KneadData
+│   └── minimal/                   # Minimal validation workflow
+├── data/                          # Results from the current run (empty until it runs)
+├── figures/                       # Figures from the current run
+├── manuscript/                    # Manuscript draft and status deck
+├── archive/v1/                    # Previous round: results, figures and the
+│   │                              # scripts that produced them. Superseded.
+│   └── README.md                  # What was run, and why it is superseded
 ├── others/                        # Early exploration and auxiliary documents
-│   ├── old_manuscripts/           # Previous manuscript versions
-│   ├── planning_docs/             # benchmark_plan, competitiveness_analysis, etc.
-│   └── tmp_scripts/               # Temporary / deprecated scripts
 ├── README.md                      # This file
-├── AGENTS.md                      # AI agent guide (in Chinese)
+├── AGENTS.md                      # Agent guide (in Chinese)
 └── LICENSE
 ```
+
+`data/` and `figures/` are empty until a run populates them. The previous
+round's results are preserved under `archive/v1/`, paired with a snapshot of the
+scripts that produced them; `archive/v1/README.md` records the problems that
+motivated the rerun.
 
 ---
 
@@ -139,13 +139,16 @@ Result files:
 
 ## Figures
 
+The figures below are from the previous round and live under `archive/v1/figures/`.
+A rerun regenerates them into `figures/`.
+
 | Figure | Content | Files |
 |--------|---------|-------|
-| fig1 | Simulated data error and contamination profiles | `figures/fig1_error_profile.*` |
-| fig2 | Matched-panel comparison against Hostile / KneadData (runtime, memory, F1) | `figures/fig2_matched_panel.*` |
-| fig3 | Accuracy across 18 enhanced simulated datasets | `figures/fig3_accuracy.*` |
-| fig4 | Relative speedup and memory efficiency | `figures/fig4_speedup.*` |
-| figS1 | Backend comparison (Kraken2 / Bowtie2 / minimap2) | `figures/figS1_backend_comparison.*` |
+| fig1 | Simulated data error and contamination profiles | `archive/v1/figures/fig1_error_profile.*` |
+| fig2 | Matched-panel comparison against Hostile / KneadData (runtime, memory, F1) | `archive/v1/figures/fig2_matched_panel.*` |
+| fig3 | Accuracy across 18 enhanced simulated datasets | `archive/v1/figures/fig3_accuracy.*` |
+| fig4 | Relative speedup and memory efficiency | `archive/v1/figures/fig4_speedup.*` |
+| figS1 | Backend comparison (Kraken2 / Bowtie2 / minimap2) | `archive/v1/figures/figS1_backend_comparison.*` |
 
 ---
 
