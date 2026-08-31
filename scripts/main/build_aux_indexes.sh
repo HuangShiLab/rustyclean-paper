@@ -1,0 +1,95 @@
+#!/bin/bash
+#SBATCH --job-name=build_aux_idx
+#SBATCH --partition=amd
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=12:00:00
+#SBATCH --output=/home/shihuang/build_aux_idx_%j.out
+#SBATCH --error=/home/shihuang/build_aux_idx_%j.err
+
+# =============================================================================
+# Build the minimap2, sylph and centrifuge indexes
+# =============================================================================
+# These three backends had no build script, so their indexes could not be
+# reproduced. All three derive from the same T2T + HLA FASTA that the Bowtie2
+# index is built from, which keeps the backend comparison an honest test of the
+# algorithms rather than of differing reference content.
+#
+# Run after prepare_grch38_t2t_fasta.sh has produced the combined FASTA.
+# =============================================================================
+
+set -euo pipefail
+
+source "$(dirname "$0")/../hpc/config.sh"
+activate_conda
+export PATH="/group/aos_shihuang/conda/envs/minimap2/bin:/group/aos_shihuang/conda/envs/sylph/bin:/group/aos_shihuang/conda/envs/centrifuge/bin:${PATH}"
+
+# Combined human reference: T2T-CHM13v2.0 plus IPD-IMGT/HLA, matching the
+# Bowtie2 index and Hostile's human-t2t-hla.
+FASTA="${AUX_FASTA:-$DB_T2T/fasta/t2t_hla.fna}"
+
+if [ ! -f "$FASTA" ]; then
+    echo "ERROR: combined reference FASTA not found: $FASTA" >&2
+    echo "Build it first, e.g. with scripts/main/prepare_grch38_t2t_fasta.sh" >&2
+    exit 1
+fi
+
+echo "Job started at: $(date)"
+echo "Reference: $FASTA ($(du -h "$FASTA" | cut -f1))"
+
+# --- minimap2 ---------------------------------------------------------------
+if [ -f "$MINIMAP2_INDEX" ]; then
+    echo "[1/3] minimap2 index already present, skipping: $MINIMAP2_INDEX"
+else
+    echo "[1/3] Building minimap2 index (short-read preset)..."
+    mkdir -p "$(dirname "$MINIMAP2_INDEX")"
+    minimap2 -x sr -t "$N_THREADS" -d "$MINIMAP2_INDEX" "$FASTA"
+    ls -lh "$MINIMAP2_INDEX"
+fi
+
+# --- sylph ------------------------------------------------------------------
+if [ -f "$SYLPH_DB" ]; then
+    echo "[2/3] sylph database already present, skipping: $SYLPH_DB"
+else
+    echo "[2/3] Building sylph sketch database..."
+    mkdir -p "$(dirname "$SYLPH_DB")"
+    # -g: sketch as genomes; -o takes the path without the .syldb suffix
+    sylph sketch -g "$FASTA" -t "$N_THREADS" -o "${SYLPH_DB%.syldb}"
+    ls -lh "$SYLPH_DB"
+fi
+
+# --- centrifuge -------------------------------------------------------------
+if [ -f "${CENTRIFUGE_INDEX}.1.cf" ]; then
+    echo "[3/3] centrifuge index already present, skipping: $CENTRIFUGE_INDEX"
+else
+    echo "[3/3] Building centrifuge index..."
+    mkdir -p "$(dirname "$CENTRIFUGE_INDEX")"
+    CF_TMP="$(dirname "$CENTRIFUGE_INDEX")/build_tmp"
+    mkdir -p "$CF_TMP"
+    # Every sequence in the reference is human, so map them all to taxid 9606.
+    grep '^>' "$FASTA" | sed 's/^>//' | awk '{print $1"\t9606"}' > "$CF_TMP/seqid2taxid.map"
+    # Minimal taxonomy covering the human lineage.
+    if [ -f "$KRAKEN2_DB_T2T_ONLY/taxonomy/nodes.dmp" ]; then
+        cp "$KRAKEN2_DB_T2T_ONLY/taxonomy/nodes.dmp" "$CF_TMP/nodes.dmp"
+        cp "$KRAKEN2_DB_T2T_ONLY/taxonomy/names.dmp" "$CF_TMP/names.dmp"
+    else
+        echo "ERROR: no NCBI taxonomy available for the centrifuge build" >&2
+        echo "Expected $KRAKEN2_DB_T2T_ONLY/taxonomy/{nodes,names}.dmp" >&2
+        exit 1
+    fi
+    centrifuge-build -p "$N_THREADS" \
+        --conversion-table "$CF_TMP/seqid2taxid.map" \
+        --taxonomy-tree "$CF_TMP/nodes.dmp" \
+        --name-table "$CF_TMP/names.dmp" \
+        "$FASTA" "$CENTRIFUGE_INDEX"
+    ls -lh "${CENTRIFUGE_INDEX}"*.cf
+fi
+
+echo
+echo "All auxiliary indexes built."
+echo "  minimap2   : $MINIMAP2_INDEX"
+echo "  sylph      : $SYLPH_DB"
+echo "  centrifuge : $CENTRIFUGE_INDEX"
+echo "Job finished at: $(date)"

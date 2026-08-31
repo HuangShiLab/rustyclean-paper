@@ -58,6 +58,19 @@ rustyclean-paper/
 
 ## Quick start
 
+### Full rerun from scratch
+
+To rebuild every database and rerun every experiment, see **[RUN_ALL.md](RUN_ALL.md)**:
+
+```bash
+bash scripts/run_all.sh --dry-run   # inspect the plan
+bash scripts/run_all.sh             # submit it
+```
+
+Stages are chained with SLURM dependencies, and all database paths come from
+`scripts/hpc/config.sh`. Budget ~500 GB storage, 200 GB RAM for the Kraken2
+build, and 60–80 h of compute.
+
 ### Minimal validation workflow (recommended first step)
 
 Requirements: ~60 GB storage, ~3 hours, 16 GB RAM.

@@ -37,10 +37,47 @@ export ISS="${ISS:-}"
 # ---------------------------------------------------------------------------
 # Database paths
 # ---------------------------------------------------------------------------
-export KRAKEN2_DB="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16}"
-export KNEADDATA_DB="${KNEADDATA_DB:-/lustre1/g/aos_shihuang/tools/kneaddata_database/human}"
+# Root under which every index built by this project lives.
+export DB_ROOT="${DB_ROOT:-/lustre1/g/aos_shihuang/databases}"
+
+# --- Reference FASTAs -------------------------------------------------------
+# T2T is the depletion reference. GRCh38 is the genome host reads are SIMULATED
+# from; keeping the two different is deliberate, so that host removal has real
+# assembly divergence to detect rather than matching the reads it came from.
+export T2T_FASTA="${T2T_FASTA:-$DB_ROOT/fast2bM/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz}"
+export HLA_FASTA="${HLA_FASTA:-$DB_ROOT/rustyclean_human_t2t_only/hla/ipd_imgt_hla.fna}"
 export HUMAN_GENOME="${HUMAN_GENOME:-$PROJECT_DIR/databases/GRCh38.fa.gz}"
 export GENOME_DIR="${GENOME_DIR:-$PROJECT_DIR/genomes}"
+
+# --- Indexes built by scripts/main/build_*.sh -------------------------------
+export DB_T2T="${DB_T2T:-$DB_ROOT/rustyclean_human_t2t_only}"
+# Kraken2, human-only. THE DEFAULT. Every experiment should use this unless it
+# is explicitly testing index content.
+export KRAKEN2_DB_T2T_ONLY="${KRAKEN2_DB_T2T_ONLY:-$DB_T2T/kraken2/t2t_only}"
+# Kraken2, human-only plus IPD-IMGT/HLA. Index-content control for the ablation.
+export KRAKEN2_DB_T2T_HLA="${KRAKEN2_DB_T2T_HLA:-$DB_T2T/kraken2/t2t_hla}"
+# Kraken2, mixed multi-taxon library. Ablation arm A only; NOT a default.
+# With a mixed library Kraken2 can assign a host read to an ancestor of
+# Homo sapiens, which host detection must account for.
+export KRAKEN2_DB_MIXED="${KRAKEN2_DB_MIXED:-$DB_ROOT/kraken2/kraken16}"
+export BOWTIE2_INDEX="${BOWTIE2_INDEX:-$DB_T2T/bowtie2/t2t_hla}"
+export MINIMAP2_INDEX="${MINIMAP2_INDEX:-$DB_T2T/minimap2/t2t_hla.mmi}"
+export SYLPH_DB="${SYLPH_DB:-$DB_T2T/sylph/t2t.syldb}"
+export CENTRIFUGE_INDEX="${CENTRIFUGE_INDEX:-$DB_T2T/centrifuge/t2t_hla}"
+
+# --- Comparator defaults (their own, unmodified) ----------------------------
+# KneadData Homo_sapiens_hg39_T2T_Bowtie2_v0.1 (GCF_009914755.1, no HLA).
+export KNEADDATA_DB="${KNEADDATA_DB:-$DB_ROOT/kneaddata/hg_39}"
+# Hostile human-t2t-hla (T2T-CHM13v2.0 + IPD-IMGT/HLA), fetched by hostile itself.
+export HOSTILE_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}"
+
+# Active Kraken2 database. Human-only by default.
+export KRAKEN2_DB="${KRAKEN2_DB:-$KRAKEN2_DB_T2T_ONLY}"
+
+# --- Simulation parameters --------------------------------------------------
+export ISS_MODEL="${ISS_MODEL:-miseq}"
+export READ_LENGTH="${READ_LENGTH:-150}"
+export ISS_SEED="${ISS_SEED:-42}"
 
 # ---------------------------------------------------------------------------
 # Compute settings
