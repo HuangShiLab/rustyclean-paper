@@ -93,10 +93,9 @@ if [ -f "$T2T_FASTA" ]; then ok "T2T-CHM13v2.0 (depletion reference)"; else
     suggest "T2T" "*T2T-CHM13*genomic.fna*" "$DB_ROOT" /lustre1/g/aos_shihuang
     suggest "T2T (alt naming)" "*chm13*.fa*" "$DB_ROOT" /lustre1/g/aos_shihuang
 fi
-if [ -f "$HLA_FASTA" ]; then ok "IPD-IMGT/HLA"; else
-    warn "IPD-IMGT/HLA" "$HLA_FASTA"
-    suggest "HLA" "*hla*.f*a*" "$DB_ROOT" /lustre1/g/aos_shihuang
-fi
+if [ -n "$HLA_FASTA" ] && [ -f "$HLA_FASTA" ]; then ok "IPD-IMGT/HLA (optional)"
+else note "no IPD-IMGT/HLA: RustyClean indexes are built from T2T alone (Hostile's default adds HLA)"; fi
+if [ -f "$AUX_FASTA" ]; then ok "reference for minimap2/sylph/centrifuge"; else bad "reference for minimap2/sylph/centrifuge" "$AUX_FASTA"; fi
 if [ -f "$HUMAN_GENOME" ]; then ok "GRCh38 (host reads are SIMULATED from this)"; else
     bad "GRCh38 (host reads are SIMULATED from this)" "$HUMAN_GENOME"
     note "without it generate_enhanced_data.sh silently falls back to chr1 only"
@@ -108,7 +107,7 @@ echo
 
 echo "[5] Indexes  (stage 1 BUILDS these; present = will be reused/overwritten)"
 opt_k2    "Kraken2 human-only  [DEFAULT]" "$KRAKEN2_DB_T2T_ONLY"
-opt_bt2   "Bowtie2 T2T+HLA"         "$BOWTIE2_INDEX"
+opt_bt2   "Bowtie2 T2T-only"        "$BOWTIE2_INDEX"
 opt_file  "minimap2 index"          "$MINIMAP2_INDEX"
 opt_file  "sylph database"          "$SYLPH_DB"
 opt_k2    "Kraken2 mixed [ablation only]" "$KRAKEN2_DB_MIXED"

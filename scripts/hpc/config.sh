@@ -45,7 +45,12 @@ export DB_ROOT="${DB_ROOT:-/lustre1/g/aos_shihuang/databases}"
 # from; keeping the two different is deliberate, so that host removal has real
 # assembly divergence to detect rather than matching the reads it came from.
 export T2T_FASTA="${T2T_FASTA:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16/genomes/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz}"
-export HLA_FASTA="${HLA_FASTA:-$DB_ROOT/rustyclean_human_t2t_only/hla/ipd_imgt_hla.fna}"
+# No IPD-IMGT/HLA FASTA is present on this system, so every RustyClean index is
+# built from T2T alone. Hostile's default index adds HLA; that difference is
+# reported rather than worked around.
+export HLA_FASTA="${HLA_FASTA:-}"
+# Reference the auxiliary backends (minimap2, sylph, centrifuge) are built from.
+export AUX_FASTA="${AUX_FASTA:-$T2T_FASTA}"
 # Versioned RefSeq GRCh38.p14, so the Methods can state exactly what host
 # reads were simulated from.
 export HUMAN_GENOME="${HUMAN_GENOME:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16/genomes/GCF_000001405.40_GRCh38.p14_genomic.fna.gz}"
