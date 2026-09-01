@@ -76,7 +76,7 @@ echo >&2
 # Host reads are simulated from GRCh38 while depletion runs against T2T, so the
 # benchmark measures real assembly divergence rather than a self-match.
 echo "Stage 2 — simulated datasets" >&2
-J_DATA=$(submit 2 "generate 19 simulated datasets" scripts/hpc/generate_data_sequential_slurm.sh)
+J_DATA=$(submit 2 "generate 18 simulated datasets (ISS, job array)" scripts/hpc/generate_data_slurm.sh)
 echo >&2
 
 # --- Stage 3: main comparisons ----------------------------------------------

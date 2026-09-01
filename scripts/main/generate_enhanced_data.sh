@@ -64,7 +64,6 @@ DATASETS=(
     
     # --- Paired-end series ---
     "20M_10pct_med_even_PE:20000000:0.10:med:even:PE"
-    "20M_50pct_med_lognormal_PE:20000000:0.50:med:lognormal:PE"
     "20M_90pct_med_lognormal_PE:20000000:0.90:med:lognormal:PE"
     
     # --- Extreme scenarios ---

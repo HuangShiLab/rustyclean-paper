@@ -73,7 +73,6 @@ DATASETS=(
     "100M_50pct_high_lognormal_SE:100000000:0.50:high:lognormal:SE"
     "100M_90pct_high_lognormal_SE:100000000:0.90:high:lognormal:SE"
     "20M_10pct_med_even_PE:20000000:0.10:med:even:PE"
-    "20M_50pct_med_lognormal_PE:20000000:0.50:med:lognormal:PE"
     "20M_90pct_med_lognormal_PE:20000000:0.90:med:lognormal:PE"
     "10M_0pct_med_lognormal_SE:10000000:0.00:med:lognormal:SE"
     "10M_100pct_med_lognormal_SE:10000000:1.00:med:lognormal:SE"
