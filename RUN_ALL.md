@@ -77,11 +77,20 @@ To resume after a partial submission, pass the jobs the remaining stages must
 wait for — `--from` alone skips the stages that produce them, so the resumed
 jobs would otherwise carry no dependency and start against missing input:
 
-    bash scripts/run_all.sh --from 4 --after 3975213:3975210
+    bash scripts/run_all.sh --from 4 --after 3975268:3975265 \
+        --after-runs 3975269:3975270:3975271
+
+The two flags are not interchangeable:
+
+- `--after` is what **every** stage needs — the index and data jobs. It seeds
+  the stage-3/4/5 dependency and the stage-6 lists.
+- `--after-runs` names benchmark jobs an earlier invocation submitted and
+  applies to **stage 6 only**. Putting them in `--after` instead would hold
+  stages 4 and 5 behind benchmarks they do not need, which costs hours on the
+  60M datasets.
 
 The driver refuses `--from 3` or later without `--after` when the data directory
-is empty. `--after` also seeds the stage-6 dependency lists, so accuracy still
-waits for stages this invocation did not submit.
+is empty.
 
 ## Parallelism
 

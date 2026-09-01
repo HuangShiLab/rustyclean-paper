@@ -9,8 +9,11 @@
 #   bash scripts/run_all.sh              # submit everything
 #   bash scripts/run_all.sh --dry-run    # print the plan without submitting
 #   bash scripts/run_all.sh --from 3     # resume from stage 3
-#   bash scripts/run_all.sh --from 4 --after 3975213
-#                                        # resume, still waiting on a running job
+#   bash scripts/run_all.sh --from 4 --after 3975213:3975210 \
+#       --after-runs 3975214:3975215:3975216
+#                                        # resume: --after is what every stage
+#                                        # needs (data, indexes); --after-runs is
+#                                        # extra prerequisites for stage 6 only
 #
 # Each array task counts against the cluster's MaxSubmitJobPerUser limit, and
 # the full panel exceeds it. Submission therefore blocks and retries until room
@@ -37,11 +40,13 @@ fi
 DRY_RUN=0
 FROM_STAGE=0
 AFTER_JOB=""
+AFTER_RUNS=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY_RUN=1; shift ;;
         --from)    FROM_STAGE="$2"; shift 2 ;;
         --after)   AFTER_JOB="$2"; shift 2 ;;
+        --after-runs) AFTER_RUNS="$2"; shift 2 ;;
         *) echo "unknown argument: $1" >&2; exit 1 ;;
     esac
 done
@@ -167,10 +172,11 @@ echo >&2
 
 # --- Stage 6: accuracy -------------------------------------------------------
 echo "Stage 6 — accuracy" >&2
-# AFTER_JOB is included so that a resumed run still waits for the stages it
-# skipped: without it the accuracy jobs would depend only on what this
-# invocation submitted and could start while stage 3 is still running.
-ALL_RUNS=$(printf "%s\n" "$AFTER_JOB" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" \
+# AFTER_JOB (indexes and data) applies to every stage. AFTER_RUNS names
+# benchmark jobs submitted by an earlier invocation and applies to stage 6
+# ALONE: putting them in AFTER_JOB would hold stages 4 and 5 behind benchmarks
+# they do not need, which on the long 60M datasets costs hours.
+ALL_RUNS=$(printf "%s\n" "$AFTER_JOB" "$AFTER_RUNS" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" \
     | { grep -v '^$' || true; } | paste -sd: -)
 submit 6 "accuracy, all tools"        scripts/benchmark/run_compute_accuracy.sh          "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, recheck arms"     scripts/benchmark/run_accuracy_bowtie2_recheck_v2.sh "$ALL_RUNS" >/dev/null
@@ -178,7 +184,7 @@ submit 6 "accuracy, index ablation"   scripts/benchmark/run_accuracy_k2_index_ab
 
 # The resource summary reads output from every benchmark, including the three
 # that ALL_RUNS leaves out, so it needs its own dependency list.
-EVERY_RUN=$(printf "%s\n" "$AFTER_JOB" "$J_KD" "$J_HOST" "$J_BACK" "$J_BASE" "$J_RECH" \
+EVERY_RUN=$(printf "%s\n" "$AFTER_JOB" "$AFTER_RUNS" "$J_KD" "$J_HOST" "$J_BACK" "$J_BASE" "$J_RECH" \
     "$J_ABL" "$J_BOUND" "$J_PE" | { grep -v '^$' || true; } | paste -sd: -)
 submit 6 "runtime and memory summary" scripts/benchmark/run_collect_resources.sh "$EVERY_RUN" >/dev/null
 echo >&2
