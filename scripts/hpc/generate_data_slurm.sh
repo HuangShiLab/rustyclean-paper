@@ -352,7 +352,16 @@ else
     cp "$WORKDIR/reads.fastq.gz" "$DATASET_DIR/"
 fi
 
-# Metadata
+# Metadata. Read length is measured from the reads actually produced rather than
+# asserted: it is set by the ISS error model, so a hardcoded value silently goes
+# stale the moment the model changes, and the Methods quote this file.
+if [ "$READ_MODE" = "PE" ]; then
+    _first_read=$(zcat "$DATASET_DIR/reads_R1.fastq.gz" | sed -n 2p)
+else
+    _first_read=$(zcat "$DATASET_DIR/reads.fastq.gz" | sed -n 2p)
+fi
+OBSERVED_READ_LENGTH=${#_first_read}
+
 cat > "$DATASET_DIR/metadata.json" <<EOF
 {
     "dataset_name": "$DATASET_NAME",
@@ -363,9 +372,10 @@ cat > "$DATASET_DIR/metadata.json" <<EOF
     "complexity": "$COMPLEXITY",
     "abundance_distribution": "$ABUNDANCE_DIST",
     "read_mode": "$READ_MODE",
-    "read_length": 150,
-    "simulator": "InsilicoSeq",
-    "model": "miseq"
+    "read_length": $OBSERVED_READ_LENGTH,
+    "simulator": "InSilicoSeq",
+    "model": "${ISS_MODEL:-novaseq}",
+    "seed": "${ISS_SEED_ARGS#--seed }"
 }
 EOF
 

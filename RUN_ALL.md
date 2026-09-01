@@ -78,6 +78,24 @@ literal directory name and the job will fail at launch.
 A missing log directory makes SLURM kill each job immediately, with no log to
 record why, so `preflight.sh` checks it and `run_all.sh` creates it.
 
+## Simulation parameters
+
+| | |
+|---|---|
+| Simulator | InSilicoSeq, `--model novaseq` |
+| Read length | 151 bp (set by the model, not by `READ_LENGTH`) |
+| Seed | `SIM_SEED` + array task id, when the ISS build supports `--seed` |
+| Microbial pool | GTDB r202 reference genomes, seeded random sample per complexity |
+| Host reads | simulated from GRCh38.p14; depletion references are T2T |
+
+Read length is a property of the ISS error model. Measured on this cluster:
+`miseq` 301 bp, `novaseq` 151 bp, `hiseq` 126 bp. `novaseq` is used so the panel
+is 2x150-class short-read data; `miseq` would have produced 301 bp reads, which
+are easier to classify and not comparable with the KneadData and Hostile
+literature. Each dataset's `metadata.json` records the length measured from the
+reads themselves, so the Methods can be checked against the data rather than
+against a constant in a script.
+
 ## Stage 1 — references and indexes
 
 | Script | Builds | Peak RAM |

@@ -115,10 +115,17 @@ export KRAKEN2_DB="${KRAKEN2_DB:-$KRAKEN2_DB_T2T_ONLY}"
 # from one are not comparable with datasets from the other.
 #
 # ISS_MODEL selects the ISS error model, and the model -- not READ_LENGTH --
-# determines read length. Check what the installed ISS produces before running
-# the panel, and make READ_LENGTH agree with it; the Methods quotes READ_LENGTH.
-export ISS_MODEL="${ISS_MODEL:-miseq}"
-export READ_LENGTH="${READ_LENGTH:-150}"
+# determines read length. Measured on this cluster's ISS build:
+#     miseq   301 bp
+#     novaseq 151 bp   <- the 150 bp class this project targets
+#     hiseq   126 bp
+# novaseq is used because the panel is meant to be 2x150 short-read metagenomics;
+# miseq would have produced 301 bp reads, which are markedly easier to classify
+# and would not be comparable with the KneadData and Hostile literature.
+export ISS_MODEL="${ISS_MODEL:-novaseq}"
+# Set by ISS_MODEL, not an input to the ISS path. Recorded so the Methods can
+# quote it; the art_illumina scripts do use it as a real parameter.
+export READ_LENGTH="${READ_LENGTH:-151}"
 # Passed to ISS so a rerun reproduces the same reads. Each array task offsets it
 # by its task id, so datasets are independent but still deterministic.
 export SIM_SEED="${SIM_SEED:-42}"
