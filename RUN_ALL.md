@@ -138,6 +138,22 @@ Run it by hand at any point to see partial results:
 
     python3 scripts/main/collect_resources.py
 
+## The benchmark conda environment
+
+Four tools resolve from `$PROJECT_DIR/.conda_envs/rustyclean-benchmark`, and
+`numpy` is the only third-party Python dependency; everything else the analysis
+scripts import is standard library. Recreate it with:
+
+    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
+    conda create -p $PROJECT_DIR/.conda_envs/rustyclean-benchmark \
+        -c conda-forge -c bioconda -y insilicoseq minimap2 centrifuge numpy
+
+The proxy variables point at an SSH tunnel that is usually down; leaving them
+set makes conda fail with a ProxyError even though direct access works.
+
+Do not install into the shared base environment: `/group` is at its quota, which
+is why `mamba install` there fails with Permission denied.
+
 ## Logs
 
 Every job writes `<job-name>-<jobid>.out` / `.err` into `$LOG_DIR`, which

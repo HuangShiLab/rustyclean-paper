@@ -186,7 +186,19 @@ activate_conda() {
             conda activate "$CONDA_PREFIX"
         elif { _envs="$(conda env list 2>/dev/null || true)"
                case "$_envs" in *"$CONDA_ENV"*) true ;; *) false ;; esac; }; then
-            conda activate "$CONDA_ENV"
+            # conda keeps a record of created environments in
+            # ~/.conda/environments.txt and does not remove it when the
+            # directory is deleted by hand, so the listing can name an
+            # environment that cannot be activated. Every job sources this file,
+            # so that failure kills the whole panel with a bare conda traceback.
+            if ! conda activate "$CONDA_ENV" 2>/dev/null; then
+                echo "ERROR: conda lists '$CONDA_ENV' but it cannot be activated." >&2
+                echo "       The environment directory has probably been deleted." >&2
+                echo "       Recreate it with:" >&2
+                echo "         conda create -p $PROJECT_DIR/.conda_envs/$CONDA_ENV \\" >&2
+                echo "             -c conda-forge -c bioconda -y insilicoseq minimap2 centrifuge numpy" >&2
+                exit 1
+            fi
         else
             echo "WARNING: conda env '$CONDA_ENV' not found; continuing with the" >&2
             echo "         current environment. Tool paths are set explicitly by" >&2
