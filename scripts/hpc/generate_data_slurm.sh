@@ -3,9 +3,13 @@
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
 #SBATCH --array=1-18
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
-#SBATCH --time=4:00:00
+# The two 100M datasets are ~6 h of ISS at 16 cpus, measured at 4386 reads/s on
+# this cluster, and roughly double that at 8. A 4 h limit killed them, and
+# because the downstream stages depend on the whole array with afterok, one
+# task hitting the wall cancelled every later stage.
+#SBATCH --time=24:00:00
 #SBATCH --partition=amd
 
 # =============================================================================

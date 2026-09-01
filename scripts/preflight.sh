@@ -203,6 +203,24 @@ else
 fi
 echo
 
+# ISS throughput was measured at ~4386 reads/s with 16 cpus on this cluster. A
+# stage-2 walltime under the largest dataset's estimate kills that task, and the
+# afterok dependency then cancels every later stage, so check it here.
+_gen="$REPO_DIR/scripts/hpc/generate_data_slurm.sh"
+if [ -f "$_gen" ]; then
+    _tl=$(grep -m1 -oE '^#SBATCH --time=[0-9:]+' "$_gen" | cut -d= -f2)
+    _hours=$(printf '%s' "$_tl" | awk -F: '{print $1 + $2/60}')
+    _maxreads=$(sed -n '/^DATASETS=(/,/^)/p' "$_gen" | grep -oE '"[^"]+"' | tr -d '"' \
+                | cut -d: -f2 | sort -n | tail -1)
+    _need=$(awk -v r="$_maxreads" 'BEGIN{printf "%.1f", r/4386/3600}')
+    if awk -v h="$_hours" -v n="$_need" 'BEGIN{exit !(h > n * 1.5)}'; then
+        ok "stage 2 walltime $_tl covers the largest dataset (~${_need} h)"
+    else
+        bad "stage 2 walltime $_tl is too tight" "largest dataset needs ~${_need} h at 16 cpus"
+    fi
+fi
+echo
+
 echo "[5] Indexes  (stage 1 BUILDS these)"
 opt_k2    "Kraken2 human-only  [DEFAULT]" "$KRAKEN2_DB_T2T_ONLY"
 opt_bt2   "Bowtie2 T2T-only"        "$BOWTIE2_INDEX"
