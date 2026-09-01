@@ -11,16 +11,29 @@
 
 set -e
 
-source /group/aos_shihuang/conda/etc/profile.d/conda.sh
-export PATH="/group/aos_shihuang/conda/envs/kraken2/bin:${PATH}"
+# This script used to hardcode every path, which put it out of step with the
+# rest of the build: its T2T FASTA came from a different directory than the one
+# config.sh names and preflight validates, so the Kraken2 database could be
+# built from a different file than the Bowtie2, minimap2, sylph and centrifuge
+# indexes -- and the provenance stamps would have recorded the wrong source.
+# Locate the repository (SLURM copies the batch script to a spool directory).
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/config.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+[ -n "${REPO_DIR:-}" ] || { echo "ERROR: cannot locate the repository. Set REPO_DIR." >&2; exit 1; }
+source "$REPO_DIR/scripts/hpc/config.sh"
+activate_conda
+export PATH="$CONDA_BASE/envs/kraken2/bin:${PATH}"
 
-DB_DIR="/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only"
-K2_DB="${DB_DIR}/kraken2/t2t_only"
-
-T2T="/lustre1/g/aos_shihuang/databases/fast2bM/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
-
-# Full NCBI taxonomy from existing standard kraken2 db
-SOURCE_TAX="${SOURCE_TAXONOMY}"
+K2_DB="$KRAKEN2_DB_T2T_ONLY"
+T2T="$T2T_FASTA"
+SOURCE_TAX="$SOURCE_TAXONOMY"
 
 if [ ! -f "${T2T}" ]; then
     echo "ERROR: T2T FASTA not found" >&2

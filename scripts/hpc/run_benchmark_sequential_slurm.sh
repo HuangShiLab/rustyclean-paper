@@ -70,12 +70,12 @@ record_exists() {
 
 rustyclean_output_exists() {
     local out_dir="$1"
-    [ -d "$out_dir" ] && find "$out_dir" -name "*.fastq.gz" -print -quit 2>/dev/null | grep -q .
+    [ -d "$out_dir" ] && [ -n "$(find "$out_dir" -name "*.fastq.gz" -print -quit 2>/dev/null)" ]
 }
 
 kneaddata_output_exists() {
     local out_dir="$1"
-    [ -d "$out_dir" ] && find "$out_dir" \( -name "*clean*.fastq*" ! -name "*contam*" ! -name "*trim*" \) -print -quit 2>/dev/null | grep -q .
+    [ -d "$out_dir" ] && [ -n "$(find "$out_dir" \( -name "*clean*.fastq*" ! -name "*contam*" ! -name "*trim*" \) -print -quit 2>/dev/null)" ]
 }
 
 remove_perf_record() {

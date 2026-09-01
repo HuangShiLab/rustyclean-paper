@@ -184,7 +184,8 @@ activate_conda() {
         CONDA_PREFIX="$PROJECT_DIR/.conda_envs/$CONDA_ENV"
         if [ -d "$CONDA_PREFIX" ]; then
             conda activate "$CONDA_PREFIX"
-        elif conda env list 2>/dev/null | grep -q "^$CONDA_ENV[[:space:]]"; then
+        elif { _envs="$(conda env list 2>/dev/null || true)"
+               case "$_envs" in *"$CONDA_ENV"*) true ;; *) false ;; esac; }; then
             conda activate "$CONDA_ENV"
         else
             echo "WARNING: conda env '$CONDA_ENV' not found; continuing with the" >&2

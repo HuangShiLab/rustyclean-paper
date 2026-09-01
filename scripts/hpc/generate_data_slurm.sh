@@ -247,7 +247,16 @@ echo "  Host reads: $HOST_READS, Microbial reads: $MICROBE_READS"
 # Without a seed the panel cannot be regenerated, so a reviewer could never
 # reproduce these datasets. Probe for the flag instead of assuming it: passing
 # an unsupported option would fail every array task at once.
-if ! "$ISS_BIN" generate --help 2>&1 | grep -q -- '--seed'; then
+# Captured and matched without a pipe: under `set -o pipefail`, `cmd | grep -q`
+# returns 141 when grep matches early and the writer takes SIGPIPE, so the pipe
+# form reported "no --seed" even on a build that supports it, and every array
+# task exited here.
+ISS_HELP="$("$ISS_BIN" generate --help 2>&1 || true)"
+case "$ISS_HELP" in
+    *--seed*) ISS_HAS_SEED=1 ;;
+    *)        ISS_HAS_SEED=0 ;;
+esac
+if [ "$ISS_HAS_SEED" -eq 0 ]; then
     echo "ERROR: this InSilicoSeq build does not support --seed." >&2
     echo "       Refusing to generate 540 M reads that could never be regenerated." >&2
     echo "       Install a newer InSilicoSeq, or set ISS_ALLOW_UNSEEDED=1 to override." >&2
