@@ -148,9 +148,14 @@ J_DATA=$(submit 2 "generate 18 simulated datasets (ISS, job array)" scripts/hpc/
 echo >&2
 
 # --- Stage 3: main comparisons ----------------------------------------------
+# Every stage-1 index, not just Kraken2: six benchmark scripts use the Bowtie2
+# index (--bowtie2-recheck and the alignment arms) and the backend comparison
+# uses minimap2, sylph and centrifuge. Omitting those two let stage 3 start
+# while their builds were still running, against an index that did not exist yet.
 DEP3="${AFTER_JOB:-}"
-[ -n "${J_DATA:-}" ] && DEP3="${DEP3:+$DEP3:}$J_DATA"
-[ -n "${J_K2:-}" ] && DEP3="${DEP3:+$DEP3:}$J_K2"
+for _dep in "${J_DATA:-}" "${J_K2:-}" "${J_BT2:-}" "${J_AUX:-}"; do
+    [ -n "$_dep" ] && DEP3="${DEP3:+$DEP3:}$_dep"
+done
 echo "Stage 3 — main comparisons" >&2
 J_KD=$(submit    3 "RustyClean auto vs KneadData"   scripts/benchmark/run_benchmark.sh "$DEP3")
 J_HOST=$(submit  3 "RustyClean --skip-qc vs Hostile" scripts/benchmark/fair_hostile_skipqc_run_benchmark.sh "$DEP3")
