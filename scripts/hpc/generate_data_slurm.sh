@@ -155,16 +155,54 @@ if [ "$n_avail" -lt "$n_species" ]; then
     echo "         genomes will be reused, so the community contains duplicates." >&2
 fi
 
+# Draw the community as a SEEDED RANDOM SAMPLE, not the first n_species entries
+# in sort order. Taking a sorted prefix makes community membership a function of
+# filename, and accession-sorted collections cluster by submission batch, so the
+# "100-species" community would be far less diverse than it claims. The seed is
+# derived from the complexity label alone, so every dataset at a given complexity
+# draws the SAME community (comparable across depths and host fractions) while the
+# draw itself is unbiased. The manifest below records exactly what was used.
+SAMPLE_SEED="rustyclean-community-${complexity}"
+if shuf --random-source=<(yes "$SAMPLE_SEED") -n 1 </dev/null >/dev/null 2>&1; then
+    mapfile -t picked < <(printf '%s\n' "${all_genomes[@]}" \
+        | shuf -n "$n_species" --random-source=<(yes "$SAMPLE_SEED"))
+else
+    # Older shuf without --random-source: order by a hash of seed+path instead.
+    mapfile -t picked < <(printf '%s\n' "${all_genomes[@]}" \
+        | awk -v s="$SAMPLE_SEED" '{ h=0; t=s $0
+                                     for (i=1;i<=length(t);i++) h=(h*31+index(" " t, substr(t,i,1)))%1000003
+                                     printf "%06d\\t%s\\n", h, $0 }' \
+        | sort -k1,1n | cut -f2 | head -n "$n_species")
+fi
+
+# A human genome hiding in the "microbial" source would be simulated as microbial
+# read yet is genuinely host, silently corrupting every accuracy number downstream.
+# Refuse rather than produce a benchmark whose ground truth is wrong.
+human_hits=$(printf '%s\n' "${picked[@]}" \
+    | grep -Eic 'human|homo_?sapiens|GRCh3[78]|chm13|hg19|hg38|T2T|GCF_009914755|GCF_000001405' || true)
+if [ "$human_hits" -gt 0 ]; then
+    echo "ERROR: $human_hits of the sampled genomes look human:" >&2
+    printf '%s\n' "${picked[@]}" \
+        | grep -Ei 'human|homo_?sapiens|GRCh3[78]|chm13|hg19|hg38|T2T|GCF_009914755|GCF_000001405' >&2
+    echo "       Host sequence in the microbial pool makes the ground truth wrong." >&2
+    echo "       Point MICROBIAL_GENOME_DIR at a host-free collection." >&2
+    exit 1
+fi
+
 > "$MICROBIAL_FA"
+n_picked=${#picked[@]}
 for i in $(seq 0 $((n_species - 1))); do
-    idx=$((i % n_avail))
-    g="${all_genomes[$idx]}"
+    g="${picked[$((i % n_picked))]}"
     case "$g" in
         *.gz) zcat "$g" >> "$MICROBIAL_FA" ;;
         *)    cat  "$g" >> "$MICROBIAL_FA" ;;
     esac
 done
-echo "  Prepared $n_species microbial genomes (from $n_avail available)."
+
+# Record the community so a reader can reproduce or audit it.
+printf '%s\n' "${picked[@]}" > "${MICROBIAL_FA%.*}.genomes.txt"
+echo "  Prepared $n_species microbial genomes (sampled from $n_avail, seed=$SAMPLE_SEED)."
+echo "  Community manifest: ${MICROBIAL_FA%.*}.genomes.txt"
 
 # ---------------------------------------------------------------------------
 # Generate abundance profile

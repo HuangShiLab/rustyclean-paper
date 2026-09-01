@@ -67,7 +67,15 @@ export GENOME_DIR="${GENOME_DIR:-$PROJECT_DIR/genomes}"
 # Accepts .fasta/.fa/.fna, gzipped or not. Needs at least 100 genomes for the
 # high-complexity datasets, or genomes get reused and the community contains
 # duplicate sequence.
-export MICROBIAL_GENOME_DIR="${MICROBIAL_GENOME_DIR:-$GENOME_DIR/genomes_fasta}"
+# Pool the simulated microbial communities are drawn from. GTDB r202 reference
+# genomes are used rather than the two larger collections on this cluster:
+#   - GTDBr226_reference_genome (732k) is genome-level, not species-level, so a
+#     random draw is dominated by over-sequenced species and a "100-species"
+#     community would really contain many strains of the same few organisms.
+#   - kraken2/kraken16/genomes is the source of the MIXED Kraken2 database and
+#     contains the human genome; drawing "microbial" genomes from it would both
+#     put host sequence in the ground truth and make the index ablation circular.
+export MICROBIAL_GENOME_DIR="${MICROBIAL_GENOME_DIR:-$DB_ROOT/GTDB/GTDBr202/GTDBr202_reference_genome}"
 
 # --- Indexes built by scripts/main/build_*.sh -------------------------------
 export DB_T2T="${DB_T2T:-$DB_ROOT/rustyclean_human_t2t_only}"
