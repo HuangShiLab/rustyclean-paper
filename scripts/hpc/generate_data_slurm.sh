@@ -91,9 +91,35 @@ mkdir -p "$DATASET_DIR"
 # ---------------------------------------------------------------------------
 # Checkpoint: skip if already completed
 # ---------------------------------------------------------------------------
+# A completed.flag records only that some run finished, not that it used the
+# settings in force now. A dataset left over from the miseq model (301 bp) or
+# from a run with no seed would be reused in silence and mixed into the panel,
+# the same way an index file at the expected path said nothing about which
+# reference built it. Verify before trusting the flag.
 if [ -f "$DATASET_DIR/completed.flag" ]; then
-    echo "[$TASK_ID] Dataset $DATASET_NAME already generated. Skipping."
-    exit 0
+    if python3 - "$DATASET_DIR/metadata.json" "${ISS_MODEL:-novaseq}" <<'CHECKEOF'
+import json
+import sys
+
+path, want_model = sys.argv[1:3]
+try:
+    meta = json.load(open(path))
+except Exception as exc:
+    sys.exit("metadata unreadable: %s" % exc)
+if str(meta.get("model", "")) != want_model:
+    sys.exit("built with model %r, current setting is %r"
+             % (meta.get("model"), want_model))
+if not str(meta.get("seed", "")).strip():
+    sys.exit("generated without a seed, so it cannot be reproduced")
+CHECKEOF
+    then
+        echo "[$TASK_ID] Dataset $DATASET_NAME already generated. Skipping."
+        exit 0
+    else
+        echo "[$TASK_ID] $DATASET_NAME exists but does not match current settings; regenerating." >&2
+        rm -rf "$DATASET_DIR"
+        mkdir -p "$DATASET_DIR"
+    fi
 fi
 
 echo "[$TASK_ID] Generating dataset: $DATASET_NAME"
