@@ -90,8 +90,32 @@ else
     mkdir -p "$(dirname "$CENTRIFUGE_INDEX")"
     CF_TMP="$(dirname "$CENTRIFUGE_INDEX")/build_tmp"
     mkdir -p "$CF_TMP"
+
+    # centrifuge-build cannot read gzipped FASTA. Given one it parses the
+    # compressed bytes as text, reports thousands of empty reference sequences
+    # and then segfaults. Grepping headers out of the same file for the
+    # conversion table returns nothing for the same reason, so the index would
+    # be wrong even if the build survived. minimap2 and sylph read .gz natively,
+    # so only this step needs the decompressed copy.
+    case "$FASTA" in
+        *.gz)
+            CF_FASTA="$CF_TMP/reference.fa"
+            if [ ! -s "$CF_FASTA" ]; then
+                echo "  decompressing the reference for centrifuge-build..."
+                zcat "$FASTA" > "$CF_FASTA"
+            fi
+            ;;
+        *) CF_FASTA="$FASTA" ;;
+    esac
+
     # Every sequence in the reference is human, so map them all to taxid 9606.
-    grep '^>' "$FASTA" | sed 's/^>//' | awk '{print $1"\t9606"}' > "$CF_TMP/seqid2taxid.map"
+    grep '^>' "$CF_FASTA" | sed 's/^>//' | awk '{print $1"\t9606"}' > "$CF_TMP/seqid2taxid.map"
+    if [ ! -s "$CF_TMP/seqid2taxid.map" ]; then
+        echo "ERROR: no FASTA headers found in $CF_FASTA" >&2
+        echo "       centrifuge-build would segfault on an empty conversion table." >&2
+        exit 1
+    fi
+    echo "  $(wc -l < "$CF_TMP/seqid2taxid.map") sequences mapped to taxid 9606"
     # Minimal taxonomy covering the human lineage.
     # Read the NCBI taxonomy from its source rather than from the Kraken2
     # database: that database is built by a sibling job in this same stage and
@@ -112,8 +136,10 @@ else
         --conversion-table "$CF_TMP/seqid2taxid.map" \
         --taxonomy-tree "$CF_TMP/nodes.dmp" \
         --name-table "$CF_TMP/names.dmp" \
-        "$FASTA" "$CENTRIFUGE_INDEX"
+        "$CF_FASTA" "$CENTRIFUGE_INDEX"
     index_stamp_write "${CENTRIFUGE_INDEX}.source" "$FASTA"
+    # The decompressed copy is only needed during the build.
+    [ "$CF_FASTA" != "$FASTA" ] && rm -f "$CF_FASTA"
     ls -lh "${CENTRIFUGE_INDEX}"*.cf
 fi
 

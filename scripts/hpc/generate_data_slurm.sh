@@ -172,7 +172,7 @@ else
         | awk -v s="$SAMPLE_SEED" '{ h=0; t=s $0
                                      for (i=1;i<=length(t);i++) h=(h*31+index(" " t, substr(t,i,1)))%1000003
                                      printf "%06d\\t%s\\n", h, $0 }' \
-        | sort -k1,1n | cut -f2 | head -n "$n_species")
+        | sort -k1,1n | cut -f2 | awk -v n="$n_species" 'NR<=n')
 fi
 
 # A human genome hiding in the "microbial" source would be simulated as microbial

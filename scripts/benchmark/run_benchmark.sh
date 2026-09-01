@@ -128,7 +128,7 @@ for dataset in "${DATASETS[@]}"; do
     # KneadData SE final clean reads: prefer *clean*.fastq, otherwise largest excluding intermediates
     kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*clean*.fastq' -print -quit 2>/dev/null)
     if [[ -z "${kd_clean}" ]]; then
-        kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*.fastq' ! -name '*contam*' ! -name '*trimmed*' ! -name '*repeats*' -printf '%s %p\n' 2>/dev/null | sort -nr | head -1 | awk '{print $2}')
+        kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*.fastq' ! -name '*contam*' ! -name '*trimmed*' ! -name '*repeats*' -printf '%s %p\n' 2>/dev/null | sort -nr | awk 'NR==1{print $2}')
     fi
     kd_size=$(stat -c%s "${kd_clean}" 2>/dev/null || echo "unknown")
     echo "${dataset},kneaddata,${kd_runtime},${kd_mem},${kd_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
