@@ -16,6 +16,8 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+# Exported so each sbatch job can find config.sh; SLURM propagates the environment.
+export REPO_DIR="$REPO"
 source "$REPO/scripts/hpc/config.sh"
 
 DRY_RUN=0

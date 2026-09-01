@@ -12,7 +12,23 @@ set -euo pipefail
 
 PROJECT_DIR="/lustre1/g/aos_shihuang/rustyclean-paper"
 cd "$PROJECT_DIR"
-source scripts/hpc/config.sh
+# Locate the repository. SLURM copies the batch script to a spool directory, so
+# $0 does not point into the repo under sbatch, and config.sh cannot be found via
+# a variable that config.sh itself defines.
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/config.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+if [ -z "${REPO_DIR:-}" ]; then
+    echo "ERROR: cannot locate the repository. Set REPO_DIR to its path." >&2
+    exit 1
+fi
+source "$REPO_DIR/scripts/hpc/config.sh"
 
 DATASET="$1"
 REP="$2"
