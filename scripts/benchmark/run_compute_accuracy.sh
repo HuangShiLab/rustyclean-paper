@@ -18,7 +18,7 @@ set -euo pipefail
 PROJECT_DIR="/scr/u/shihuang/rustyclean-paper"
 OUT_CSV="${PROJECT_DIR}/accuracy_comparison.csv"
 
-python /lustre1/g/aos_shihuang/rustyclean-paper/benchmark/scripts/compute_accuracy_all.py \
+python "$REPO_DIR/scripts/benchmark/compute_accuracy_all.py" \
     "${PROJECT_DIR}" \
     "${OUT_CSV}"
 
