@@ -68,13 +68,19 @@ self-match and the benchmark would measure nothing.
 |---|---|
 | `benchmark/benchmark_baseline_kraken2_memmap.sh` | Kraken2, no verification |
 | `benchmark/benchmark_bowtie2_recheck_v2.sh` | Kraken2 + `--bowtie2-recheck` |
-| `benchmark/benchmark_k2_index_ablation.sh` | human-only index, everything else held identical |
+| `benchmark/benchmark_k2_index_ablation.sh` | mixed `kraken16` index, everything else held identical |
 
-The ablation exists because every previously committed result used `kraken16`, a
-mixed database, not the human-only index the manuscript describes. Kraken2
-assigns the LCA of a read's k-mer hits, so a mixed library lets a host read be
-assigned to an ancestor of *Homo sapiens*. This measures how much of the observed
-host carry-over is the index rather than the method.
+Every database and index path comes from `scripts/hpc/config.sh`, which the
+driver exports and SLURM propagates into each job. `KRAKEN2_DB` defaults to the
+human-only T2T index, so the first two scripts run the shipped default.
+
+The ablation runs the same thing against the mixed `kraken16` library instead.
+It exists because every previously committed result used that mixed database,
+not the human-only index the manuscript describes. Kraken2 assigns the LCA of a
+read's k-mer hits, so a mixed library lets a host read be assigned to an ancestor
+of *Homo sapiens*, where host detection did not remove it. Comparing the two
+arms measures how much of the observed host carry-over is the index rather than
+the method.
 
 ## Stage 5 — previously unmeasured
 

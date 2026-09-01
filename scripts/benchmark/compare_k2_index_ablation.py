@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Compare the two arms of the Kraken2 index ablation.
 
-    arm A  kraken16  -- mixed database (bacteria/archaea/viral/human)
-    arm B  t2t_only  -- human-only database, T2T-CHM13v2.0
+    default  t2t_only  -- human-only database, T2T-CHM13v2.0 (the shipped default)
+    ablation kraken16  -- mixed database (bacteria/archaea/viral/human)
 
 Everything else is held identical, so any difference is attributable to the
 index. Reports host carry-over, microbial loss, F1, runtime and peak memory.
@@ -77,8 +77,8 @@ def mean_perf(rows, dataset, col):
 
 
 def main():
-    a_acc, b_acc = rd(ARM_A_ACC), rd(ARM_B_DIR / "accuracy_k2_t2t_only.csv")
-    a_perf, b_perf = rd(ARM_A_PERF), rd(ARM_B_DIR / "performance_k2_t2t_only.csv")
+    a_acc, b_acc = rd(ARM_A_ACC), rd(ARM_B_DIR / "accuracy_k2_mixed.csv")
+    a_perf, b_perf = rd(ARM_A_PERF), rd(ARM_B_DIR / "performance_k2_mixed.csv")
     if not b_acc:
         print("\nArm B not found. Run benchmark_k2_index_ablation.sh and "
               "run_accuracy_k2_index_ablation.sh first.", file=sys.stderr)
@@ -89,9 +89,9 @@ def main():
     print("\nKraken2 index ablation — mixed (kraken16) vs human-only (t2t_only)")
     print("=" * len(hdr))
     print(hdr)
-    print(f"{'':<14}{'mixed':>12}{'human':>7}{'Δ':>7}"
-          f"{'mixed':>12}{'human':>6}{'Δ':>6}"
-          f"{'mixed':>10}{'human':>10}{'mixed':>9}{'human':>9}{'mixed':>8}{'human':>8}")
+    print(f"{'':<14}{'human':>12}{'mixed':>7}{'Δ':>7}"
+          f"{'human':>12}{'mixed':>6}{'Δ':>6}"
+          f"{'human':>10}{'mixed':>10}{'human':>9}{'mixed':>9}{'human':>8}{'mixed':>8}")
     print("-" * len(hdr))
 
     deltas = []

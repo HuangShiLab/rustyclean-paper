@@ -102,7 +102,8 @@ echo >&2
 
 # --- Stage 6: accuracy -------------------------------------------------------
 echo "Stage 6 — accuracy" >&2
-ALL_RUNS=$(printf "%s\n" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" | grep -v '^$' | paste -sd: -)
+ALL_RUNS=$(printf "%s\n" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" \
+    | { grep -v '^$' || true; } | paste -sd: -)
 submit 6 "accuracy, all tools"        scripts/benchmark/run_compute_accuracy.sh          "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, recheck arms"     scripts/benchmark/run_accuracy_bowtie2_recheck_v2.sh "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, index ablation"   scripts/benchmark/run_accuracy_k2_index_ablation.sh  "$ALL_RUNS" >/dev/null

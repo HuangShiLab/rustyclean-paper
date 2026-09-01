@@ -32,8 +32,8 @@ DATASETS=(
     "60M_90pct_high_lognormal_SE"
 )
 
-KRAKEN2_DB="/lustre1/g/aos_shihuang/databases/kraken2/kraken16"
-HOST_INDEX="/lustre1/g/aos_shihuang/databases/kneaddata/hg_39"
+KRAKEN2_DB="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only}"
+HOST_INDEX="${BOWTIE2_INDEX:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla}"
 THREADS=8
 
 parse_time_log() {

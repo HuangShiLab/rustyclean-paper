@@ -22,8 +22,8 @@ PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/bowtie2_recheck_v2
 DATA=/scr/u/shihuang/rustyclean-paper/data/enhanced
 OUT=$PROJECT/results
 METRICS=$PROJECT/metrics/performance_bowtie2_recheck.csv
-KRAKEN_DB_SRC=/lustre1/g/aos_shihuang/databases/kraken2/kraken16
-HOST_INDEX=/lustre1/g/aos_shihuang/databases/kneaddata/hg_39
+KRAKEN_DB_SRC="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only}"
+HOST_INDEX="${BOWTIE2_INDEX:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla}"
 
 mkdir -p "$OUT"
 mkdir -p "$(dirname "$METRICS")"

@@ -9,8 +9,8 @@
 #SBATCH --output=/home/shihuang/rc_k2_ablation_acc_%j.out
 #SBATCH --error=/home/shihuang/rc_k2_ablation_acc_%j.err
 
-# Accuracy for arm B of the Kraken2 index ablation (human-only t2t_only index).
-# Arm A (kraken16) is already in data/benchmark_results/accuracy_bowtie2_recheck.csv.
+# Accuracy for the mixed-database arm of the Kraken2 index ablation.
+# The human-only arm is the default run, benchmark_bowtie2_recheck_v2.sh.
 
 set -e
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
@@ -21,8 +21,8 @@ REPO=/lustre1/g/aos_shihuang/rustyclean-paper
 
 python "$REPO/scripts/benchmark/compute_accuracy_bowtie2_recheck_v2.py" \
     "$PROJECT" \
-    "$PROJECT/metrics/accuracy_k2_t2t_only.csv" \
-    rustyclean_k2_t2t_only
+    "$PROJECT/metrics/accuracy_k2_mixed.csv" \
+    rustyclean_k2_mixed
 
 echo "Done. Compare the two arms with:"
 echo "  python $REPO/scripts/benchmark/compare_k2_index_ablation.py"

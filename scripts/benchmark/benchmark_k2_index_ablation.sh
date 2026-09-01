@@ -40,12 +40,12 @@ RC=/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean
 PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/k2_index_ablation
 DATA=/scr/u/shihuang/rustyclean-paper/data/enhanced
 OUT=$PROJECT/results
-METRICS=$PROJECT/metrics/performance_k2_t2t_only.csv
+METRICS=$PROJECT/metrics/performance_k2_mixed.csv
 
 # --- the only variable under test -------------------------------------------
-KRAKEN_DB_SRC=/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only
+KRAKEN_DB_SRC="${KRAKEN2_DB_MIXED:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16}"
 # --- held identical to the kraken16 arm -------------------------------------
-HOST_INDEX=/lustre1/g/aos_shihuang/databases/kneaddata/hg_39
+HOST_INDEX="${BOWTIE2_INDEX:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla}"
 THREADS=8
 REPS=3
 
@@ -58,8 +58,8 @@ fi
 
 # Stage the database on node-local storage: mmap over Lustre is pathologically
 # slow because every page fault is a network round trip.
-KRAKEN_DB="/tmp/k2_t2t_only_$$"
-echo "Staging Kraken2 DB to node-local storage: $KRAKEN_DB"
+KRAKEN_DB="/tmp/k2_mixed_$$"
+echo "Staging mixed Kraken2 DB to node-local storage: $KRAKEN_DB"
 mkdir -p "$KRAKEN_DB"
 start_copy=$(date +%s)
 for f in hash.k2d opts.k2d taxo.k2d seqid2taxid.map names.dmp nodes.dmp ktaxonomy.tsv; do
@@ -121,7 +121,7 @@ for dataset in "${DATASETS[@]}"; do
             > "$log" 2> "$time_log"
         rt=$(awk -F": " '/Elapsed \(wall clock\) time/ {print $NF}' "$time_log"); [ -z "$rt" ] && rt="0:0"
         mem=$(awk '/Maximum resident set size/ {print $NF}' "$time_log"); [ -z "$mem" ] && mem="0"
-        printf "rustyclean_k2_t2t_only,%s,%s,%s,%s,%s\n" \
+        printf "rustyclean_k2_mixed,%s,%s,%s,%s,%s\n" \
             "$dataset" "$rep" "$(parse_time "$rt")" "$mem" "$(date -Iseconds)" >> "$METRICS"
         echo "  runtime=$(parse_time "$rt")s memory=${mem}kb" | tee -a "$log"
     done
