@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
-#SBATCH --output=/home/%u/rc_k2_ablation_acc_%j.out
-#SBATCH --error=/home/%u/rc_k2_ablation_acc_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 # Accuracy for the mixed-database arm of the Kraken2 index ablation.
 # The human-only arm is the default run, benchmark_bowtie2_recheck_v2.sh.

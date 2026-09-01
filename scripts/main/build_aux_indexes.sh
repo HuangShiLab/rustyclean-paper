@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=12:00:00
-#SBATCH --output=/home/%u/build_aux_idx_%j.out
-#SBATCH --error=/home/%u/build_aux_idx_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 # =============================================================================
 # Build the minimap2, sylph and centrifuge indexes

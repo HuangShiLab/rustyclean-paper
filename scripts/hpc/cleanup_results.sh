@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=rustyclean_cleanup
-#SBATCH --output=%x_%j.out
-#SBATCH --error=%x_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=2:00:00

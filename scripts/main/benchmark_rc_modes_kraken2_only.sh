@@ -8,8 +8,8 @@
 #SBATCH --mem=80G
 #SBATCH --time=12:00:00
 #SBATCH --array=0-3
-#SBATCH --output=%x_%A_%a.out
-#SBATCH --error=%x_%A_%a.err
+#SBATCH --output=logs/%x-%A_%a.out
+#SBATCH --error=logs/%x-%A_%a.err
 
 set -e
 

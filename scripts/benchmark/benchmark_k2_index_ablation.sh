@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=24:00:00
-#SBATCH --output=/home/%u/rc_k2_index_ablation_%j.out
-#SBATCH --error=/home/%u/rc_k2_index_ablation_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 # =============================================================================
 # Kraken2 index ablation: mixed database vs human-only database

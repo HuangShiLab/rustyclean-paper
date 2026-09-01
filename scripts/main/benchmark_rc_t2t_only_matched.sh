@@ -8,8 +8,8 @@
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH --array=0-3
-#SBATCH --output=/home/%u/rc_t2t_only_matched_%A_%a.out
-#SBATCH --error=/home/%u/rc_t2t_only_matched_%A_%a.err
+#SBATCH --output=logs/%x-%A_%a.out
+#SBATCH --error=logs/%x-%A_%a.err
 
 set -e
 

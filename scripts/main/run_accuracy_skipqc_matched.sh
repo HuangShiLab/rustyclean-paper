@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/home/%u/rc_acc_skipqc_matched_%j.out
-#SBATCH --error=/home/%u/rc_acc_skipqc_matched_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -e
 

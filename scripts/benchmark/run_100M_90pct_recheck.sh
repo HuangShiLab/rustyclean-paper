@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=256G
 #SBATCH --time=06:00:00
-#SBATCH --output=/home/%u/rc_100M90_recheck_%j.out
-#SBATCH --error=/home/%u/rc_100M90_recheck_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -e
 source ~/.cargo/env 2>/dev/null || true

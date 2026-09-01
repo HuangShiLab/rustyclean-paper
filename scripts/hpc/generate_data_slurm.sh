@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=rustyclean_generate
-#SBATCH --output=%x_%A_%a.out
-#SBATCH --error=%x_%A_%a.err
+#SBATCH --output=logs/%x-%A_%a.out
+#SBATCH --error=logs/%x-%A_%a.err
 #SBATCH --array=1-18%6
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
@@ -244,15 +244,27 @@ echo "  Host reads: $HOST_READS, Microbial reads: $MICROBE_READS"
 # ---------------------------------------------------------------------------
 # Generate reads with InsilicoSeq
 # ---------------------------------------------------------------------------
+# Without a seed the panel cannot be regenerated, so a reviewer could never
+# reproduce these datasets. Probe for the flag instead of assuming it: passing
+# an unsupported option would fail every array task at once.
+ISS_SEED_ARGS=""
+if "$ISS_BIN" generate --help 2>&1 | grep -q -- '--seed'; then
+    ISS_SEED_ARGS="--seed $(( ${SIM_SEED:-42} + ${SLURM_ARRAY_TASK_ID:-0} ))"
+    echo "  ISS seed: ${ISS_SEED_ARGS#--seed }"
+else
+    echo "  WARNING: this InSilicoSeq build has no --seed; reads are NOT reproducible." >&2
+fi
+
 if [ "$MICROBE_READS" -gt 0 ]; then
     echo "  Generating microbial reads..."
     "$ISS_BIN" generate \
         --genomes "$MICROBIAL_FA" \
         --abundance_file "$ABUNDANCE_FILE" \
-        --model miseq \
+        --model "${ISS_MODEL:-miseq}" \
         --n_reads "$MICROBE_READS" \
         --output "$WORKDIR/microbe" \
         --cpus "$SLURM_CPUS_PER_TASK" \
+        $ISS_SEED_ARGS \
         2>&1 | tee -a "$LOG_FILE"
 fi
 
@@ -260,10 +272,11 @@ if [ "$HOST_READS" -gt 0 ]; then
     echo "  Generating host reads..."
     "$ISS_BIN" generate \
         --genomes "$HUMAN_FASTA" \
-        --model miseq \
+        --model "${ISS_MODEL:-miseq}" \
         --n_reads "$HOST_READS" \
         --output "$WORKDIR/host" \
         --cpus "$SLURM_CPUS_PER_TASK" \
+        $ISS_SEED_ARGS \
         2>&1 | tee -a "$LOG_FILE"
 fi
 

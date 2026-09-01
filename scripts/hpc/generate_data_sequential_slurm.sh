@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=rustyclean_generate_all
-#SBATCH --output=%x_%j.out
-#SBATCH --error=%x_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=128G
 #SBATCH --time=168:00:00

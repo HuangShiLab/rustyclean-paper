@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=200G
 #SBATCH --time=12:00:00
-#SBATCH --output=/home/%u/k2_t2t_only_%j.out
-#SBATCH --error=/home/%u/k2_t2t_only_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -e
 

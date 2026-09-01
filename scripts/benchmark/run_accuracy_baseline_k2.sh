@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
-#SBATCH --output=/home/%u/rc_baseline_k2_acc_%j.out
-#SBATCH --error=/home/%u/rc_baseline_k2_acc_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -e
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh

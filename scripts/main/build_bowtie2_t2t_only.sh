@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=12:00:00
-#SBATCH --output=/home/%u/bt2_t2t_only_%j.out
-#SBATCH --error=/home/%u/bt2_t2t_only_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 # =============================================================================
 # Bowtie2 index from T2T-CHM13v2.0 alone

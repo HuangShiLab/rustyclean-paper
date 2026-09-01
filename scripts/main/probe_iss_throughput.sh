@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/home/%u/iss_probe_%j.out
-#SBATCH --error=/home/%u/iss_probe_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 # =============================================================================
 # Measure InSilicoSeq throughput, then extrapolate to the full panel

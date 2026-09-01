@@ -7,8 +7,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128G
 #SBATCH --time=06:00:00
-#SBATCH --output=/home/%u/rc_auto_boundary_%j.out
-#SBATCH --error=/home/%u/rc_auto_boundary_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -e
 

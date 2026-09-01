@@ -9,9 +9,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --chdir=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}
-#SBATCH --output=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/fair_hostile_fastp_%j.out
-#SBATCH --error=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/fair_hostile_fastp_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -euo pipefail
 

@@ -20,6 +20,13 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 export REPO_DIR="$REPO"
 source "$REPO/scripts/hpc/config.sh"
 
+# A missing log directory makes SLURM fail each job at launch, with no log to
+# say why. Create it before queueing anything.
+if ! mkdir -p "$LOG_DIR" 2>/dev/null; then
+    echo "ERROR: cannot create the log directory: $LOG_DIR" >&2
+    exit 1
+fi
+
 DRY_RUN=0
 FROM_STAGE=0
 while [ $# -gt 0 ]; do
@@ -46,14 +53,23 @@ submit() {
     fi
     local depflag=""
     [ -n "$dep" ] && depflag="--dependency=afterok:$dep"
+
+    # The #SBATCH directives inside each script use a relative "logs/" path,
+    # which only lands in the right place when sbatch is run from the repo root.
+    # Passing the absolute path here overrides them, so run_all.sh works from
+    # any directory. Array jobs keep the %A_%a pattern so tasks stay grouped.
+    local pat="%x-%j"
+    grep -qE '^#SBATCH[[:space:]]+(--array|-a)[= ]' "$REPO/$script" && pat="%x-%A_%a"
+    local logflags="--output=$LOG_DIR/$pat.out --error=$LOG_DIR/$pat.err"
+
     if [ "$DRY_RUN" -eq 1 ]; then
         echo "  [stage $stage] $label" >&2
-        echo "      sbatch $depflag $script" >&2
+        echo "      sbatch $depflag $logflags $script" >&2
         echo "DRYRUN$stage"
         return
     fi
     local jid
-    jid=$(sbatch --parsable $depflag "$REPO/$script")
+    jid=$(sbatch --parsable $depflag $logflags "$REPO/$script")
     echo "  [stage $stage] $label -> job $jid${dep:+ (after $dep)}" >&2
     echo "$jid"
 }

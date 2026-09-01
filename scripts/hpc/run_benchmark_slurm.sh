@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=rustyclean_benchmark
-#SBATCH --output=%x_%A_%a.out
-#SBATCH --error=%x_%A_%a.err
+#SBATCH --output=logs/%x-%A_%a.out
+#SBATCH --error=logs/%x-%A_%a.err
 #SBATCH --array=1-54%12
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G

@@ -223,8 +223,16 @@ for pair in "SCRATCH_DIR:$SCRATCH_DIR" "RUNS_DIR:$RUNS_DIR"; do
     parent="$dir"; while [ ! -d "$parent" ] && [ "$parent" != "/" ]; do parent=$(dirname "$parent"); done
     if [ -w "$parent" ]; then ok "$lbl writable ($parent)"; else bad "$lbl NOT writable" "$parent"; fi
 done
-need_dir  "SLURM log destination"   "$HOME"
-[ -w "$HOME" ] && ok "home is writable (SLURM logs go to /home/%u/)" || bad "home NOT writable" "$HOME"
+# SLURM writes the .out/.err file at job launch. If the directory is missing the
+# job dies immediately and the reason has nowhere to be recorded, so this is
+# checked rather than left to fail silently across a whole array.
+if [ -d "$LOG_DIR" ] && [ -w "$LOG_DIR" ]; then
+    ok "SLURM log directory ($LOG_DIR)"
+elif [ -d "$LOG_DIR" ]; then
+    bad "SLURM log directory NOT writable" "$LOG_DIR"
+else
+    bad "SLURM log directory missing" "mkdir -p $LOG_DIR"
+fi
 
 # Space is what matters, wherever the two trees actually live.
 space_for() {

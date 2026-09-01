@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=128G
 #SBATCH --time=02:00:00
-#SBATCH --output=/home/%u/rc_acc_kneaddata_100M_%j.out
-#SBATCH --error=/home/%u/rc_acc_kneaddata_100M_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 
 set -e
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh

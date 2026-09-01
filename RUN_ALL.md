@@ -62,6 +62,22 @@ the same time.
 
 ---
 
+## Logs
+
+Every job writes `<job-name>-<jobid>.out` / `.err` into `$LOG_DIR`, which
+defaults to `$PROJECT_DIR/logs`. Array tasks use `<job-name>-<arrayid>_<task>`
+so the tasks of one array stay grouped.
+
+SLURM parses `#SBATCH` lines literally and never expands shell variables, so the
+directives inside each script use the relative path `logs/` — correct whenever
+you submit from the repository root. `run_all.sh` also passes the absolute path
+on the sbatch command line, which overrides the directive and works from any
+directory. Do not put `$LOG_DIR` in an `#SBATCH` line; it will be taken as a
+literal directory name and the job will fail at launch.
+
+A missing log directory makes SLURM kill each job immediately, with no log to
+record why, so `preflight.sh` checks it and `run_all.sh` creates it.
+
 ## Stage 1 — references and indexes
 
 | Script | Builds | Peak RAM |

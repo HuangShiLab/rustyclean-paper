@@ -26,7 +26,13 @@ export ANALYSIS_DIR="${ANALYSIS_DIR:-$SCRATCH_DIR/analysis}"
 # filesystem with room; the project directory is the fallback when the user
 # scratch is too small.
 export RUNS_DIR="${RUNS_DIR:-$PROJECT_DIR/runs}"
-export LOG_DIR="${LOG_DIR:-$SCRATCH_DIR/logs}"
+# SLURM .out/.err files. #SBATCH directives cannot reference this variable --
+# SLURM parses those lines literally, before any shell runs -- so the directives
+# use the relative path "logs/", which resolves here when a job is submitted
+# from the repository root. run_all.sh additionally passes the absolute path on
+# the sbatch command line, which overrides the directive and works from any
+# directory.
+export LOG_DIR="${LOG_DIR:-$PROJECT_DIR/logs}"
 
 # ---------------------------------------------------------------------------
 # Tool paths
@@ -67,6 +73,7 @@ export GENOME_DIR="${GENOME_DIR:-$PROJECT_DIR/genomes}"
 # Accepts .fasta/.fa/.fna, gzipped or not. Needs at least 100 genomes for the
 # high-complexity datasets, or genomes get reused and the community contains
 # duplicate sequence.
+#
 # Pool the simulated microbial communities are drawn from. GTDB r202 reference
 # genomes are used rather than the two larger collections on this cluster:
 #   - GTDBr226_reference_genome (732k) is genome-level, not species-level, so a
@@ -103,12 +110,20 @@ export HOSTILE_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}
 export KRAKEN2_DB="${KRAKEN2_DB:-$KRAKEN2_DB_T2T_ONLY}"
 
 # --- Simulation parameters --------------------------------------------------
-# The driver simulates with art_illumina; the InSilicoSeq generator is kept for
-# reference but is too slow at these read counts. Do not mix the two: their error
-# models differ, so datasets from one are not comparable with the other.
-export ART_MODEL="${ART_MODEL:-HS25}"
+# The driver simulates with InSilicoSeq. The art_illumina scripts are kept for
+# reference only. Do not mix the two: their error models differ, so datasets
+# from one are not comparable with datasets from the other.
+#
+# ISS_MODEL selects the ISS error model, and the model -- not READ_LENGTH --
+# determines read length. Check what the installed ISS produces before running
+# the panel, and make READ_LENGTH agree with it; the Methods quotes READ_LENGTH.
+export ISS_MODEL="${ISS_MODEL:-miseq}"
 export READ_LENGTH="${READ_LENGTH:-150}"
+# Passed to ISS so a rerun reproduces the same reads. Each array task offsets it
+# by its task id, so datasets are independent but still deterministic.
 export SIM_SEED="${SIM_SEED:-42}"
+# art_illumina only; unused by the ISS path.
+export ART_MODEL="${ART_MODEL:-HS25}"
 export PE_FRAG_MEAN="${PE_FRAG_MEAN:-300}"
 export PE_FRAG_SD="${PE_FRAG_SD:-30}"
 
