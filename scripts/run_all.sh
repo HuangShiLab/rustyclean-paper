@@ -30,6 +30,33 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 export REPO_DIR="$REPO"
 source "$REPO/scripts/hpc/config.sh"
 
+# Submission now blocks for hours waiting for room under the QOS job limit, so
+# a second copy started by accident would sit alongside the first and duplicate
+# every stage as room appears -- two sets of jobs writing the same output
+# directories and metric files. Hold a lock for the life of the run instead.
+run_all_lock() {
+    [ "$DRY_RUN" -eq 1 ] && return 0
+    local lockfile="$LOG_DIR/.run_all.lock"
+    if command -v flock >/dev/null 2>&1; then
+        exec 9>"$lockfile" || return 0
+        if ! flock -n 9; then
+            echo "ERROR: another run_all.sh is already submitting." >&2
+            echo "       Lock: $lockfile" >&2
+            echo "       Two copies would duplicate every job into the same output" >&2
+            echo "       directories. Stop the other one before starting a new run." >&2
+            exit 1
+        fi
+        echo "$$" >&9
+    elif [ -f "$lockfile" ] && kill -0 "$(cat "$lockfile" 2>/dev/null)" 2>/dev/null; then
+        echo "ERROR: run_all.sh is already running as PID $(cat "$lockfile")." >&2
+        echo "       Stop it before starting a new run, or remove $lockfile if stale." >&2
+        exit 1
+    else
+        echo "$$" > "$lockfile"
+        trap 'rm -f "$lockfile"' EXIT
+    fi
+}
+
 # A missing log directory makes SLURM fail each job at launch, with no log to
 # say why. Create it before queueing anything.
 if ! mkdir -p "$LOG_DIR" 2>/dev/null; then
@@ -50,6 +77,8 @@ while [ $# -gt 0 ]; do
         *) echo "unknown argument: $1" >&2; exit 1 ;;
     esac
 done
+
+run_all_lock
 
 # Resuming past stage 2 skips the jobs the later stages depend on, so without an
 # explicit --after they would be submitted with no dependency at all and start
