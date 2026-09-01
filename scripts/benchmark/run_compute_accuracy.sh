@@ -9,13 +9,13 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=6:00:00
-#SBATCH --chdir=/scr/u/shihuang/rustyclean-paper
-#SBATCH --output=/scr/u/shihuang/rustyclean-paper/logs/rc_accuracy_all_%j.out
-#SBATCH --error=/scr/u/shihuang/rustyclean-paper/logs/rc_accuracy_all_%j.err
+#SBATCH --chdir=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}
+#SBATCH --output=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/rc_accuracy_all_%j.out
+#SBATCH --error=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/rc_accuracy_all_%j.err
 
 set -euo pipefail
 
-PROJECT_DIR="/scr/u/shihuang/rustyclean-paper"
+PROJECT_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}"
 OUT_CSV="${PROJECT_DIR}/accuracy_comparison.csv"
 
 python "$REPO_DIR/scripts/benchmark/compute_accuracy_all.py" \

@@ -7,15 +7,15 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128G
 #SBATCH --time=12:00:00
-#SBATCH --output=/home/shihuang/cross_species_%j.out
-#SBATCH --error=/home/shihuang/cross_species_%j.err
+#SBATCH --output=/home/%u/cross_species_%j.out
+#SBATCH --error=/home/%u/cross_species_%j.err
 
 set -e
 
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
-export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:/home/shihuang/.local/bin:${PATH}"
+export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:$HOME/.local/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/cross_species_v2"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/cross_species_v2"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/cross_species_results"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"

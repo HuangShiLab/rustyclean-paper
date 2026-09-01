@@ -12,9 +12,9 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 export PROJECT_DIR="${PROJECT_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper}"
 
-# Runtime outputs go to user scratch (/scr/u/shihuang) because the project
+# Runtime outputs go to the submitting user's scratch because the project
 # directory on /lustre1 is near the user quota limit.
-export SCRATCH_DIR="${SCRATCH_DIR:-/scr/u/shihuang/rustyclean-paper}"
+export SCRATCH_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}"
 export DATA_DIR="${DATA_DIR:-$SCRATCH_DIR/data/enhanced}"
 export RESULTS_DIR="${RESULTS_DIR:-$SCRATCH_DIR/results}"
 export ANALYSIS_DIR="${ANALYSIS_DIR:-$SCRATCH_DIR/analysis}"

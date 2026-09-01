@@ -88,10 +88,13 @@ need_dir  "scratch root"            "$SCRATCH_DIR"
 [ -w "$SCRATCH_DIR" ] && ok "scratch is writable" || bad "scratch NOT writable" "$SCRATCH_DIR"
 opt_dir   "simulated data (stage 2 creates)" "$DATA_DIR"
 need_dir  "SLURM log destination"   "$HOME"
+[ -w "$HOME" ] && ok "home is writable (SLURM logs go to /home/%u/)" || bad "home NOT writable" "$HOME"
 avail=$(df -Pk "$SCRATCH_DIR" 2>/dev/null | awk 'NR==2{print int($4/1048576)}')
 if [ -n "$avail" ]; then
-    [ "$avail" -ge 500 ] && ok "free space on scratch: ${avail} GB (need ~500)" \
-                         || warn "free space on scratch: ${avail} GB" "a full rerun needs ~500 GB"
+    if   [ "$avail" -ge 500 ]; then ok   "free space on scratch: ${avail} GB (need ~500)"
+    elif [ "$avail" -ge 200 ]; then warn "free space on scratch: ${avail} GB" "full panel needs ~500 GB; see RUN_ALL.md on trimming"
+    else                            bad  "free space on scratch: ${avail} GB" "need ~500 GB, or trim the panel (RUN_ALL.md)"
+    fi
 fi
 echo
 

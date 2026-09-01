@@ -6,8 +6,8 @@ retained in each tool's cleaned output. Outputs a CSV with accuracy, precision,
 recall, F1 and raw counts.
 
 Run on HPC:
-    python compute_accuracy_all.py /scr/u/shihuang/rustyclean-paper \
-        /scr/u/shihuang/rustyclean-paper/accuracy_comparison.csv
+    python compute_accuracy_all.py $SCRATCH_DIR \
+        $SCRATCH_DIR/accuracy_comparison.csv
 """
 
 import csv

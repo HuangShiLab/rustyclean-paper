@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 
-OUTDIR = Path("/scr/u/shihuang/rustyclean-paper/auto_vs_kneaddata")
+OUTDIR = Path(os.environ.get("SCRATCH_DIR", f"/scr/u/{os.environ.get('USER','')}/rustyclean-paper") + "/auto_vs_kneaddata")
 
 DATASETS = [
     "5M_1pct_low_even_SE",

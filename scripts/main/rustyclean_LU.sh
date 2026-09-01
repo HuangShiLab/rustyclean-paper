@@ -41,7 +41,7 @@ fi
 
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 conda activate fastp
-export PATH="/home/shihuang/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:${PATH}"
+export PATH="$HOME/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:${PATH}"
 
 echo "============================================"
 echo "RustyClean pipeline started at $(date)"

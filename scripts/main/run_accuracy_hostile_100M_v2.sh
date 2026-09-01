@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=128G
 #SBATCH --time=02:00:00
-#SBATCH --output=/home/shihuang/rc_acc_hostile_100M_v2_%j.out
-#SBATCH --error=/home/shihuang/rc_acc_hostile_100M_v2_%j.err
+#SBATCH --output=/home/%u/rc_acc_hostile_100M_v2_%j.out
+#SBATCH --error=/home/%u/rc_acc_hostile_100M_v2_%j.err
 
 set -e
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
@@ -15,7 +15,7 @@ export PATH="/group/aos_shihuang/conda/envs/rustyclean-benchmark/bin:${PATH}"
 
 cd /lustre1/g/aos_shihuang/rustyclean-paper
 python3 scripts/main/analyze_accuracy_v2.py \
-    /scr/u/shihuang/rustyclean-paper/data/enhanced \
+    ${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced \
     /lustre1/g/aos_shihuang/rustyclean-paper/hostile_100M_matched \
     /lustre1/g/aos_shihuang/rustyclean-paper/analysis_hostile_100M_accuracy \
     --tools hostile

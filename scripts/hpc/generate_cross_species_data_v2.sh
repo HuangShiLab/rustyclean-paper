@@ -21,7 +21,7 @@ export PATH="/lustre1/g/aos_shihuang/rustyclean-paper/.conda_envs/rustyclean-ben
 # Uses ART_Illumina HS25 (the same simulator used for the enhanced datasets).
 # =============================================================================
 
-OUTPUT_DIR="${1:-/scr/u/shihuang/rustyclean-paper/data/cross_species_v2}"
+OUTPUT_DIR="${1:-${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/cross_species_v2}"
 MICROBE_DIR="${2:-/lustre1/g/aos_shihuang/rustyclean-paper/genomes/genomes_fasta}"
 HOST_BASE="/lustre1/g/aos_shihuang/databases/host_genomes_cross"
 

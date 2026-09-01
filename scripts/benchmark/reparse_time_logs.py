@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-BASE = Path("/scr/u/shihuang/rustyclean-paper/bowtie2_recheck_results")
+BASE = Path(os.environ.get("SCRATCH_DIR", f"/scr/u/{os.environ.get('USER','')}/rustyclean-paper") + "/bowtie2_recheck_results")
 OUT = Path("/lustre1/g/aos_shihuang/rustyclean-paper/results_v2/metrics/performance_bowtie2_recheck.csv")
 
 OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -6,16 +6,16 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=48:00:00
-#SBATCH --output=/home/shihuang/kd_100M_%j.out
-#SBATCH --error=/home/shihuang/kd_100M_%j.err
+#SBATCH --output=/home/%u/kd_100M_%j.out
+#SBATCH --error=/home/%u/kd_100M_%j.err
 
 set -euo pipefail
 
 export PATH="/group/aos_shihuang/conda/envs/kneaddata/bin:${PATH}"
 which kneaddata || { echo "kneaddata not found"; exit 1; }
 
-DATA=/scr/u/shihuang/rustyclean-paper/data/enhanced
-OUT=/scr/u/shihuang/rustyclean-paper/results_100M_kneaddata
+DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
+OUT=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/results_100M_kneaddata
 DB=/lustre1/g/aos_shihuang/databases/kneaddata/hg_39
 THREADS=8
 REPS=3

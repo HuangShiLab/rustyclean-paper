@@ -21,7 +21,7 @@ export _JAVA_OPTIONS="-Xmx32g"
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/real_data"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/real_data"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/results_real_data"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"

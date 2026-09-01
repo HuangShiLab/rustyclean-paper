@@ -8,8 +8,8 @@
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH --array=0-3
-#SBATCH --output=/home/shihuang/rc_t2t_only_matched_%A_%a.out
-#SBATCH --error=/home/shihuang/rc_t2t_only_matched_%A_%a.err
+#SBATCH --output=/home/%u/rc_t2t_only_matched_%A_%a.out
+#SBATCH --error=/home/%u/rc_t2t_only_matched_%A_%a.err
 
 set -e
 
@@ -17,7 +17,7 @@ source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/rustyclean_t2t_only_matched"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"
@@ -25,7 +25,7 @@ LOGS_DIR="${RESULTS_DIR}/logs"
 THREADS=8
 RUSTYCLEAN="/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean"
 KRAKEN2_DB="/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only"
-BT2_INDEX="/home/shihuang/.local/share/hostile/human-t2t-hla"
+BT2_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}"
 
 DATASETS=(
     "30M_50pct_high_skewed_SE"

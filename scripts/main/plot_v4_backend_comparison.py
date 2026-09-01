@@ -7,7 +7,7 @@
 #
 # Usage: python scripts/plot_v4_backend_comparison.py <results_dir> <out_dir>
 # Example: python scripts/plot_v4_backend_comparison.py \
-#              /scr/u/shihuang/rustyclean-paper/results_rc_mm_bt_cf_v4 \
+#              $SCRATCH_DIR/results_rc_mm_bt_cf_v4 \
 #              /lustre1/g/aos_shihuang/rustyclean-paper/analysis_final_v3/figures
 
 import os

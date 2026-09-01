@@ -7,15 +7,15 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128G
 #SBATCH --time=08:00:00
-#SBATCH --output=/home/shihuang/backend_runtime_%j.out
-#SBATCH --error=/home/shihuang/backend_runtime_%j.err
+#SBATCH --output=/home/%u/backend_runtime_%j.out
+#SBATCH --error=/home/%u/backend_runtime_%j.err
 
 set -e
 
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
-export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/home/shihuang/.local/bin:${PATH}"
+export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:$HOME/.local/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/backend_runtime_v2"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"
@@ -23,8 +23,8 @@ LOGS_DIR="${RESULTS_DIR}/logs"
 THREADS=8
 RUSTYCLEAN="/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean"
 KRAKEN2_DB="/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only"
-BT2_INDEX="/home/shihuang/.local/share/hostile/human-t2t-hla"
-MM_INDEX="/home/shihuang/.local/share/hostile/human-t2t-hla.mmi"
+BT2_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}"
+MM_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}.mmi"
 CF_INDEX="/lustre1/g/aos_shihuang/databases/centrifuge/host_indexes/human_t2t_hla_cf"
 
 DATASETS=(

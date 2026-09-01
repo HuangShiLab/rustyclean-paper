@@ -8,8 +8,8 @@
 #SBATCH --mem=80G
 #SBATCH --time=04:00:00
 #SBATCH --array=0-3
-#SBATCH --output=/home/shihuang/rc_auto_skipqc_matched_%A_%a.out
-#SBATCH --error=/home/shihuang/rc_auto_skipqc_matched_%A_%a.err
+#SBATCH --output=/home/%u/rc_auto_skipqc_matched_%A_%a.out
+#SBATCH --error=/home/%u/rc_auto_skipqc_matched_%A_%a.err
 
 set -e
 
@@ -17,7 +17,7 @@ source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/rustyclean_auto_skipqc_matched"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"

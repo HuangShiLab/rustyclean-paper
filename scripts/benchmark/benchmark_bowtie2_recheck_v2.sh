@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=24:00:00
-#SBATCH --output=/home/shihuang/rc_bt2recheck_%j.out
-#SBATCH --error=/home/shihuang/rc_bt2recheck_%j.err
+#SBATCH --output=/home/%u/rc_bt2recheck_%j.out
+#SBATCH --error=/home/%u/rc_bt2recheck_%j.err
 
 set -e
 source ~/.cargo/env 2>/dev/null || true
@@ -19,7 +19,7 @@ export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/
 
 RC=/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean
 PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/bowtie2_recheck_v2
-DATA=/scr/u/shihuang/rustyclean-paper/data/enhanced
+DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
 OUT=$PROJECT/results
 METRICS=$PROJECT/metrics/performance_bowtie2_recheck.csv
 KRAKEN_DB_SRC="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only}"

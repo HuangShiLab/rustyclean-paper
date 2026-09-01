@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Compare bowtie2-recheck results with original rustyclean results."""
+import os
 import csv
 import statistics
 from pathlib import Path
@@ -46,7 +47,7 @@ def summarize(path, tool_name, runtime_col="runtime_seconds"):
 
 def main():
     orig = summarize(
-        "/scr/u/shihuang/rustyclean-paper/results_v2/metrics/performance.csv",
+        "$SCRATCH_DIR/results_v2/metrics/performance.csv",
         "rustyclean",
     )
     bt2 = summarize(

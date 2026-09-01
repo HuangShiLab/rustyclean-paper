@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=24:00:00
-#SBATCH --output=/home/shihuang/rc_k2_index_ablation_%j.out
-#SBATCH --error=/home/shihuang/rc_k2_index_ablation_%j.err
+#SBATCH --output=/home/%u/rc_k2_index_ablation_%j.out
+#SBATCH --error=/home/%u/rc_k2_index_ablation_%j.err
 
 # =============================================================================
 # Kraken2 index ablation: mixed database vs human-only database
@@ -38,7 +38,7 @@ export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/
 
 RC=/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean
 PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/k2_index_ablation
-DATA=/scr/u/shihuang/rustyclean-paper/data/enhanced
+DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
 OUT=$PROJECT/results
 METRICS=$PROJECT/metrics/performance_k2_mixed.csv
 

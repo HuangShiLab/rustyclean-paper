@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
-#SBATCH --output=/home/shihuang/rc_bt2recheck_acc_%j.out
-#SBATCH --error=/home/shihuang/rc_bt2recheck_acc_%j.err
+#SBATCH --output=/home/%u/rc_bt2recheck_acc_%j.out
+#SBATCH --error=/home/%u/rc_bt2recheck_acc_%j.err
 
 set -e
 

@@ -7,15 +7,15 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128G
 #SBATCH --time=08:00:00
-#SBATCH --output=/home/shihuang/t2t_extended_panel_%j.out
-#SBATCH --error=/home/shihuang/t2t_extended_panel_%j.err
+#SBATCH --output=/home/%u/t2t_extended_panel_%j.out
+#SBATCH --error=/home/%u/t2t_extended_panel_%j.err
 
 set -e
 
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
-export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:/home/shihuang/.local/bin:${PATH}"
+export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:$HOME/.local/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/t2t_only_extended_panel"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"
@@ -23,7 +23,7 @@ LOGS_DIR="${RESULTS_DIR}/logs"
 THREADS=8
 RUSTYCLEAN="/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean"
 KRAKEN2_DB="/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only"
-BT2_INDEX="/home/shihuang/.local/share/hostile/human-t2t-hla"
+BT2_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}"
 KNEADDATA_DB="/lustre1/g/aos_shihuang/databases/kneaddata/hg_39"
 
 # Datasets covering low-host and 30% host regimes, where AUTO decisions matter.

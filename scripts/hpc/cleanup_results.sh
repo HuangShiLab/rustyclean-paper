@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-RESULTS_DIR="/scr/u/shihuang/rustyclean-paper/results"
+RESULTS_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/results"
 
 echo "Disk usage before cleanup:"
 df -h /scr/u/shihuang

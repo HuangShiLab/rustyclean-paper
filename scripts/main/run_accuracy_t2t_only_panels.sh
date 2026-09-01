@@ -6,15 +6,15 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
-#SBATCH --output=/home/shihuang/acc_t2t_panels_%j.out
-#SBATCH --error=/home/shihuang/acc_t2t_panels_%j.err
+#SBATCH --output=/home/%u/acc_t2t_panels_%j.out
+#SBATCH --error=/home/%u/acc_t2t_panels_%j.err
 
 set -e
 
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/rustyclean-benchmark/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 SCRIPT="/lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/main/analyze_accuracy_t2t_only_panel.py"
 
 echo "Job started at: $(date)"

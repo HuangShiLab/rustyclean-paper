@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=200G
 #SBATCH --time=24:00:00
-#SBATCH --output=/home/shihuang/k2_grch38_t2t_%j.out
-#SBATCH --error=/home/shihuang/k2_grch38_t2t_%j.err
+#SBATCH --output=/home/%u/k2_grch38_t2t_%j.out
+#SBATCH --error=/home/%u/k2_grch38_t2t_%j.err
 
 set -e
 

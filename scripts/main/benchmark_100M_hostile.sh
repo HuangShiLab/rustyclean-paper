@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=48:00:00
-#SBATCH --output=/home/shihuang/hostile_100M_%j.out
-#SBATCH --error=/home/shihuang/hostile_100M_%j.err
+#SBATCH --output=/home/%u/hostile_100M_%j.out
+#SBATCH --error=/home/%u/hostile_100M_%j.err
 
 set -euo pipefail
 
@@ -18,9 +18,9 @@ which hostile || { echo "hostile not found"; exit 1; }
 which bowtie2 || { echo "bowtie2 not found"; exit 1; }
 which samtools || { echo "samtools not found"; exit 1; }
 
-DATA=/scr/u/shihuang/rustyclean-paper/data/enhanced
-OUT=/scr/u/shihuang/rustyclean-paper/results_100M_hostile
-INDEX=/home/shihuang/.local/share/hostile/human-t2t-hla
+DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
+OUT=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/results_100M_hostile
+INDEX=${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}
 THREADS=8
 REPS=3
 

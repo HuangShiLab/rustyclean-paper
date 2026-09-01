@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Compute accuracy for RustyClean bowtie2-recheck outputs."""
+import os
 import csv
 import gzip
 import sys
@@ -77,7 +78,7 @@ def main():
     project_dir = Path(sys.argv[1])
     out_csv = Path(sys.argv[2])
     tool_label = sys.argv[3] if len(sys.argv) == 4 else "rustyclean_bt2recheck"
-    data_dir = Path("/scr/u/shihuang/rustyclean-paper/data/enhanced")
+    data_dir = Path(os.environ.get("SCRATCH_DIR", f"/scr/u/{os.environ.get('USER','')}/rustyclean-paper") + "/data/enhanced")
     out_base = project_dir / "results"
 
     datasets = [

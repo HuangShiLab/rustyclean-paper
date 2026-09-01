@@ -17,7 +17,7 @@
 set -euo pipefail
 
 PROJECT_DIR="/lustre1/g/aos_shihuang/rustyclean-paper"
-SCRATCH_DIR="/scr/u/shihuang/rustyclean-paper"
+SCRATCH_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}"
 cd "$PROJECT_DIR"
 
 # Locate the repository. SLURM copies the batch script to a spool directory, so

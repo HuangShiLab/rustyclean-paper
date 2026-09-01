@@ -9,17 +9,17 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --chdir=/scr/u/shihuang/rustyclean-paper
-#SBATCH --output=/scr/u/shihuang/rustyclean-paper/logs/rc_auto_skipqc_v2_%j.out
-#SBATCH --error=/scr/u/shihuang/rustyclean-paper/logs/rc_auto_skipqc_v2_%j.err
+#SBATCH --chdir=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}
+#SBATCH --output=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/rc_auto_skipqc_v2_%j.out
+#SBATCH --error=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/rc_auto_skipqc_v2_%j.err
 
 set -euo pipefail
 
 # Tools: RustyClean, Hostile, fastp, bowtie2, samtools, kraken2, seqtk
-export PATH="/lustre1/g/aos_shihuang/rustyclean/target/release:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:/home/shihuang/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:${PATH}"
+export PATH="/lustre1/g/aos_shihuang/rustyclean/target/release:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:$HOME/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
-OUTDIR="/scr/u/shihuang/rustyclean-paper/rc_auto_skipqc_hostile_v2"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
+OUTDIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/rc_auto_skipqc_hostile_v2"
 mkdir -p "${OUTDIR}"
 
 METRICS="${OUTDIR}/rc_auto_skipqc_hostile_metrics.csv"

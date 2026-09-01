@@ -9,17 +9,17 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --chdir=/scr/u/shihuang/rustyclean-paper
-#SBATCH --output=/scr/u/shihuang/rustyclean-paper/logs/rc_auto_vs_kneaddata_%j.out
-#SBATCH --error=/scr/u/shihuang/rustyclean-paper/logs/rc_auto_vs_kneaddata_%j.err
+#SBATCH --chdir=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}
+#SBATCH --output=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/rc_auto_vs_kneaddata_%j.out
+#SBATCH --error=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/rc_auto_vs_kneaddata_%j.err
 
 set -euo pipefail
 
 # Tool paths
 export PATH="/lustre1/g/aos_shihuang/rustyclean/target/release:/group/aos_shihuang/conda/envs/kneaddata/bin:/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
-OUTDIR="/scr/u/shihuang/rustyclean-paper/auto_vs_kneaddata"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
+OUTDIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/auto_vs_kneaddata"
 mkdir -p "${OUTDIR}"
 
 METRICS="${OUTDIR}/auto_vs_kneaddata_metrics.csv"

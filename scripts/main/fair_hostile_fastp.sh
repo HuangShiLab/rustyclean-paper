@@ -9,17 +9,17 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --chdir=/scr/u/shihuang/rustyclean-paper
-#SBATCH --output=/scr/u/shihuang/rustyclean-paper/logs/fair_hostile_fastp_%j.out
-#SBATCH --error=/scr/u/shihuang/rustyclean-paper/logs/fair_hostile_fastp_%j.err
+#SBATCH --chdir=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}
+#SBATCH --output=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/fair_hostile_fastp_%j.out
+#SBATCH --error=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/logs/fair_hostile_fastp_%j.err
 
 set -euo pipefail
 
 # Avoid conda activate to prevent writes to /home/shihuang
-export PATH="/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:/home/shihuang/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/fastp/bin:${PATH}"
+export PATH="/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:$HOME/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/fastp/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
-OUTDIR="/scr/u/shihuang/rustyclean-paper/fair_hostile_fastp"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
+OUTDIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/fair_hostile_fastp"
 mkdir -p "${OUTDIR}"
 
 METRICS="${OUTDIR}/hostile_fastp_metrics.csv"

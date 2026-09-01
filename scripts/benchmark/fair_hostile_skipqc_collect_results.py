@@ -8,7 +8,7 @@ This script walks the output directory, reads each tool's GNU time log,
 finds the cleaned FASTQ, and writes a clean CSV.
 
 Usage:
-    python collect_results.py /scr/u/shihuang/rustyclean-paper/rc_auto_skipqc_hostile_v2 results.csv
+    python collect_results.py $SCRATCH_DIR/rc_auto_skipqc_hostile_v2 results.csv
 """
 
 import re

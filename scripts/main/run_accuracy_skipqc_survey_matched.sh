@@ -6,15 +6,15 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/home/shihuang/rc_acc_skipqc_survey_matched_%j.out
-#SBATCH --error=/home/shihuang/rc_acc_skipqc_survey_matched_%j.err
+#SBATCH --output=/home/%u/rc_acc_skipqc_survey_matched_%j.out
+#SBATCH --error=/home/%u/rc_acc_skipqc_survey_matched_%j.err
 
 set -e
 
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/rustyclean-benchmark/bin:${PATH}"
 
-DATA_DIR="/scr/u/shihuang/rustyclean-paper/data/enhanced"
+DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/rustyclean_auto_skipqc_survey_matched"
 OUTPUT_DIR="${RESULTS_DIR}/analysis"
 SCRIPT="/lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/main/analyze_accuracy_skipqc_matched.py"
