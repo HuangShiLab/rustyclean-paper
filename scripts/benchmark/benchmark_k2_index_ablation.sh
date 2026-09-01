@@ -45,7 +45,7 @@ METRICS=$PROJECT/metrics/performance_k2_mixed.csv
 # --- the only variable under test -------------------------------------------
 KRAKEN_DB_SRC="${KRAKEN2_DB_MIXED:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16}"
 # --- held identical to the kraken16 arm -------------------------------------
-HOST_INDEX="${BOWTIE2_INDEX:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla}"
+HOST_INDEX="${BOWTIE2_INDEX:?BOWTIE2_INDEX is not set; source scripts/hpc/config.sh}"
 THREADS=8
 REPS=3
 
@@ -79,6 +79,7 @@ trap cleanup_db EXIT
 DATASETS=(
     "30M_50pct_high_skewed_SE"
     "60M_90pct_high_lognormal_SE"
+    "60M_99pct_med_lognormal_SE"
     "100M_50pct_high_lognormal_SE"
     "100M_90pct_high_lognormal_SE"
 )

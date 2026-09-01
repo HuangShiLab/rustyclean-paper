@@ -26,13 +26,17 @@ echo "dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estim
 
 DATASETS=(
     "5M_1pct_low_even_SE"
+    "5M_5pct_low_even_SE"
     "10M_10pct_med_even_SE"
     "30M_50pct_high_skewed_SE"
+    "30M_70pct_med_lognormal_SE"
+    "30M_90pct_med_lognormal_SE"
     "60M_90pct_high_lognormal_SE"
+    "60M_99pct_med_lognormal_SE"
 )
 
 KRAKEN2_DB="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only}"
-HOST_INDEX="${BOWTIE2_INDEX:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla}"
+HOST_INDEX="${BOWTIE2_INDEX:?BOWTIE2_INDEX is not set; source scripts/hpc/config.sh}"
 THREADS=8
 
 parse_time_log() {

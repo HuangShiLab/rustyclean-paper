@@ -45,13 +45,15 @@ scratch. Scratch holds the simulated reads and the run outputs:
 
 | | gzipped input | notes |
 |---|---|---|
-| all 19 datasets | ~65 GB | plus ~150–200 GB of outputs |
+| all 18 datasets | ~62 GB | plus ~150–200 GB of outputs |
 | without the two 100M datasets | ~43 GB | loses the largest scalability point |
 | without 100M and 60M | ~30 GB | loses the high-host extreme, where the routing rule matters most |
 
 To trim, comment the unwanted lines out of the `DATASETS` array in
-`scripts/main/generate_enhanced_data.sh` and the matching arrays in the
-benchmark scripts. Dropping the 100M datasets is the cheapest cut that keeps the
+`scripts/hpc/generate_data_slurm.sh` and the matching arrays in the benchmark
+scripts. Keep the two in step: a dataset generated but absent from every
+benchmark array costs simulation time and is never measured, and one named in a
+benchmark but not generated fails that run. Dropping the 100M datasets is the cheapest cut that keeps the
 argument intact, since 60M/90% already covers the high-host regime.
 
 The other lever is to clean as you go: each stage's outputs are only needed by
@@ -135,9 +137,16 @@ Both are T2T-based, so all three tools are compared on the same assembly.
 
 ## Stage 2 — simulated datasets
 
-`hpc/generate_data_sequential_slurm.sh` — 19 datasets, 600 M read records,
-~65 GB gzipped, with per-read ground-truth labels. This is the longest
-unmeasured step; budget 15–25 h.
+`hpc/generate_data_slurm.sh` — 18 datasets, 540 M read records, ~62 GB gzipped,
+with per-read ground-truth labels, as a `--array=1-18%6` job. This is the
+longest unmeasured step; budget 15–25 h. (`generate_data_sequential_slurm.sh` is
+the v1 single-job version and is not used by the driver.)
+
+All 18 are measured: the main comparison arms (`run_benchmark.sh`,
+`fair_hostile_skipqc_run_benchmark.sh`, `benchmark_backend_runtime.sh`) cover
+eight spanning depth and host fraction, the recheck and ablation arms add the
+100M scalability points and 60M/99% host, and the remaining datasets are covered
+by the decision-boundary and paired-end panels.
 
 **Host reads are simulated from GRCh38 while depletion runs against T2T.** Keep
 it that way. Simulating from the depletion reference would make host removal a

@@ -23,7 +23,7 @@ DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
 OUT=$PROJECT/results
 METRICS=$PROJECT/metrics/performance_bowtie2_recheck.csv
 KRAKEN_DB_SRC="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only}"
-HOST_INDEX="${BOWTIE2_INDEX:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/bowtie2/t2t_hla}"
+HOST_INDEX="${BOWTIE2_INDEX:?BOWTIE2_INDEX is not set; source scripts/hpc/config.sh}"
 
 mkdir -p "$OUT"
 mkdir -p "$(dirname "$METRICS")"
@@ -51,6 +51,7 @@ trap cleanup_db EXIT
 DATASETS=(
     "30M_50pct_high_skewed_SE"
     "60M_90pct_high_lognormal_SE"
+    "60M_99pct_med_lognormal_SE"
     "100M_50pct_high_lognormal_SE"
     "100M_90pct_high_lognormal_SE"
 )

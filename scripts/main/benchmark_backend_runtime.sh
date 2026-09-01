@@ -29,9 +29,13 @@ CF_INDEX="/lustre1/g/aos_shihuang/databases/centrifuge/host_indexes/human_t2t_hl
 
 DATASETS=(
     "5M_1pct_low_even_SE"
+    "5M_5pct_low_even_SE"
     "10M_10pct_med_even_SE"
     "30M_50pct_high_skewed_SE"
+    "30M_70pct_med_lognormal_SE"
+    "30M_90pct_med_lognormal_SE"
     "60M_90pct_high_lognormal_SE"
+    "60M_99pct_med_lognormal_SE"
 )
 
 MODES=("bowtie2" "kraken2" "minimap2" "centrifuge")
