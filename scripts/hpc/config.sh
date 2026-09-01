@@ -44,9 +44,11 @@ export DB_ROOT="${DB_ROOT:-/lustre1/g/aos_shihuang/databases}"
 # T2T is the depletion reference. GRCh38 is the genome host reads are SIMULATED
 # from; keeping the two different is deliberate, so that host removal has real
 # assembly divergence to detect rather than matching the reads it came from.
-export T2T_FASTA="${T2T_FASTA:-$DB_ROOT/fast2bM/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz}"
+export T2T_FASTA="${T2T_FASTA:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16/genomes/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz}"
 export HLA_FASTA="${HLA_FASTA:-$DB_ROOT/rustyclean_human_t2t_only/hla/ipd_imgt_hla.fna}"
-export HUMAN_GENOME="${HUMAN_GENOME:-$PROJECT_DIR/databases/GRCh38.fa.gz}"
+# Versioned RefSeq GRCh38.p14, so the Methods can state exactly what host
+# reads were simulated from.
+export HUMAN_GENOME="${HUMAN_GENOME:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16/genomes/GCF_000001405.40_GRCh38.p14_genomic.fna.gz}"
 export GENOME_DIR="${GENOME_DIR:-$PROJECT_DIR/genomes}"
 
 # --- Indexes built by scripts/main/build_*.sh -------------------------------
@@ -60,10 +62,10 @@ export KRAKEN2_DB_T2T_HLA="${KRAKEN2_DB_T2T_HLA:-$DB_T2T/kraken2/t2t_hla}"
 # With a mixed library Kraken2 can assign a host read to an ancestor of
 # Homo sapiens, which host detection must account for.
 export KRAKEN2_DB_MIXED="${KRAKEN2_DB_MIXED:-$DB_ROOT/kraken2/kraken16}"
-export BOWTIE2_INDEX="${BOWTIE2_INDEX:-$DB_T2T/bowtie2/t2t_hla}"
-export MINIMAP2_INDEX="${MINIMAP2_INDEX:-$DB_T2T/minimap2/t2t_hla.mmi}"
+export BOWTIE2_INDEX="${BOWTIE2_INDEX:-$DB_T2T/bowtie2/t2t_only}"
+export MINIMAP2_INDEX="${MINIMAP2_INDEX:-$DB_T2T/minimap2/t2t_only.mmi}"
 export SYLPH_DB="${SYLPH_DB:-$DB_T2T/sylph/t2t.syldb}"
-export CENTRIFUGE_INDEX="${CENTRIFUGE_INDEX:-$DB_T2T/centrifuge/t2t_hla}"
+export CENTRIFUGE_INDEX="${CENTRIFUGE_INDEX:-$DB_T2T/centrifuge/t2t_only}"
 
 # --- Comparator defaults (their own, unmodified) ----------------------------
 # KneadData Homo_sapiens_hg39_T2T_Bowtie2_v0.1 (GCF_009914755.1, no HLA).
@@ -118,8 +120,12 @@ activate_conda() {
         CONDA_PREFIX="$PROJECT_DIR/.conda_envs/$CONDA_ENV"
         if [ -d "$CONDA_PREFIX" ]; then
             conda activate "$CONDA_PREFIX"
-        else
+        elif conda env list 2>/dev/null | grep -q "^$CONDA_ENV[[:space:]]"; then
             conda activate "$CONDA_ENV"
+        else
+            echo "WARNING: conda env '$CONDA_ENV' not found; continuing with the" >&2
+            echo "         current environment. Tool paths are set explicitly by" >&2
+            echo "         each script, so this is usually survivable." >&2
         fi
     fi
 }

@@ -44,11 +44,11 @@ export PATH="/group/aos_shihuang/conda/envs/minimap2/bin:/group/aos_shihuang/con
 
 # Combined human reference: T2T-CHM13v2.0 plus IPD-IMGT/HLA, matching the
 # Bowtie2 index and Hostile's human-t2t-hla.
-FASTA="${AUX_FASTA:-$DB_T2T/fasta/t2t_hla.fna}"
+FASTA="${AUX_FASTA:-$T2T_FASTA}"
 
 if [ ! -f "$FASTA" ]; then
     echo "ERROR: combined reference FASTA not found: $FASTA" >&2
-    echo "Build it first, e.g. with scripts/main/prepare_grch38_t2t_fasta.sh" >&2
+    echo "Set AUX_FASTA, or check T2T_FASTA in scripts/hpc/config.sh" >&2
     exit 1
 fi
 
@@ -56,7 +56,9 @@ echo "Job started at: $(date)"
 echo "Reference: $FASTA ($(du -h "$FASTA" | cut -f1))"
 
 # --- minimap2 ---------------------------------------------------------------
-if [ -f "$MINIMAP2_INDEX" ]; then
+if ! command -v minimap2 >/dev/null 2>&1; then
+    echo "[1/3] minimap2 not available, skipping the minimap2 index"
+elif [ -f "$MINIMAP2_INDEX" ]; then
     echo "[1/3] minimap2 index already present, skipping: $MINIMAP2_INDEX"
 else
     echo "[1/3] Building minimap2 index (short-read preset)..."
@@ -77,7 +79,9 @@ else
 fi
 
 # --- centrifuge -------------------------------------------------------------
-if [ -f "${CENTRIFUGE_INDEX}.1.cf" ]; then
+if ! command -v centrifuge-build >/dev/null 2>&1; then
+    echo "[3/3] centrifuge-build not available, skipping the centrifuge index"
+elif [ -f "${CENTRIFUGE_INDEX}.1.cf" ]; then
     echo "[3/3] centrifuge index already present, skipping: $CENTRIFUGE_INDEX"
 else
     echo "[3/3] Building centrifuge index..."

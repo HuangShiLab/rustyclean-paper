@@ -67,10 +67,9 @@ echo >&2
 
 # --- Stage 1: references and indexes ----------------------------------------
 echo "Stage 1 — references and indexes" >&2
-J_FASTA=$(submit 1 "prepare T2T + HLA FASTA"        scripts/main/prepare_grch38_t2t_fasta.sh)
-J_K2=$(submit   1 "Kraken2 human-only index"        scripts/main/build_kraken2_t2t_only.sh "$J_FASTA")
-J_BT2=$(submit  1 "Bowtie2 T2T+HLA index"           scripts/main/build_bowtie2_grch38_t2t_v2.sh "$J_FASTA")
-J_AUX=$(submit  1 "minimap2 / sylph / centrifuge"   scripts/main/build_aux_indexes.sh "$J_FASTA")
+J_K2=$(submit   1 "Kraken2 human-only index"        scripts/main/build_kraken2_t2t_only.sh)
+J_BT2=$(submit  1 "Bowtie2 T2T-only index"          scripts/main/build_bowtie2_t2t_only.sh)
+J_AUX=$(submit  1 "minimap2 / sylph / centrifuge"   scripts/main/build_aux_indexes.sh)
 echo >&2
 
 # --- Stage 2: simulated data -------------------------------------------------
