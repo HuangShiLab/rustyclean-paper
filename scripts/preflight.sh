@@ -122,6 +122,24 @@ have "samtools"       samtools         required "alignment output handling"
 have "seqtk"          seqtk            required "auto-mode subsampling"
 have "InSilicoSeq"    iss              required "stage 2 read simulation (the driver uses ISS)"
 have "art_illumina"   art_illumina     optional "only for the alternative ART generator"
+
+# Stage 2 refuses to run unseeded, and an invalid model name fails all 18 array
+# tasks at once. Both are one --help call away, so check rather than discover it
+# after the jobs are queued.
+if command -v iss >/dev/null 2>&1; then
+    _iss_help=$(iss generate --help 2>&1 || true)
+    if printf '%s' "$_iss_help" | grep -q -- '--seed'; then
+        ok "ISS supports --seed (simulation is reproducible)"
+    else
+        bad "ISS has no --seed" "stage 2 will refuse to run; ISS_ALLOW_UNSEEDED=1 overrides"
+    fi
+    if printf '%s' "$_iss_help" | grep -q -- "${ISS_MODEL:-novaseq}"; then
+        ok "ISS model '${ISS_MODEL:-novaseq}' is available (151 bp reads)"
+    else
+        bad "ISS model '${ISS_MODEL:-novaseq}' not offered by this build" \
+            "set ISS_MODEL in scripts/hpc/config.sh to one it lists"
+    fi
+fi
 have "python3"        python3          required "accuracy and analysis"
 have "KneadData"      kneaddata        required "comparator"
 have "Hostile"        hostile          required "comparator"
