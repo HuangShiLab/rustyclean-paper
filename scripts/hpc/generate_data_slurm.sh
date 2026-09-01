@@ -130,26 +130,41 @@ case "$COMPLEXITY" in
 esac
 
 # Use a deterministic subset of available genomes to avoid unrealistic replication
-if [ -d "$GENOME_DIR/genomes_fasta" ]; then
-    mapfile -t all_genomes < <(ls "$GENOME_DIR"/genomes_fasta/*.fasta 2>/dev/null || true)
-    n_avail=${#all_genomes[@]}
-
-    if [ "$n_avail" -eq 0 ]; then
-        echo "ERROR: No microbial genomes found in $GENOME_DIR/genomes_fasta" >&2
-        exit 1
-    fi
-
-    # If not enough real genomes, sample with replacement deterministically
-    > "$MICROBIAL_FA"
-    for i in $(seq 0 $((n_species - 1))); do
-        idx=$((i % n_avail))
-        cat "${all_genomes[$idx]}" >> "$MICROBIAL_FA"
-    done
-    echo "  Prepared $n_species microbial genomes (from $n_avail available)."
-else
-    echo "ERROR: Microbial genome directory not found: $GENOME_DIR/genomes_fasta" >&2
+# MICROBIAL_GENOME_DIR may hold .fasta, .fa or .fna, plain or gzipped, so that an
+# existing genome collection can be used without renaming anything.
+MICROBE_SRC="${MICROBIAL_GENOME_DIR:-$GENOME_DIR/genomes_fasta}"
+if [ ! -d "$MICROBE_SRC" ]; then
+    echo "ERROR: Microbial genome directory not found: $MICROBE_SRC" >&2
+    echo "       Set MICROBIAL_GENOME_DIR (or GENOME_DIR) to a directory of genome FASTAs." >&2
     exit 1
 fi
+
+mapfile -t all_genomes < <(find "$MICROBE_SRC" -maxdepth 1 \
+    \( -name '*.fasta' -o -name '*.fa' -o -name '*.fna' \
+       -o -name '*.fasta.gz' -o -name '*.fa.gz' -o -name '*.fna.gz' \) | sort)
+n_avail=${#all_genomes[@]}
+if [ "$n_avail" -eq 0 ]; then
+    echo "ERROR: No microbial genomes found in $MICROBE_SRC" >&2
+    exit 1
+fi
+
+# Reusing genomes to reach the species target puts identical sequence in the
+# community more than once, which is not a realistic metagenome. Say so loudly.
+if [ "$n_avail" -lt "$n_species" ]; then
+    echo "WARNING: only $n_avail genomes available for a $n_species-species community;" >&2
+    echo "         genomes will be reused, so the community contains duplicates." >&2
+fi
+
+> "$MICROBIAL_FA"
+for i in $(seq 0 $((n_species - 1))); do
+    idx=$((i % n_avail))
+    g="${all_genomes[$idx]}"
+    case "$g" in
+        *.gz) zcat "$g" >> "$MICROBIAL_FA" ;;
+        *)    cat  "$g" >> "$MICROBIAL_FA" ;;
+    esac
+done
+echo "  Prepared $n_species microbial genomes (from $n_avail available)."
 
 # ---------------------------------------------------------------------------
 # Generate abundance profile

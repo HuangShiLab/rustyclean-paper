@@ -63,6 +63,11 @@ export AUX_FASTA="${AUX_FASTA:-$T2T_FASTA}"
 # reads were simulated from.
 export HUMAN_GENOME="${HUMAN_GENOME:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16/genomes/GCF_000001405.40_GRCh38.p14_genomic.fna.gz}"
 export GENOME_DIR="${GENOME_DIR:-$PROJECT_DIR/genomes}"
+# Directory of microbial genome FASTAs the simulated communities are drawn from.
+# Accepts .fasta/.fa/.fna, gzipped or not. Needs at least 100 genomes for the
+# high-complexity datasets, or genomes get reused and the community contains
+# duplicate sequence.
+export MICROBIAL_GENOME_DIR="${MICROBIAL_GENOME_DIR:-$GENOME_DIR/genomes_fasta}"
 
 # --- Indexes built by scripts/main/build_*.sh -------------------------------
 export DB_T2T="${DB_T2T:-$DB_ROOT/rustyclean_human_t2t_only}"

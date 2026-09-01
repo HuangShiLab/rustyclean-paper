@@ -158,6 +158,26 @@ if [ -f "$HUMAN_GENOME" ]; then ok "GRCh38 (host reads are SIMULATED from this)"
     suggest "GRCh38 (RefSeq naming)" "GCF_000001405*genomic.fna*" "$DB_ROOT" /lustre1/g/aos_shihuang
 fi
 need_dir  "NCBI taxonomy for kraken2-build" "/lustre1/g/aos_shihuang/tools/kraken2-standard-db/kraken_database/taxonomy"
+
+# The simulated communities are drawn from this collection; without it every
+# stage-2 array task fails immediately.
+_mg="${MICROBIAL_GENOME_DIR:-$GENOME_DIR/genomes_fasta}"
+if [ -d "$_mg" ]; then
+    _n=$(find "$_mg" -maxdepth 1 \( -name '*.fasta' -o -name '*.fa' -o -name '*.fna' \
+            -o -name '*.fasta.gz' -o -name '*.fa.gz' -o -name '*.fna.gz' \) 2>/dev/null | wc -l)
+    if   [ "$_n" -ge 100 ]; then ok "microbial genomes ($_n found)"
+    elif [ "$_n" -gt 0 ];   then warn "microbial genomes: only $_n" "high-complexity sets need 100; fewer means genomes are reused and the community contains duplicates"
+    else bad "microbial genomes: directory is empty" "$_mg"
+    fi
+else
+    bad "microbial genome collection" "$_mg"
+    note "stage 2 cannot build any community without it; set MICROBIAL_GENOME_DIR"
+    for _c in "$DB_ROOT"/GTDB/*/[Gg]*reference_genome "$DB_ROOT"/kraken2/*/genomes "$DB_ROOT"/genomes; do
+        [ -d "$_c" ] || continue
+        _cn=$(find "$_c" -maxdepth 1 \( -name '*.fna*' -o -name '*.fa*' \) 2>/dev/null | wc -l)
+        [ "$_cn" -gt 10 ] && printf "         candidate: %-64s (%s genomes)\n" "$_c" "$_cn"
+    done
+fi
 echo
 
 echo "[5] Indexes  (stage 1 BUILDS these; present = will be reused/overwritten)"
