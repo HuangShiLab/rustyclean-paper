@@ -22,14 +22,15 @@ Two settings control it, both in `scripts/hpc/config.sh` or the environment:
 
 | | default | holds |
 |---|---|---|
-| `SCRATCH_DIR` | `/scr/u/$USER/rustyclean-paper` | simulated reads (~65 GB) |
+| `SCRATCH_DIR` | `$PROJECT_DIR/scratch` | simulated reads (~65 GB) |
 | `RUNS_DIR` | `$PROJECT_DIR/runs` | per-experiment outputs (~200 GB) |
 
-If the user scratch is too small, put both on the project filesystem:
+Both default to the project filesystem, which on this cluster has several TB
+spare against the ~265 GB a full panel needs. To use a different filesystem:
 
 ```bash
-export SCRATCH_DIR=/lustre1/g/aos_shihuang/rustyclean-paper/scratch
-export RUNS_DIR=/lustre1/g/aos_shihuang/rustyclean-paper/runs
+export SCRATCH_DIR=/somewhere/with/room/scratch
+export RUNS_DIR=/somewhere/with/room/runs
 bash scripts/preflight.sh      # re-checks space at whichever paths are set
 ```
 

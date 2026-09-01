@@ -12,9 +12,11 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 export PROJECT_DIR="${PROJECT_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper}"
 
-# Runtime outputs go to the submitting user's scratch because the project
-# directory on /lustre1 is near the user quota limit.
-export SCRATCH_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}"
+# Simulated reads and run outputs both live on the project filesystem. The user
+# scratch on this cluster is 500 GB with ~154 GB free, which is short of the
+# ~265 GB a full panel needs; the lustre group quota has several TB spare.
+# Override either variable to move the trees elsewhere.
+export SCRATCH_DIR="${SCRATCH_DIR:-$PROJECT_DIR/scratch}"
 export DATA_DIR="${DATA_DIR:-$SCRATCH_DIR/data/enhanced}"
 export RESULTS_DIR="${RESULTS_DIR:-$SCRATCH_DIR/results}"
 export ANALYSIS_DIR="${ANALYSIS_DIR:-$SCRATCH_DIR/analysis}"
