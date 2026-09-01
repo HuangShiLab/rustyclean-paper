@@ -98,6 +98,15 @@ unmeasured step; budget 15–25 h.
 it that way. Simulating from the depletion reference would make host removal a
 self-match and the benchmark would measure nothing.
 
+**Simulator: `art_illumina`**, HiSeq 2500 error model (`-ss HS25`), 150 bp, with
+a fixed seed per dataset; paired-end sets use a 300 bp fragment mean and 30 bp
+s.d. The repository also contains an InSilicoSeq generator
+(`main/generate_enhanced_data.sh`), which is too slow at these read counts and is
+not used by the driver. Pick one and stay with it: reads from the two carry
+different error models, so results generated with one are not comparable with the
+other. This rerun is internally consistent on ART, and is therefore **not**
+directly comparable with the archived v1 numbers.
+
 ## Stage 3 — main comparisons
 
 | Script | Compares |

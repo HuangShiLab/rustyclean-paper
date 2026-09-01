@@ -90,9 +90,14 @@ export HOSTILE_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}
 export KRAKEN2_DB="${KRAKEN2_DB:-$KRAKEN2_DB_T2T_ONLY}"
 
 # --- Simulation parameters --------------------------------------------------
-export ISS_MODEL="${ISS_MODEL:-miseq}"
+# The driver simulates with art_illumina; the InSilicoSeq generator is kept for
+# reference but is too slow at these read counts. Do not mix the two: their error
+# models differ, so datasets from one are not comparable with the other.
+export ART_MODEL="${ART_MODEL:-HS25}"
 export READ_LENGTH="${READ_LENGTH:-150}"
-export ISS_SEED="${ISS_SEED:-42}"
+export SIM_SEED="${SIM_SEED:-42}"
+export PE_FRAG_MEAN="${PE_FRAG_MEAN:-300}"
+export PE_FRAG_SD="${PE_FRAG_SD:-30}"
 
 # ---------------------------------------------------------------------------
 # Compute settings

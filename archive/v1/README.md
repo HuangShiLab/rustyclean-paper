@@ -64,7 +64,13 @@ Each of these is fixed in the rerun; see "Carry these fixes into the rerun" in
    RustyClean does not perform, so part of the runtime difference is work not
    done rather than work done faster.
 
-7. **Narrow panel.** Four to six datasets, all single-end, host fractions
+7. **The Methods names the wrong simulator.** The draft states InSilicoSeq
+   v2.0.0, but the generator the SLURM driver runs is `art_illumina`, and its
+   own header says it exists because InSilicoSeq "is too slow for hundreds of
+   millions of reads". Whichever produced these results, the manuscript and the
+   code disagree, and the claim needs checking before it is published.
+
+8. **Narrow panel.** Four to six datasets, all single-end, host fractions
    clustered at the extremes, nothing between 10% and 30% where the routing rule
    actually decides, and no real cohort.
 
