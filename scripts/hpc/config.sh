@@ -120,6 +120,11 @@ fi
 # Helper: activate conda environment
 # ---------------------------------------------------------------------------
 activate_conda() {
+    # Environments created under the project take precedence, so tools missing
+    # from the shared install can be added without write access to /group.
+    for _e in "$PROJECT_DIR"/.conda_envs/*/bin; do
+        [ -d "$_e" ] && export PATH="$_e:$PATH"
+    done
     if [ -f "$CONDA_BASE/etc/profile.d/conda.sh" ]; then
         source "$CONDA_BASE/etc/profile.d/conda.sh"
     else

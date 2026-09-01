@@ -72,19 +72,62 @@ if [ -x "$RUSTYCLEAN" ]; then
 fi
 echo
 
-echo "[3] Conda and tools"
+echo "[3] Tools on PATH"
 need_file "conda profile"           "$CONDA_BASE/etc/profile.d/conda.sh"
-if [ -d "$REPO_DIR/.conda_envs/rustyclean-benchmark" ]; then ok "benchmark env"; else
-    bad "benchmark env (scripts conda-activate it)" "$REPO_DIR/.conda_envs/rustyclean-benchmark"
-    for c in "$CONDA_BASE/envs/rustyclean-benchmark" "$HOME/.conda/envs/rustyclean-benchmark"; do
-        [ -d "$c" ] && printf "       found instead: %s\n" "$c"
-    done
-fi
-for t in fastp bowtie2 kraken2 minimap2 sylph centrifuge seqtk kneaddata; do
-    opt_dir "conda env: $t"         "$CONDA_BASE/envs/$t/bin"
+
+# Mirror the PATH the job scripts build, plus any env created under the project.
+for _e in "$CONDA_BASE"/envs/*/bin "$PROJECT_DIR"/.conda_envs/*/bin; do
+    [ -d "$_e" ] && PATH="$_e:$PATH"
 done
-opt_dir   "samtools"                "/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21"
-command -v hostile >/dev/null 2>&1 && ok "hostile on PATH" || warn "hostile not on PATH" "needed by stage 3"
+export PATH
+
+MISSING_PKGS=""
+# executable -> conda package, since several differ (art_illumina is "art",
+# and the *-build tools ship with their parent package)
+pkg_for() {
+    case "$1" in
+        art_illumina)              echo art ;;
+        kraken2|kraken2-build)     echo kraken2 ;;
+        bowtie2|bowtie2-build)     echo bowtie2 ;;
+        centrifuge|centrifuge-build) echo centrifuge ;;
+        python3)                   echo python ;;
+        *)                         echo "$1" ;;
+    esac
+}
+have() {  # have <label> <exe> <required|optional> [why]
+    if command -v "$2" >/dev/null 2>&1; then ok "$1 ($(command -v "$2"))"; return; fi
+    if [ "$3" = "required" ]; then bad "$1" "$2 not on PATH${4:+ — $4}"
+    else warn "$1" "$2 not on PATH${4:+ — $4}"; fi
+    local pkg; pkg=$(pkg_for "$2")
+    case " $MISSING_PKGS " in *" $pkg "*) ;; *) MISSING_PKGS="$MISSING_PKGS $pkg" ;; esac
+}
+have "fastp"          fastp            required "quality control"
+have "kraken2"        kraken2          required "classification path"
+have "kraken2-build"  kraken2-build    required "stage 1 index build"
+have "bowtie2"        bowtie2          required "alignment path and the survey"
+have "bowtie2-build"  bowtie2-build    required "stage 1 index build"
+have "samtools"       samtools         required "alignment output handling"
+have "seqtk"          seqtk            required "auto-mode subsampling"
+have "art_illumina"   art_illumina     required "stage 2 read simulation"
+have "python3"        python3          required "accuracy and analysis"
+have "KneadData"      kneaddata        required "comparator"
+have "Hostile"        hostile          required "comparator"
+have "minimap2"       minimap2         optional "minimap2 backend only"
+have "sylph"          sylph            optional "sylph backend only"
+have "centrifuge"     centrifuge       optional "centrifuge backend only"
+have "centrifuge-build" centrifuge-build optional "centrifuge index build only"
+
+if [ -n "$MISSING_PKGS" ]; then
+    echo
+    note "install what is missing into an environment on a filesystem with room:"
+    echo
+    echo "         conda create -p $PROJECT_DIR/.conda_envs/rustyclean-benchmark \\"
+    echo "             -c conda-forge -c bioconda -y$MISSING_PKGS"
+    echo
+    note "do NOT install into the base env: /group is at 100% of its quota,"
+    note "which is why 'mamba install' fails with Permission denied."
+    note "activate_conda puts \$PROJECT_DIR/.conda_envs/*/bin on PATH automatically."
+fi
 echo
 
 echo "[4] Reference FASTAs  (inputs to stage 1)"
