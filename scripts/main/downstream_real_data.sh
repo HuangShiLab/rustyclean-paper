@@ -15,7 +15,7 @@ set -e
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/megahit/bin:/group/aos_shihuang/conda/envs/bracken/bin:/group/aos_shihuang/conda/envs/kraken2/bin:${PATH}"
 
-RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/real_data_results"
+RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/real_data_results"
 DOWNSTREAM_DIR="${RESULTS_DIR}/downstream"
 KRAKEN2_DB="/lustre1/g/aos_shihuang/databases/kraken2/kraken16"
 BRACKEN_DB="/lustre1/g/aos_shihuang/databases/kraken2/kraken16"

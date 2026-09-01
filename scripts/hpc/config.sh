@@ -18,6 +18,12 @@ export SCRATCH_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}"
 export DATA_DIR="${DATA_DIR:-$SCRATCH_DIR/data/enhanced}"
 export RESULTS_DIR="${RESULTS_DIR:-$SCRATCH_DIR/results}"
 export ANALYSIS_DIR="${ANALYSIS_DIR:-$SCRATCH_DIR/analysis}"
+
+# Per-experiment run directories. Kept out of the repository tree by .gitignore
+# so that hundreds of GB of output never reach git status. Point RUNS_DIR at a
+# filesystem with room; the project directory is the fallback when the user
+# scratch is too small.
+export RUNS_DIR="${RUNS_DIR:-$PROJECT_DIR/runs}"
 export LOG_DIR="${LOG_DIR:-$SCRATCH_DIR/logs}"
 
 # ---------------------------------------------------------------------------

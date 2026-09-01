@@ -118,19 +118,31 @@ need_bt2  "KneadData hg39_T2T"      "$KNEADDATA_DB"
 opt_bt2   "Hostile human-t2t-hla"   "$HOSTILE_INDEX"
 echo
 
-echo "[7] Scratch and output space"
-need_dir  "scratch root"            "$SCRATCH_DIR"
-[ -w "$SCRATCH_DIR" ] && ok "scratch is writable" || bad "scratch NOT writable" "$SCRATCH_DIR"
-opt_dir   "simulated data (stage 2 creates)" "$DATA_DIR"
+echo "[7] Output locations and space"
+printf "       simulated reads -> %s\n" "$DATA_DIR"
+printf "       run outputs     -> %s\n" "$RUNS_DIR"
+for pair in "SCRATCH_DIR:$SCRATCH_DIR" "RUNS_DIR:$RUNS_DIR"; do
+    lbl="${pair%%:*}"; dir="${pair#*:}"
+    parent="$dir"; while [ ! -d "$parent" ] && [ "$parent" != "/" ]; do parent=$(dirname "$parent"); done
+    if [ -w "$parent" ]; then ok "$lbl writable ($parent)"; else bad "$lbl NOT writable" "$parent"; fi
+done
 need_dir  "SLURM log destination"   "$HOME"
 [ -w "$HOME" ] && ok "home is writable (SLURM logs go to /home/%u/)" || bad "home NOT writable" "$HOME"
-avail=$(df -Pk "$SCRATCH_DIR" 2>/dev/null | awk 'NR==2{print int($4/1048576)}')
-if [ -n "$avail" ]; then
-    if   [ "$avail" -ge 500 ]; then ok   "free space on scratch: ${avail} GB (need ~500)"
-    elif [ "$avail" -ge 200 ]; then warn "free space on scratch: ${avail} GB" "full panel needs ~500 GB; see RUN_ALL.md on trimming"
-    else                            bad  "free space on scratch: ${avail} GB" "need ~500 GB, or trim the panel (RUN_ALL.md)"
+
+# Space is what matters, wherever the two trees actually live.
+space_for() {
+    local lbl="$1" dir="$2" need="$3"
+    local parent="$dir"; while [ ! -d "$parent" ] && [ "$parent" != "/" ]; do parent=$(dirname "$parent"); done
+    local avail; avail=$(df -Pk "$parent" 2>/dev/null | awk 'NR==2{print int($4/1048576)}')
+    [ -z "$avail" ] && { warn "$lbl free space unknown" "$parent"; return; }
+    if   [ "$avail" -ge "$need" ]; then ok   "$lbl free: ${avail} GB on $(df -Pk "$parent" | awk 'NR==2{print $6}') (need ~${need})"
+    elif [ "$avail" -ge $((need/3)) ]; then warn "$lbl free: ${avail} GB" "need ~${need} GB; trim the panel or set the dir elsewhere"
+    else                                bad  "$lbl free: ${avail} GB" "need ~${need} GB; see RUN_ALL.md"
     fi
-fi
+}
+# reads ~65 GB, outputs ~200 GB; if both land on one filesystem df reports it once
+space_for "reads   " "$DATA_DIR" 80
+space_for "outputs " "$RUNS_DIR" 250
 echo
 
 echo "[8] Stage-6 accuracy scripts"

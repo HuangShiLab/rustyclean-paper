@@ -1,7 +1,7 @@
 #!/bin/bash
 # Reparse time.log files for bowtie2-recheck benchmark and regenerate performance CSV.
 
-PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/bowtie2_recheck_v2
+PROJECT="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/bowtie2_recheck_v2"
 OUT=$PROJECT/results
 METRICS=$PROJECT/metrics/performance_bowtie2_recheck.csv
 

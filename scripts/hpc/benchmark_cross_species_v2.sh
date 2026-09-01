@@ -22,7 +22,7 @@ export _JAVA_OPTIONS="-Xmx16g"
 # Configuration
 # ---------------------------------------------------------------------------
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/cross_species_v2"
-RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/results_cross_species_v2"
+RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/results_cross_species_v2"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"
 

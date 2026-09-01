@@ -17,7 +17,7 @@ source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:${PATH}"
 
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
-RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/results_rc_modes"
+RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/results_rc_modes"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"
 

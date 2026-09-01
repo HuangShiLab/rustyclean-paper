@@ -15,7 +15,7 @@ source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/rustyclean-benchmark/bin:${PATH}"
 
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
-RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/rustyclean_auto_skipqc_matched"
+RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/rustyclean_auto_skipqc_matched"
 OUTPUT_DIR="${RESULTS_DIR}/analysis"
 SCRIPT="/lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/main/analyze_accuracy_skipqc_matched.py"
 

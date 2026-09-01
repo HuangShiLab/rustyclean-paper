@@ -58,3 +58,11 @@ minimap2,
 *.out
 *.err
 logs/monitor_*.log
+
+# Run outputs. These are hundreds of GB and must never enter the repository.
+runs/
+data/*
+!data/.gitkeep
+figures/*
+!figures/.gitkeep
+.conda_envs/

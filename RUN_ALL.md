@@ -16,7 +16,28 @@ starts only after what it needs has succeeded. Every path comes from
 everything else), ~60–80 h of compute. Wall clock is far less because stages 3–5
 run in parallel.
 
-### If scratch is smaller than that
+### Where the output goes
+
+Two settings control it, both in `scripts/hpc/config.sh` or the environment:
+
+| | default | holds |
+|---|---|---|
+| `SCRATCH_DIR` | `/scr/u/$USER/rustyclean-paper` | simulated reads (~65 GB) |
+| `RUNS_DIR` | `$PROJECT_DIR/runs` | per-experiment outputs (~200 GB) |
+
+If the user scratch is too small, put both on the project filesystem:
+
+```bash
+export SCRATCH_DIR=/lustre1/g/aos_shihuang/rustyclean-paper/scratch
+export RUNS_DIR=/lustre1/g/aos_shihuang/rustyclean-paper/runs
+bash scripts/preflight.sh      # re-checks space at whichever paths are set
+```
+
+`runs/`, `data/` and `figures/` are gitignored, so output written under the
+project directory never reaches `git status`. Before this change 22 scripts wrote
+their results straight into the repository root.
+
+### If neither filesystem has room
 
 Indexes live under `$DB_ROOT` on the shared filesystem and do not consume
 scratch. Scratch holds the simulated reads and the run outputs:

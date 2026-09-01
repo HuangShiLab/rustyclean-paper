@@ -16,7 +16,7 @@ set -e
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 conda activate /lustre1/g/aos_shihuang/rustyclean-paper/.conda_envs/rustyclean-benchmark
 
-PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/k2_index_ablation
+PROJECT="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/k2_index_ablation"
 REPO=/lustre1/g/aos_shihuang/rustyclean-paper
 
 python "$REPO/scripts/benchmark/compute_accuracy_bowtie2_recheck_v2.py" \

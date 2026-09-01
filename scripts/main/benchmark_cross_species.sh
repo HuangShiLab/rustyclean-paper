@@ -16,7 +16,7 @@ source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:$HOME/.local/bin:${PATH}"
 
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/cross_species_v2"
-RESULTS_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/cross_species_results"
+RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/cross_species_results"
 METRICS_DIR="${RESULTS_DIR}/metrics"
 LOGS_DIR="${RESULTS_DIR}/logs"
 INDEX_DIR="/lustre1/g/aos_shihuang/rustyclean-paper/cross_species_indices"

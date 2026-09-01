@@ -18,7 +18,7 @@ conda activate /lustre1/g/aos_shihuang/rustyclean-paper/.conda_envs/rustyclean-b
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:${PATH}"
 
 RC=/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean
-PROJECT=/lustre1/g/aos_shihuang/rustyclean-paper/bowtie2_recheck_v2
+PROJECT="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/bowtie2_recheck_v2"
 DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
 OUT=$PROJECT/results
 METRICS=$PROJECT/metrics/performance_bowtie2_recheck.csv
