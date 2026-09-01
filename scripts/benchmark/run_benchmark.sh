@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=rc_auto_vs_kneaddata
+#SBATCH --array=0-7
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=yfz96@connect.hku.hk
 #SBATCH --partition=amd
@@ -14,6 +15,15 @@
 
 set -euo pipefail
 
+# Each dataset runs as its own SLURM array task, so they execute concurrently on
+# different nodes instead of one after another inside a single job. Metrics go
+# to a per-task file because concurrent appends to one CSV interleave; the
+# stage-6 collector merges them. Running this script directly, with no array,
+# processes the whole list and writes the unsuffixed file, as before.
+ARRAY_TAG=""
+[ -n "${SLURM_ARRAY_TASK_ID:-}" ] && ARRAY_TAG=".task${SLURM_ARRAY_TASK_ID}"
+
+
 # Tool paths
 export PATH="/lustre1/g/aos_shihuang/rustyclean/target/release:/group/aos_shihuang/conda/envs/kneaddata/bin:/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:${PATH}"
 
@@ -21,7 +31,7 @@ DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 OUTDIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/auto_vs_kneaddata"
 mkdir -p "${OUTDIR}"
 
-METRICS="${OUTDIR}/auto_vs_kneaddata_metrics.csv"
+METRICS="${OUTDIR}/auto_vs_kneaddata_metrics${ARRAY_TAG}.csv"
 echo "dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp" > "${METRICS}"
 
 DATASETS=(
@@ -34,6 +44,15 @@ DATASETS=(
     "60M_90pct_high_lognormal_SE"
     "60M_99pct_med_lognormal_SE"
 )
+
+if [ -n "${SLURM_ARRAY_TASK_ID:-}" ]; then
+    if [ "$SLURM_ARRAY_TASK_ID" -ge "${#DATASETS[@]}" ]; then
+        echo "array task $SLURM_ARRAY_TASK_ID is past the end of ${#DATASETS[@]} datasets; nothing to do"
+        exit 0
+    fi
+    DATASETS=( "${DATASETS[$SLURM_ARRAY_TASK_ID]}" )
+    echo "array task $SLURM_ARRAY_TASK_ID -> ${DATASETS[0]}"
+fi
 
 KRAKEN2_DB="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only}"
 HOST_INDEX="${BOWTIE2_INDEX:?BOWTIE2_INDEX is not set; source scripts/hpc/config.sh}"

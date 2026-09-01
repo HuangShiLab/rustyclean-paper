@@ -2,7 +2,7 @@
 #SBATCH --job-name=rustyclean_generate
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
-#SBATCH --array=1-18%6
+#SBATCH --array=1-18
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=4:00:00
@@ -247,12 +247,15 @@ echo "  Host reads: $HOST_READS, Microbial reads: $MICROBE_READS"
 # Without a seed the panel cannot be regenerated, so a reviewer could never
 # reproduce these datasets. Probe for the flag instead of assuming it: passing
 # an unsupported option would fail every array task at once.
-ISS_SEED_ARGS=""
-if "$ISS_BIN" generate --help 2>&1 | grep -q -- '--seed'; then
+if ! "$ISS_BIN" generate --help 2>&1 | grep -q -- '--seed'; then
+    echo "ERROR: this InSilicoSeq build does not support --seed." >&2
+    echo "       Refusing to generate 540 M reads that could never be regenerated." >&2
+    echo "       Install a newer InSilicoSeq, or set ISS_ALLOW_UNSEEDED=1 to override." >&2
+    [ "${ISS_ALLOW_UNSEEDED:-0}" = "1" ] || exit 1
+    ISS_SEED_ARGS=""
+else
     ISS_SEED_ARGS="--seed $(( ${SIM_SEED:-42} + ${SLURM_ARRAY_TASK_ID:-0} ))"
     echo "  ISS seed: ${ISS_SEED_ARGS#--seed }"
-else
-    echo "  WARNING: this InSilicoSeq build has no --seed; reads are NOT reproducible." >&2
 fi
 
 if [ "$MICROBE_READS" -gt 0 ]; then

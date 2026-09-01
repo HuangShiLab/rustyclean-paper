@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=t2t_pe_panel
+#SBATCH --array=0-2
 #SBATCH --partition=amd
 #SBATCH --qos=normal
 #SBATCH --nodes=1
@@ -12,12 +13,24 @@
 
 set -e
 
+# Each dataset runs as its own SLURM array task, so they execute concurrently on
+# different nodes instead of one after another inside a single job. Metrics go
+# to a per-task file because concurrent appends to one CSV interleave; the
+# stage-6 collector merges them. Running this script directly, with no array,
+# processes the whole list and writes the unsuffixed file, as before.
+ARRAY_TAG=""
+[ -n "${SLURM_ARRAY_TASK_ID:-}" ] && ARRAY_TAG=".task${SLURM_ARRAY_TASK_ID}"
+
+
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:$HOME/.local/bin:${PATH}"
 
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/t2t_only_pe_panel"
 METRICS_DIR="${RESULTS_DIR}/metrics"
+# Own file per experiment: these scripts run concurrently, and a shared
+# performance.csv interleaved their rows under a single header.
+METRICS_FILE="${METRICS_DIR}/performance_pe_panel${ARRAY_TAG}.csv"
 LOGS_DIR="${RESULTS_DIR}/logs"
 
 THREADS=8
@@ -32,14 +45,23 @@ DATASETS=(
     "20M_90pct_med_lognormal_PE"
 )
 
+if [ -n "${SLURM_ARRAY_TASK_ID:-}" ]; then
+    if [ "$SLURM_ARRAY_TASK_ID" -ge "${#DATASETS[@]}" ]; then
+        echo "array task $SLURM_ARRAY_TASK_ID is past the end of ${#DATASETS[@]} datasets; nothing to do"
+        exit 0
+    fi
+    DATASETS=( "${DATASETS[$SLURM_ARRAY_TASK_ID]}" )
+    echo "array task $SLURM_ARRAY_TASK_ID -> ${DATASETS[0]}"
+fi
+
 mkdir -p "${METRICS_DIR}" "${LOGS_DIR}"
 
 echo "Job started at: $(date)"
 echo "Host: $(hostname)"
 echo "Threads: ${THREADS}"
 
-if [ ! -f "${METRICS_DIR}/performance.csv" ]; then
-    echo "tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_DIR}/performance.csv"
+if [ ! -f "${METRICS_FILE}" ]; then
+    echo "tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_FILE}"
 fi
 
 parse_time() {
@@ -97,12 +119,12 @@ for DATASET in "${DATASETS[@]}"; do
                 --clean \
                 > "${logfile}" 2>&1 || {
             echo "  [RC rep ${REP}] FAILED on ${DATASET}" >&2
-            echo "rustyclean_t2t_only,${DATASET},${REP},FAILED,,$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+            echo "rustyclean_t2t_only,${DATASET},${REP},FAILED,,$(date -Iseconds)" >> "${METRICS_FILE}"
             continue
         }
 
         read runtime_sec max_mem < <(parse_time "${timefile}")
-        echo "rustyclean_t2t_only,${DATASET},${REP},${runtime_sec},${max_mem},$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+        echo "rustyclean_t2t_only,${DATASET},${REP},${runtime_sec},${max_mem},$(date -Iseconds)" >> "${METRICS_FILE}"
         echo "  [RC rep ${REP}] Done: runtime=${runtime_sec}s, max_mem=${max_mem}kB"
     done
 
@@ -119,10 +141,10 @@ for DATASET in "${DATASETS[@]}"; do
             --aligner bowtie2 --threads "${THREADS}" --force \
             > "${hl_log}" 2>&1 || {
         echo "  [Hostile] FAILED on ${DATASET}" >&2
-        echo "hostile,${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+        echo "hostile,${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_FILE}"
     }
     read hl_runtime hl_mem < <(parse_time "${hl_time}")
-    echo "hostile,${DATASET},1,${hl_runtime},${hl_mem},$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+    echo "hostile,${DATASET},1,${hl_runtime},${hl_mem},$(date -Iseconds)" >> "${METRICS_FILE}"
     echo "  [Hostile] Done: runtime=${hl_runtime}s, max_mem=${hl_mem}kB"
 
     # KneadData PE
@@ -139,10 +161,10 @@ for DATASET in "${DATASETS[@]}"; do
             --output "${KD_OUT}" --remove-intermediate-output \
             > "${kd_log}" 2>&1 || {
         echo "  [KneadData] FAILED on ${DATASET}" >&2
-        echo "kneaddata,${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+        echo "kneaddata,${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_FILE}"
     }
     read kd_runtime kd_mem < <(parse_time "${kd_time}")
-    echo "kneaddata,${DATASET},1,${kd_runtime},${kd_mem},$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+    echo "kneaddata,${DATASET},1,${kd_runtime},${kd_mem},$(date -Iseconds)" >> "${METRICS_FILE}"
     echo "  [KneadData] Done: runtime=${kd_runtime}s, max_mem=${kd_mem}kB"
 
 done

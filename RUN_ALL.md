@@ -64,6 +64,52 @@ the same time.
 
 ---
 
+## Parallelism
+
+Every benchmark runs as a SLURM job array with one task per dataset, so datasets
+execute concurrently across nodes instead of one after another inside a single
+job. Across the panel that is 74 array tasks rather than 9 serial jobs.
+
+| stage | job | tasks |
+|---|---|---|
+| 2 | `generate_data_slurm.sh` | 18 |
+| 3 | `run_benchmark.sh`, `fair_hostile_skipqc_run_benchmark.sh`, `benchmark_backend_runtime.sh` | 8 each |
+| 4 | `benchmark_baseline_kraken2_memmap.sh`, `benchmark_bowtie2_recheck_v2.sh`, `benchmark_k2_index_ablation.sh` | 5 each |
+| 5 | `benchmark_auto_decision_boundary.sh` / `benchmark_t2t_only_pe_panel.sh` | 6 / 3 |
+
+Stage 2 needs no index, so it is submitted without a dependency and runs
+alongside the stage-1 builds. Stages 3–5 are eight independent jobs that each
+wait only on stages 1 and 2, never on each other.
+
+Each task writes its own `<name>.taskN.csv`: concurrent appends to one CSV
+interleave rows, and before this change three stage-3/5 scripts shared a single
+`performance.csv` under three different header conventions. Run a script
+directly, outside an array, and it still processes its whole list and writes the
+unsuffixed file.
+
+## Runtime and peak memory
+
+Every tool invocation is wrapped in `/usr/bin/time -v`, and each benchmark
+records `runtime_seconds` and `max_memory_kb` per dataset. Stage 6 merges the
+per-task files and flattens every experiment into one table:
+
+    $RUNS_DIR/summary/resources.csv   one row per measurement
+    $RUNS_DIR/summary/sacct.txt       SLURM's own accounting
+
+The per-experiment CSVs do not share a schema — some call the tool column `tool`
+and others `mode` — so the collector normalises them rather than requiring eight
+scripts to agree. Runs recorded as `FAILED` are counted and kept in the CSV
+instead of being dropped from the summary.
+
+`sacct.txt` is a cross-check, not a duplicate: `/usr/bin/time` reports the peak
+RSS of the process it launched and the children it waited for, while `sacct`
+measures the whole cgroup. A large disagreement is worth understanding before a
+memory number is published.
+
+Run it by hand at any point to see partial results:
+
+    python3 scripts/main/collect_resources.py
+
 ## Logs
 
 Every job writes `<job-name>-<jobid>.out` / `.err` into `$LOG_DIR`, which

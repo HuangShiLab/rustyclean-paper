@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=rc_k2_index_ablation
+#SBATCH --array=0-4
 #SBATCH --partition=amd
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -30,6 +31,15 @@
 # =============================================================================
 
 set -e
+
+# Each dataset runs as its own SLURM array task, so they execute concurrently on
+# different nodes instead of one after another inside a single job. Metrics go
+# to a per-task file because concurrent appends to one CSV interleave; the
+# stage-6 collector merges them. Running this script directly, with no array,
+# processes the whole list and writes the unsuffixed file, as before.
+ARRAY_TAG=""
+[ -n "${SLURM_ARRAY_TASK_ID:-}" ] && ARRAY_TAG=".task${SLURM_ARRAY_TASK_ID}"
+
 source ~/.cargo/env 2>/dev/null || true
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 conda activate /lustre1/g/aos_shihuang/rustyclean-paper/.conda_envs/rustyclean-benchmark
@@ -40,7 +50,7 @@ RC=/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean
 PROJECT="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/k2_index_ablation"
 DATA=${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced
 OUT=$PROJECT/results
-METRICS=$PROJECT/metrics/performance_k2_mixed.csv
+METRICS=$PROJECT/metrics/performance_k2_mixed${ARRAY_TAG}.csv
 
 # --- the only variable under test -------------------------------------------
 KRAKEN_DB_SRC="${KRAKEN2_DB_MIXED:-/lustre1/g/aos_shihuang/databases/kraken2/kraken16}"
@@ -83,6 +93,15 @@ DATASETS=(
     "100M_50pct_high_lognormal_SE"
     "100M_90pct_high_lognormal_SE"
 )
+
+if [ -n "${SLURM_ARRAY_TASK_ID:-}" ]; then
+    if [ "$SLURM_ARRAY_TASK_ID" -ge "${#DATASETS[@]}" ]; then
+        echo "array task $SLURM_ARRAY_TASK_ID is past the end of ${#DATASETS[@]} datasets; nothing to do"
+        exit 0
+    fi
+    DATASETS=( "${DATASETS[$SLURM_ARRAY_TASK_ID]}" )
+    echo "array task $SLURM_ARRAY_TASK_ID -> ${DATASETS[0]}"
+fi
 
 parse_time() {
     local t="$1" s=0

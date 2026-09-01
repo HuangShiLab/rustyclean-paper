@@ -124,7 +124,16 @@ ALL_RUNS=$(printf "%s\n" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" \
 submit 6 "accuracy, all tools"        scripts/benchmark/run_compute_accuracy.sh          "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, recheck arms"     scripts/benchmark/run_accuracy_bowtie2_recheck_v2.sh "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, index ablation"   scripts/benchmark/run_accuracy_k2_index_ablation.sh  "$ALL_RUNS" >/dev/null
+
+# The resource summary reads output from every benchmark, including the three
+# that ALL_RUNS leaves out, so it needs its own dependency list.
+EVERY_RUN=$(printf "%s\n" "$J_KD" "$J_HOST" "$J_BACK" "$J_BASE" "$J_RECH" \
+    "$J_ABL" "$J_BOUND" "$J_PE" | { grep -v '^$' || true; } | paste -sd: -)
+submit 6 "runtime and memory summary" scripts/benchmark/run_collect_resources.sh "$EVERY_RUN" >/dev/null
 echo >&2
 
 echo "Submitted. Watch with: squeue -u \$USER" >&2
-echo "Then collect results with the analysis scripts listed in RUN_ALL.md." >&2
+echo >&2
+echo "Runtime and peak memory land in $RUNS_DIR/summary/resources.csv once the" >&2
+echo "last job finishes. To see partial results at any time, run:" >&2
+echo "    python3 $REPO/scripts/main/collect_resources.py" >&2

@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=rc_auto_boundary
+#SBATCH --array=0-5
 #SBATCH --partition=amd
 #SBATCH --qos=normal
 #SBATCH --nodes=1
@@ -12,12 +13,24 @@
 
 set -e
 
+# Each dataset runs as its own SLURM array task, so they execute concurrently on
+# different nodes instead of one after another inside a single job. Metrics go
+# to a per-task file because concurrent appends to one CSV interleave; the
+# stage-6 collector merges them. Running this script directly, with no array,
+# processes the whole list and writes the unsuffixed file, as before.
+ARRAY_TAG=""
+[ -n "${SLURM_ARRAY_TASK_ID:-}" ] && ARRAY_TAG=".task${SLURM_ARRAY_TASK_ID}"
+
+
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:$HOME/.local/bin:${PATH}"
 
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/auto_decision_boundary"
 METRICS_DIR="${RESULTS_DIR}/metrics"
+# Own file per experiment: these scripts run concurrently, and a shared
+# performance.csv interleaved their rows under a single header.
+METRICS_FILE="${METRICS_DIR}/performance_auto_boundary${ARRAY_TAG}.csv"
 LOGS_DIR="${RESULTS_DIR}/logs"
 
 THREADS=8
@@ -35,6 +48,15 @@ DATASETS=(
     "10M_100pct_med_lognormal_SE"
 )
 
+if [ -n "${SLURM_ARRAY_TASK_ID:-}" ]; then
+    if [ "$SLURM_ARRAY_TASK_ID" -ge "${#DATASETS[@]}" ]; then
+        echo "array task $SLURM_ARRAY_TASK_ID is past the end of ${#DATASETS[@]} datasets; nothing to do"
+        exit 0
+    fi
+    DATASETS=( "${DATASETS[$SLURM_ARRAY_TASK_ID]}" )
+    echo "array task $SLURM_ARRAY_TASK_ID -> ${DATASETS[0]}"
+fi
+
 MODES=("bowtie2" "kraken2")
 
 mkdir -p "${METRICS_DIR}" "${LOGS_DIR}"
@@ -43,8 +65,8 @@ echo "Job started at: $(date)"
 echo "Host: $(hostname)"
 echo "Threads: ${THREADS}"
 
-if [ ! -f "${METRICS_DIR}/performance.csv" ]; then
-    echo "mode,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_DIR}/performance.csv"
+if [ ! -f "${METRICS_FILE}" ]; then
+    echo "mode,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_FILE}"
 fi
 
 parse_time() {
@@ -98,12 +120,12 @@ for MODE in "${MODES[@]}"; do
                 --clean \
                 > "${logfile}" 2>&1 || {
             echo "  [${MODE}] FAILED on ${DATASET}" >&2
-            echo "${MODE},${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+            echo "${MODE},${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_FILE}"
             continue
         }
 
         read runtime_sec max_mem < <(parse_time "${timefile}")
-        echo "${MODE},${DATASET},1,${runtime_sec},${max_mem},$(date -Iseconds)" >> "${METRICS_DIR}/performance.csv"
+        echo "${MODE},${DATASET},1,${runtime_sec},${max_mem},$(date -Iseconds)" >> "${METRICS_FILE}"
         echo "  [${MODE}] Done: runtime=${runtime_sec}s, max_mem=${max_mem}kB"
     done
 done
