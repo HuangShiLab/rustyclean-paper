@@ -84,6 +84,12 @@ export GENOME_DIR="${GENOME_DIR:-$PROJECT_DIR/genomes}"
 #     put host sequence in the ground truth and make the index ablation circular.
 export MICROBIAL_GENOME_DIR="${MICROBIAL_GENOME_DIR:-$DB_ROOT/GTDB/GTDBr202/GTDBr202_reference_genome}"
 
+# Full NCBI taxonomy, the source both the Kraken2 and centrifuge builds read.
+# centrifuge used to take it from the Kraken2 database instead, which is built
+# by a sibling job in the same stage and is wiped at the start of that build,
+# so the two could not run in parallel and usually did not.
+export SOURCE_TAXONOMY="${SOURCE_TAXONOMY:-/lustre1/g/aos_shihuang/tools/kraken2-standard-db/kraken_database/taxonomy}"
+
 # --- Indexes built by scripts/main/build_*.sh -------------------------------
 export DB_T2T="${DB_T2T:-$DB_ROOT/rustyclean_human_t2t_only}"
 # Kraken2, human-only. THE DEFAULT. Every experiment should use this unless it

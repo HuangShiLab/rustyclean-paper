@@ -93,12 +93,19 @@ else
     # Every sequence in the reference is human, so map them all to taxid 9606.
     grep '^>' "$FASTA" | sed 's/^>//' | awk '{print $1"\t9606"}' > "$CF_TMP/seqid2taxid.map"
     # Minimal taxonomy covering the human lineage.
-    if [ -f "$KRAKEN2_DB_T2T_ONLY/taxonomy/nodes.dmp" ]; then
+    # Read the NCBI taxonomy from its source rather than from the Kraken2
+    # database: that database is built by a sibling job in this same stage and
+    # is deleted at the start of that build, so depending on it made this job
+    # fail whenever the two ran in parallel, which is always.
+    if [ -f "$SOURCE_TAXONOMY/nodes.dmp" ] && [ -f "$SOURCE_TAXONOMY/names.dmp" ]; then
+        cp "$SOURCE_TAXONOMY/nodes.dmp" "$CF_TMP/nodes.dmp"
+        cp "$SOURCE_TAXONOMY/names.dmp" "$CF_TMP/names.dmp"
+    elif [ -f "$KRAKEN2_DB_T2T_ONLY/taxonomy/nodes.dmp" ]; then
         cp "$KRAKEN2_DB_T2T_ONLY/taxonomy/nodes.dmp" "$CF_TMP/nodes.dmp"
         cp "$KRAKEN2_DB_T2T_ONLY/taxonomy/names.dmp" "$CF_TMP/names.dmp"
     else
         echo "ERROR: no NCBI taxonomy available for the centrifuge build" >&2
-        echo "Expected $KRAKEN2_DB_T2T_ONLY/taxonomy/{nodes,names}.dmp" >&2
+        echo "Looked in $SOURCE_TAXONOMY and $KRAKEN2_DB_T2T_ONLY/taxonomy" >&2
         exit 1
     fi
     centrifuge-build -p "$N_THREADS" \

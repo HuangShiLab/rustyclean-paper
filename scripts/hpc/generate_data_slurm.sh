@@ -162,7 +162,7 @@ fi
 # derived from the complexity label alone, so every dataset at a given complexity
 # draws the SAME community (comparable across depths and host fractions) while the
 # draw itself is unbiased. The manifest below records exactly what was used.
-SAMPLE_SEED="rustyclean-community-${complexity}"
+SAMPLE_SEED="rustyclean-community-${COMPLEXITY}"
 if shuf --random-source=<(yes "$SAMPLE_SEED") -n 1 </dev/null >/dev/null 2>&1; then
     mapfile -t picked < <(printf '%s\n' "${all_genomes[@]}" \
         | shuf -n "$n_species" --random-source=<(yes "$SAMPLE_SEED"))

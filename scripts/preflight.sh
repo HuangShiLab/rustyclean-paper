@@ -180,7 +180,7 @@ if [ -f "$HUMAN_GENOME" ]; then ok "GRCh38 (host reads are SIMULATED from this)"
     suggest "GRCh38" "*GRCh38*.fa*" "$DB_ROOT" /lustre1/g/aos_shihuang
     suggest "GRCh38 (RefSeq naming)" "GCF_000001405*genomic.fna*" "$DB_ROOT" /lustre1/g/aos_shihuang
 fi
-need_dir  "NCBI taxonomy for kraken2-build" "/lustre1/g/aos_shihuang/tools/kraken2-standard-db/kraken_database/taxonomy"
+need_dir  "NCBI taxonomy (kraken2 + centrifuge)" "$SOURCE_TAXONOMY"
 
 # The simulated communities are drawn from this collection; without it every
 # stage-2 array task fails immediately.

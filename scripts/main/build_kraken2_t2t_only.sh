@@ -20,7 +20,7 @@ K2_DB="${DB_DIR}/kraken2/t2t_only"
 T2T="/lustre1/g/aos_shihuang/databases/fast2bM/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
 
 # Full NCBI taxonomy from existing standard kraken2 db
-SOURCE_TAX="/lustre1/g/aos_shihuang/tools/kraken2-standard-db/kraken_database/taxonomy"
+SOURCE_TAX="${SOURCE_TAXONOMY}"
 
 if [ ! -f "${T2T}" ]; then
     echo "ERROR: T2T FASTA not found" >&2
