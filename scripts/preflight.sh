@@ -72,6 +72,18 @@ if [ -x "$RUSTYCLEAN" ]; then
 fi
 echo
 
+# A proxy pointing at a loopback port is an SSH tunnel; if it is down, every
+# conda or pip install fails with a ProxyError even though direct access works.
+_pv="${https_proxy:-${http_proxy:-}}"
+case "$_pv" in
+    *127.0.0.1*|*localhost*)
+        _pp=$(printf "%s" "$_pv" | sed 's#.*:##; s#/.*##')
+        if ! timeout 3 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/$_pp" 2>/dev/null; then
+            warn "proxy points at a dead tunnel" "127.0.0.1:$_pp — installs will fail"
+            note "unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY"
+        fi ;;
+esac
+
 echo "[3] Tools on PATH"
 need_file "conda profile"           "$CONDA_BASE/etc/profile.d/conda.sh"
 

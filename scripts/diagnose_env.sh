@@ -24,11 +24,43 @@ done
 
 echo
 echo "=== 2. Can anything reach the network? ==="
+DIRECT_OK=1
 for probe in "conda.anaconda.org:443" "pypi.org:443"; do
     host=${probe%:*}; port=${probe#*:}
-    timeout 6 bash -c "cat < /dev/null > /dev/tcp/$host/$port" 2>/dev/null \
-        && echo "  reachable   $probe" || echo "  UNREACHABLE $probe"
+    if timeout 6 bash -c "cat < /dev/null > /dev/tcp/$host/$port" 2>/dev/null; then
+        echo "  reachable   $probe"
+    else
+        echo "  UNREACHABLE $probe"; DIRECT_OK=0
+    fi
 done
+
+# A proxy pointing at loopback is an SSH tunnel. If the tunnel is down the port
+# refuses connections and every download fails, even when direct access works.
+PROXY_DEAD=0
+PROXY_VAL="${https_proxy:-${http_proxy:-}}"
+case "$PROXY_VAL" in
+    *127.0.0.1*|*localhost*)
+        pport=$(printf "%s" "$PROXY_VAL" | sed 's#.*:##; s#/.*##')
+        if timeout 3 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/$pport" 2>/dev/null; then
+            echo "  proxy       listening on 127.0.0.1:$pport"
+        else
+            echo "  PROXY DEAD  nothing listening on 127.0.0.1:$pport"; PROXY_DEAD=1
+        fi ;;
+    "") ;;
+    *) echo "  proxy       $PROXY_VAL (not loopback; not probed)" ;;
+esac
+
+if [ "$PROXY_DEAD" = 1 ] && [ "$DIRECT_OK" = 1 ]; then
+    echo
+    echo "  >>> DIAGNOSIS: the proxy points at an SSH tunnel that is not running,"
+    echo "      while direct access works. Clear the variables and retry:"
+    echo
+    echo "          unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY"
+    echo
+    echo "      They are usually set in ~/.bashrc; remove them there to make it stick."
+    grep -ln "http_proxy" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile" 2>/dev/null \
+        | sed 's/^/      set in: /'
+fi
 
 echo
 echo "=== 3. Module system ==="
