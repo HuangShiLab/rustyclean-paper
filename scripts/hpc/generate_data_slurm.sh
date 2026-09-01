@@ -208,28 +208,75 @@ echo "  Community manifest: ${MICROBIAL_FA%.*}.genomes.txt"
 # Generate abundance profile
 # ---------------------------------------------------------------------------
 ABUNDANCE_FILE="$WORKDIR/abundance.txt"
-python3 - "$COMPLEXITY" "$ABUNDANCE_DIST" "$ABUNDANCE_FILE" <<'PYEOF'
+# ISS matches the abundance file against the record IDs in the FASTA, so the
+# keys must be the actual accessions. This block used to emit species_1..N,
+# which matched nothing: every record was skipped, no reads were produced, and
+# ISS then died concatenating a temp file it had never written.
+#
+# GTDB genomes are draft assemblies of many contigs. Abundance is therefore
+# drawn per GENOME and split across that genome's contigs in proportion to
+# their length, which is what uniform coverage of a genome produces. Keying
+# abundance per record instead would weight a 200-contig draft 200 times a
+# closed genome.
+python3 - "${MICROBIAL_FA%.*}.genomes.txt" "$ABUNDANCE_DIST" "$ABUNDANCE_FILE" <<'ABUNDEOF'
+import gzip
 import sys
+
 import numpy as np
+
 np.random.seed(42)
+manifest_file, distribution, output_file = sys.argv[1:4]
 
-complexity, distribution, output_file = sys.argv[1:4]
-n = {'low': 5, 'med': 30, 'high': 100}.get(complexity, 30)
+with open(manifest_file) as fh:
+    genomes = [line.strip() for line in fh if line.strip()]
 
-if distribution == 'lognormal':
+def records(path):
+    """(record_id, length) for every sequence, without holding the sequence."""
+    opener = gzip.open if path.endswith(".gz") else open
+    out, rid, length = [], None, 0
+    with opener(path, "rt") as fh:
+        for line in fh:
+            if line.startswith(">"):
+                if rid is not None:
+                    out.append((rid, length))
+                rid, length = line[1:].split()[0], 0
+            else:
+                length += len(line.strip())
+    if rid is not None:
+        out.append((rid, length))
+    return out
+
+per_genome = [records(g) for g in genomes]
+n = len(per_genome)
+
+if distribution == "lognormal":
     abundances = np.random.lognormal(0, 2, n)
-elif distribution == 'even':
+elif distribution == "even":
     abundances = np.ones(n)
-elif distribution == 'skewed':
-    abundances = np.array([0.5] + [0.5/(n-1)] * (n-1))
+elif distribution == "skewed":
+    abundances = np.array([0.5] + [0.5 / (n - 1)] * (n - 1))
 else:
     abundances = np.random.lognormal(0, 2, n)
-
 abundances = abundances / abundances.sum()
-with open(output_file, 'w') as f:
-    for i, ab in enumerate(abundances):
-        f.write(f"species_{i+1}\t{ab:.8f}\n")
-PYEOF
+
+rows = []
+for genome_abundance, recs in zip(abundances, per_genome):
+    total = sum(length for _, length in recs)
+    if total == 0:
+        continue
+    for rid, length in recs:
+        rows.append((rid, genome_abundance * length / total))
+
+if not rows:
+    sys.exit("ERROR: no sequence records found in the sampled genomes")
+
+scale = sum(a for _, a in rows)
+with open(output_file, "w") as fh:
+    for rid, a in rows:
+        fh.write("%s\t%.10f\n" % (rid, a / scale))
+
+print("  abundance: %d records across %d genomes" % (len(rows), n))
+ABUNDEOF
 
 # ---------------------------------------------------------------------------
 # Calculate host/microbe read counts
