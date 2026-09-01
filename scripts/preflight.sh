@@ -25,6 +25,25 @@ need_exec() { [ -x "$2" ] && ok "$1" || bad "$1" "$2"; }
 opt_dir()   { [ -d "$2" ] && ok "$1" || warn "$1" "$2"; }
 opt_file()  { [ -f "$2" ] && ok "$1" || warn "$1" "$2"; }
 # a kraken2 db is a directory holding hash.k2d
+
+# When a reference is missing, look for it and print candidates rather than
+# leaving the user to guess the path.
+suggest() {
+    local label="$1" pattern="$2"; shift 2
+    local found=""
+    for root in "$@"; do
+        [ -d "$root" ] || continue
+        found="$found$(find "$root" -maxdepth 4 -name "$pattern" -size +1M 2>/dev/null | head -4)
+"
+    done
+    found=$(printf "%s" "$found" | grep -v '^$')
+    if [ -n "$found" ]; then
+        printf "       candidates for %s:\n" "$label"
+        printf "%s\n" "$found" | sed 's/^/         /'
+    else
+        printf "       no candidate found for %s (searched: %s)\n" "$label" "$*"
+    fi
+}
 need_k2()   { [ -f "$2/hash.k2d" ] && ok "$1" || bad "$1" "$2/hash.k2d"; }
 opt_k2()    { [ -f "$2/hash.k2d" ] && ok "$1" || warn "$1" "$2/hash.k2d"; }
 # a bowtie2 index is a prefix with {prefix}.1.bt2
@@ -55,7 +74,12 @@ echo
 
 echo "[3] Conda and tools"
 need_file "conda profile"           "$CONDA_BASE/etc/profile.d/conda.sh"
-opt_dir   "benchmark env"           "$REPO_DIR/.conda_envs/rustyclean-benchmark"
+if [ -d "$REPO_DIR/.conda_envs/rustyclean-benchmark" ]; then ok "benchmark env"; else
+    bad "benchmark env (scripts conda-activate it)" "$REPO_DIR/.conda_envs/rustyclean-benchmark"
+    for c in "$CONDA_BASE/envs/rustyclean-benchmark" "$HOME/.conda/envs/rustyclean-benchmark"; do
+        [ -d "$c" ] && printf "       found instead: %s\n" "$c"
+    done
+fi
 for t in fastp bowtie2 kraken2 minimap2 sylph centrifuge seqtk kneaddata; do
     opt_dir "conda env: $t"         "$CONDA_BASE/envs/$t/bin"
 done
@@ -64,9 +88,21 @@ command -v hostile >/dev/null 2>&1 && ok "hostile on PATH" || warn "hostile not 
 echo
 
 echo "[4] Reference FASTAs  (inputs to stage 1)"
-need_file "T2T-CHM13v2.0 (depletion reference)" "$T2T_FASTA"
-opt_file  "IPD-IMGT/HLA"            "$HLA_FASTA"
-opt_file  "GRCh38 (host reads are SIMULATED from this)" "$HUMAN_GENOME"
+if [ -f "$T2T_FASTA" ]; then ok "T2T-CHM13v2.0 (depletion reference)"; else
+    bad "T2T-CHM13v2.0 (depletion reference)" "$T2T_FASTA"
+    suggest "T2T" "*T2T-CHM13*genomic.fna*" "$DB_ROOT" /lustre1/g/aos_shihuang
+    suggest "T2T (alt naming)" "*chm13*.fa*" "$DB_ROOT" /lustre1/g/aos_shihuang
+fi
+if [ -f "$HLA_FASTA" ]; then ok "IPD-IMGT/HLA"; else
+    warn "IPD-IMGT/HLA" "$HLA_FASTA"
+    suggest "HLA" "*hla*.f*a*" "$DB_ROOT" /lustre1/g/aos_shihuang
+fi
+if [ -f "$HUMAN_GENOME" ]; then ok "GRCh38 (host reads are SIMULATED from this)"; else
+    bad "GRCh38 (host reads are SIMULATED from this)" "$HUMAN_GENOME"
+    note "without it generate_enhanced_data.sh silently falls back to chr1 only"
+    suggest "GRCh38" "*GRCh38*.fa*" "$DB_ROOT" /lustre1/g/aos_shihuang
+    suggest "GRCh38 (RefSeq naming)" "GCF_000001405*genomic.fna*" "$DB_ROOT" /lustre1/g/aos_shihuang
+fi
 need_dir  "NCBI taxonomy for kraken2-build" "/lustre1/g/aos_shihuang/tools/kraken2-standard-db/kraken_database/taxonomy"
 echo
 

@@ -12,9 +12,31 @@ bash scripts/run_all.sh --from 3    # resume at a stage
 starts only after what it needs has succeeded. Every path comes from
 `scripts/hpc/config.sh` — change a database location there, not in the scripts.
 
-**Budget:** ~500 GB storage, 200 GB RAM for the Kraken2 build (32 GB for
+**Budget:** ~500 GB scratch, 200 GB RAM for the Kraken2 build (32 GB for
 everything else), ~60–80 h of compute. Wall clock is far less because stages 3–5
 run in parallel.
+
+### If scratch is smaller than that
+
+Indexes live under `$DB_ROOT` on the shared filesystem and do not consume
+scratch. Scratch holds the simulated reads and the run outputs:
+
+| | gzipped input | notes |
+|---|---|---|
+| all 19 datasets | ~65 GB | plus ~150–200 GB of outputs |
+| without the two 100M datasets | ~43 GB | loses the largest scalability point |
+| without 100M and 60M | ~30 GB | loses the high-host extreme, where the routing rule matters most |
+
+To trim, comment the unwanted lines out of the `DATASETS` array in
+`scripts/main/generate_enhanced_data.sh` and the matching arrays in the
+benchmark scripts. Dropping the 100M datasets is the cheapest cut that keeps the
+argument intact, since 60M/90% already covers the high-host regime.
+
+The other lever is to clean as you go: each stage's outputs are only needed by
+its own accuracy job, so `results/<experiment>/` can be removed once stage 6 has
+written that experiment's CSV. Run stages 3, 4 and 5 in sequence rather than in
+parallel if you take this route, since the driver otherwise has them running at
+the same time.
 
 ---
 
