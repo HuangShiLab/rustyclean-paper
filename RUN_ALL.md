@@ -64,6 +64,25 @@ the same time.
 
 ---
 
+## The cluster's submit limit
+
+Each array task counts against `MaxSubmitJobPerUser`, and this panel's 74 tasks
+exceed the limit on this cluster (50). Submission therefore blocks and retries
+every `SUBMIT_RETRY_SECONDS` (default 300) until room appears, rather than
+dropping the rest of the plan, so run the driver detached:
+
+    nohup bash scripts/run_all.sh > logs/submit.log 2>&1 &
+
+To resume after a partial submission, pass the jobs the remaining stages must
+wait for — `--from` alone skips the stages that produce them, so the resumed
+jobs would otherwise carry no dependency and start against missing input:
+
+    bash scripts/run_all.sh --from 4 --after 3975213:3975210
+
+The driver refuses `--from 3` or later without `--after` when the data directory
+is empty. `--after` also seeds the stage-6 dependency lists, so accuracy still
+waits for stages this invocation did not submit.
+
 ## Parallelism
 
 Every benchmark runs as a SLURM job array with one task per dataset, so datasets

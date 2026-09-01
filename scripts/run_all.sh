@@ -9,6 +9,13 @@
 #   bash scripts/run_all.sh              # submit everything
 #   bash scripts/run_all.sh --dry-run    # print the plan without submitting
 #   bash scripts/run_all.sh --from 3     # resume from stage 3
+#   bash scripts/run_all.sh --from 4 --after 3975213
+#                                        # resume, still waiting on a running job
+#
+# Each array task counts against the cluster's MaxSubmitJobPerUser limit, and
+# the full panel exceeds it. Submission therefore blocks and retries until room
+# appears, so run it detached:
+#   nohup bash scripts/run_all.sh > logs/submit.log 2>&1 &
 #
 # See RUN_ALL.md for what each stage costs and produces.
 # =============================================================================
@@ -29,13 +36,27 @@ fi
 
 DRY_RUN=0
 FROM_STAGE=0
+AFTER_JOB=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY_RUN=1; shift ;;
         --from)    FROM_STAGE="$2"; shift 2 ;;
+        --after)   AFTER_JOB="$2"; shift 2 ;;
         *) echo "unknown argument: $1" >&2; exit 1 ;;
     esac
 done
+
+# Resuming past stage 2 skips the jobs the later stages depend on, so without an
+# explicit --after they would be submitted with no dependency at all and start
+# before the data exists. Refuse rather than launch them against missing input.
+if [ "$FROM_STAGE" -gt 2 ] && [ -z "$AFTER_JOB" ] && [ "$DRY_RUN" -eq 0 ]; then
+    if [ ! -d "$DATA_DIR" ] || [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+        echo "ERROR: --from $FROM_STAGE skips the stages that build the indexes and data," >&2
+        echo "       and $DATA_DIR is empty. Pass --after <jobid> to wait for the" >&2
+        echo "       running data job, or wait for it to finish first." >&2
+        exit 1
+    fi
+fi
 
 # submit <stage> <label> <script> [dependency_job_id]
 # Echoes the job id so later stages can depend on it.
@@ -68,8 +89,34 @@ submit() {
         echo "DRYRUN$stage"
         return
     fi
-    local jid
-    jid=$(sbatch --parsable $depflag $logflags "$REPO/$script")
+    # Each array task counts against MaxSubmitJobPerUser, so a panel of this
+    # size reaches the cap partway through and every later sbatch is refused.
+    # Wait for room instead of dropping the rest of the plan on the floor.
+    local jid="" out="" attempt=0
+    while :; do
+        if out=$(sbatch --parsable $depflag $logflags "$REPO/$script" 2>&1); then
+            jid="${out%%;*}"
+            break
+        fi
+        case "$out" in
+            *QOSMaxSubmitJobPerUserLimit*|*AssocMaxSubmitJobLimit*|*"job submit limit"*)
+                attempt=$((attempt + 1))
+                if [ "$attempt" -eq 1 ]; then
+                    echo "  [stage $stage] $label — queue is at the QOS submit limit;" >&2
+                    echo "      retrying every ${SUBMIT_RETRY_SECONDS:-300}s until there is room" >&2
+                fi
+                if [ "$attempt" -gt "${SUBMIT_MAX_RETRIES:-288}" ]; then
+                    echo "  [stage $stage] $label — GAVE UP after $attempt attempts" >&2
+                    echo ""; return
+                fi
+                sleep "${SUBMIT_RETRY_SECONDS:-300}"
+                ;;
+            *)
+                echo "  [stage $stage] $label — sbatch failed: $out" >&2
+                echo ""; return
+                ;;
+        esac
+    done
     echo "  [stage $stage] $label -> job $jid${dep:+ (after $dep)}" >&2
     echo "$jid"
 }
@@ -96,7 +143,8 @@ J_DATA=$(submit 2 "generate 18 simulated datasets (ISS, job array)" scripts/hpc/
 echo >&2
 
 # --- Stage 3: main comparisons ----------------------------------------------
-DEP3="${J_DATA:+$J_DATA}"
+DEP3="${AFTER_JOB:-}"
+[ -n "${J_DATA:-}" ] && DEP3="${DEP3:+$DEP3:}$J_DATA"
 [ -n "${J_K2:-}" ] && DEP3="${DEP3:+$DEP3:}$J_K2"
 echo "Stage 3 — main comparisons" >&2
 J_KD=$(submit    3 "RustyClean auto vs KneadData"   scripts/benchmark/run_benchmark.sh "$DEP3")
@@ -119,7 +167,10 @@ echo >&2
 
 # --- Stage 6: accuracy -------------------------------------------------------
 echo "Stage 6 — accuracy" >&2
-ALL_RUNS=$(printf "%s\n" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" \
+# AFTER_JOB is included so that a resumed run still waits for the stages it
+# skipped: without it the accuracy jobs would depend only on what this
+# invocation submitted and could start while stage 3 is still running.
+ALL_RUNS=$(printf "%s\n" "$AFTER_JOB" "$J_KD" "$J_HOST" "$J_BASE" "$J_RECH" "$J_ABL" \
     | { grep -v '^$' || true; } | paste -sd: -)
 submit 6 "accuracy, all tools"        scripts/benchmark/run_compute_accuracy.sh          "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, recheck arms"     scripts/benchmark/run_accuracy_bowtie2_recheck_v2.sh "$ALL_RUNS" >/dev/null
@@ -127,7 +178,7 @@ submit 6 "accuracy, index ablation"   scripts/benchmark/run_accuracy_k2_index_ab
 
 # The resource summary reads output from every benchmark, including the three
 # that ALL_RUNS leaves out, so it needs its own dependency list.
-EVERY_RUN=$(printf "%s\n" "$J_KD" "$J_HOST" "$J_BACK" "$J_BASE" "$J_RECH" \
+EVERY_RUN=$(printf "%s\n" "$AFTER_JOB" "$J_KD" "$J_HOST" "$J_BACK" "$J_BASE" "$J_RECH" \
     "$J_ABL" "$J_BOUND" "$J_PE" | { grep -v '^$' || true; } | paste -sd: -)
 submit 6 "runtime and memory summary" scripts/benchmark/run_collect_resources.sh "$EVERY_RUN" >/dev/null
 echo >&2
