@@ -181,12 +181,33 @@ else
 fi
 echo
 
-echo "[5] Indexes  (stage 1 BUILDS these; present = will be reused/overwritten)"
+echo "[5] Indexes  (stage 1 BUILDS these)"
 opt_k2    "Kraken2 human-only  [DEFAULT]" "$KRAKEN2_DB_T2T_ONLY"
 opt_bt2   "Bowtie2 T2T-only"        "$BOWTIE2_INDEX"
 opt_file  "minimap2 index"          "$MINIMAP2_INDEX"
 opt_file  "sylph database"          "$SYLPH_DB"
 opt_k2    "Kraken2 mixed [ablation only]" "$KRAKEN2_DB_MIXED"
+
+# An index existing says nothing about which reference built it. Report the
+# stamp so a stale index is visible here rather than silently reused.
+provenance() {
+    local label="$1" stamp="$2" src="$3"
+    if index_up_to_date "$stamp" "$src"; then
+        printf '       %-28s reuse (stamped: %s)\n' "$label" "$(basename "$src")"
+    elif [ -f "$stamp" ]; then
+        printf '       %-28s REBUILD (stamped from a different reference)\n' "$label"
+    else
+        printf '       %-28s REBUILD (no provenance stamp)\n' "$label"
+    fi
+}
+echo "   stage 1 will:"
+printf '       %-28s REBUILD (always: the builder wipes the db first)\n' "Kraken2 human-only"
+provenance "Bowtie2 T2T-only"   "${BOWTIE2_INDEX}.source"     "$T2T_FASTA"
+provenance "minimap2 index"     "${MINIMAP2_INDEX}.source"    "$AUX_FASTA"
+provenance "sylph database"     "${SYLPH_DB}.source"          "$AUX_FASTA"
+provenance "centrifuge index"   "${CENTRIFUGE_INDEX}.source"  "$AUX_FASTA"
+note "an index is reused only when stamped as built from the reference above;"
+note "set FORCE_REBUILD=1 to rebuild regardless."
 echo
 
 echo "[6] Comparator databases  (NOT built by stage 1 - install separately)"

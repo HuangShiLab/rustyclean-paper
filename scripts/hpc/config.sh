@@ -222,3 +222,37 @@ else:
         print('nan')
 PYEOF
 }
+
+# ---------------------------------------------------------------------------
+# Index provenance
+#
+# An index file sitting at the expected path does not prove it was built from
+# the reference this rerun uses -- the v1 indexes lived at similar paths and
+# were built from GRCh38, so a plain "does the file exist" check would silently
+# reuse the wrong reference and reproduce the very bug the rerun exists to fix.
+# Each builder therefore stamps the index with the source it was built from and
+# skips only when that stamp still matches. No stamps exist yet, so the first
+# run after this change rebuilds everything. FORCE_REBUILD=1 rebuilds anyway.
+export FORCE_REBUILD="${FORCE_REBUILD:-0}"
+
+_index_stamp_value() {
+    local src="$1"
+    local abs size
+    abs="$(cd "$(dirname "$src")" && pwd)/$(basename "$src")"
+    size="$(stat -c %s "$src" 2>/dev/null || stat -f %z "$src" 2>/dev/null || echo '?')"
+    printf '%s\t%s\n' "$abs" "$size"
+}
+
+# index_up_to_date <stamp_path> <source_fasta> -> 0 when the build can be skipped
+index_up_to_date() {
+    local stamp="$1" src="$2"
+    if [ "${FORCE_REBUILD:-0}" = "1" ]; then return 1; fi
+    if [ ! -f "$stamp" ]; then return 1; fi
+    [ "$(cat "$stamp")" = "$(_index_stamp_value "$src")" ]
+}
+
+index_stamp_write() {
+    local stamp="$1" src="$2"
+    mkdir -p "$(dirname "$stamp")"
+    _index_stamp_value "$src" > "$stamp"
+}

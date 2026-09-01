@@ -51,9 +51,15 @@ if [ ! -f "$T2T_FASTA" ]; then
     exit 1
 fi
 
+STAMP="${OUT_PREFIX}.source"
 if [ -f "${OUT_PREFIX}.1.bt2" ] || [ -f "${OUT_PREFIX}.1.bt2l" ]; then
-    echo "Bowtie2 index already present, skipping: $OUT_PREFIX"
-    exit 0
+    if index_up_to_date "$STAMP" "$T2T_FASTA"; then
+        echo "Bowtie2 index already built from $T2T_FASTA, skipping: $OUT_PREFIX"
+        exit 0
+    fi
+    echo "Bowtie2 index present but NOT stamped as built from $T2T_FASTA."
+    echo "Rebuilding rather than reusing an index of unknown provenance."
+    rm -f "${OUT_PREFIX}".*.bt2 "${OUT_PREFIX}".*.bt2l
 fi
 
 echo "Job started at: $(date)"
@@ -71,3 +77,6 @@ bowtie2-build --large-index --threads "${N_THREADS:-16}" "$TMP_FA" "$OUT_PREFIX"
 rm -f "$TMP_FA"
 ls -lh "${OUT_PREFIX}"*
 echo "Job finished at: $(date)"
+
+index_stamp_write "$STAMP" "$T2T_FASTA"
+echo "Stamped: $STAMP"

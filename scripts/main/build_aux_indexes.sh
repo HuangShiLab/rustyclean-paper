@@ -58,31 +58,33 @@ echo "Reference: $FASTA ($(du -h "$FASTA" | cut -f1))"
 # --- minimap2 ---------------------------------------------------------------
 if ! command -v minimap2 >/dev/null 2>&1; then
     echo "[1/3] minimap2 not available, skipping the minimap2 index"
-elif [ -f "$MINIMAP2_INDEX" ]; then
-    echo "[1/3] minimap2 index already present, skipping: $MINIMAP2_INDEX"
+elif [ -f "$MINIMAP2_INDEX" ] && index_up_to_date "${MINIMAP2_INDEX}.source" "$FASTA"; then
+    echo "[1/3] minimap2 index already built from $FASTA, skipping"
 else
     echo "[1/3] Building minimap2 index (short-read preset)..."
     mkdir -p "$(dirname "$MINIMAP2_INDEX")"
     minimap2 -x sr -t "$N_THREADS" -d "$MINIMAP2_INDEX" "$FASTA"
+    index_stamp_write "${MINIMAP2_INDEX}.source" "$FASTA"
     ls -lh "$MINIMAP2_INDEX"
 fi
 
 # --- sylph ------------------------------------------------------------------
-if [ -f "$SYLPH_DB" ]; then
-    echo "[2/3] sylph database already present, skipping: $SYLPH_DB"
+if [ -f "$SYLPH_DB" ] && index_up_to_date "${SYLPH_DB}.source" "$FASTA"; then
+    echo "[2/3] sylph database already built from $FASTA, skipping"
 else
     echo "[2/3] Building sylph sketch database..."
     mkdir -p "$(dirname "$SYLPH_DB")"
     # -g: sketch as genomes; -o takes the path without the .syldb suffix
     sylph sketch -g "$FASTA" -t "$N_THREADS" -o "${SYLPH_DB%.syldb}"
+    index_stamp_write "${SYLPH_DB}.source" "$FASTA"
     ls -lh "$SYLPH_DB"
 fi
 
 # --- centrifuge -------------------------------------------------------------
 if ! command -v centrifuge-build >/dev/null 2>&1; then
     echo "[3/3] centrifuge-build not available, skipping the centrifuge index"
-elif [ -f "${CENTRIFUGE_INDEX}.1.cf" ]; then
-    echo "[3/3] centrifuge index already present, skipping: $CENTRIFUGE_INDEX"
+elif [ -f "${CENTRIFUGE_INDEX}.1.cf" ] && index_up_to_date "${CENTRIFUGE_INDEX}.source" "$FASTA"; then
+    echo "[3/3] centrifuge index already built from $FASTA, skipping"
 else
     echo "[3/3] Building centrifuge index..."
     mkdir -p "$(dirname "$CENTRIFUGE_INDEX")"
@@ -104,6 +106,7 @@ else
         --taxonomy-tree "$CF_TMP/nodes.dmp" \
         --name-table "$CF_TMP/names.dmp" \
         "$FASTA" "$CENTRIFUGE_INDEX"
+    index_stamp_write "${CENTRIFUGE_INDEX}.source" "$FASTA"
     ls -lh "${CENTRIFUGE_INDEX}"*.cf
 fi
 

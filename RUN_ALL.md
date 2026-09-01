@@ -66,18 +66,29 @@ the same time.
 
 | Script | Builds | Peak RAM |
 |---|---|---|
-| `main/prepare_grch38_t2t_fasta.sh` | combined T2T + HLA FASTA | 16 GB |
 | `main/build_kraken2_t2t_only.sh` | Kraken2 human-only (~15.5 GB) | **200 GB** |
-| `main/build_bowtie2_grch38_t2t_v2.sh` | Bowtie2 T2T+HLA (~3.3 GB) | 64 GB |
+| `main/build_bowtie2_t2t_only.sh` | Bowtie2 T2T-only (~3.3 GB) | 64 GB |
 | `main/build_aux_indexes.sh` | minimap2, sylph, centrifuge | 128 GB |
 
 The Kraken2 build sets the memory requirement for the whole project. Nothing
 else needs more than 128 GB.
 
 `build_aux_indexes.sh` is new: the minimap2, sylph and centrifuge indexes had no
-build script, so those three backends were not reproducible. All four indexes now
-derive from the same T2T + HLA FASTA, which keeps the backend comparison a test
-of the algorithms rather than of differing reference content.
+build script, so those three backends were not reproducible. All four RustyClean
+indexes derive from the same T2T-CHM13v2.0 FASTA, which keeps the backend
+comparison a test of the algorithms rather than of differing reference content.
+No IPD-IMGT/HLA FASTA is available on this system, so none of them include HLA;
+Hostile's default index does, and that difference is reported rather than hidden.
+
+### Rebuilding vs reusing
+
+An index file sitting at the expected path does not prove which reference built
+it — the v1 indexes lived at similar paths and came from GRCh38. Each builder
+therefore writes a `<index>.source` stamp naming the FASTA it used, and skips
+only when that stamp still matches. No stamps exist yet, so the first run
+rebuilds all four; `preflight.sh` prints REBUILD/reuse per index under `[5]`.
+Set `FORCE_REBUILD=1` to rebuild regardless. The Kraken2 builder always rebuilds
+— it wipes the database directory before it starts.
 
 **Not built here**, because each tool should be run as its own users would:
 
