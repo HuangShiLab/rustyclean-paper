@@ -316,6 +316,19 @@ MICROBE_READS=$(python3 -c "print(int($TOTAL_READS * (1 - $HOST_PCT)))")
 [ "$HOST_READS" -eq 0 ] && HOST_READS=0
 [ "$MICROBE_READS" -eq 0 ] && MICROBE_READS=0
 
+# ISS always writes paired output: --n_reads N puts N/2 records in each of
+# _R1.fastq and _R2.fastq. Paired datasets use both mates and so reach N, but
+# single-end datasets keep R1 alone and landed on exactly half the requested
+# depth -- 2,500,008 reads for a dataset declared as 5,000,000. Ask for twice as
+# much when only one mate will be kept.
+if [ "$READ_MODE" = "SE" ]; then
+    ISS_MICROBE_N=$((MICROBE_READS * 2))
+    ISS_HOST_N=$((HOST_READS * 2))
+else
+    ISS_MICROBE_N=$MICROBE_READS
+    ISS_HOST_N=$HOST_READS
+fi
+
 echo "  Host reads: $HOST_READS, Microbial reads: $MICROBE_READS"
 
 # ---------------------------------------------------------------------------
@@ -350,7 +363,7 @@ if [ "$MICROBE_READS" -gt 0 ]; then
         --genomes "$MICROBIAL_FA" \
         --abundance_file "$ABUNDANCE_FILE" \
         --model "${ISS_MODEL:-miseq}" \
-        --n_reads "$MICROBE_READS" \
+        --n_reads "$ISS_MICROBE_N" \
         --output "$WORKDIR/microbe" \
         --cpus "$SLURM_CPUS_PER_TASK" \
         $ISS_SEED_ARGS \
@@ -362,7 +375,7 @@ if [ "$HOST_READS" -gt 0 ]; then
     "$ISS_BIN" generate \
         --genomes "$HUMAN_FASTA" \
         --model "${ISS_MODEL:-miseq}" \
-        --n_reads "$HOST_READS" \
+        --n_reads "$ISS_HOST_N" \
         --output "$WORKDIR/host" \
         --cpus "$SLURM_CPUS_PER_TASK" \
         $ISS_SEED_ARGS \
@@ -496,7 +509,21 @@ if [ "$_labels" -eq 0 ]; then
     echo "ERROR: $DATASET_NAME has an empty ground-truth label file." >&2
     exit 1
 fi
-echo "  $_labels labelled reads, ${OBSERVED_READ_LENGTH} bp"
+# A dataset at the wrong depth is not obviously broken downstream -- it just
+# quietly changes every runtime and every per-read rate -- so check it here.
+if [ "$READ_MODE" = "PE" ]; then
+    _expected=$((TOTAL_READS / 2))   # labels count pairs
+else
+    _expected=$TOTAL_READS
+fi
+_low=$((_expected * 97 / 100))
+_high=$((_expected * 103 / 100))
+if [ "$_labels" -lt "$_low" ] || [ "$_labels" -gt "$_high" ]; then
+    echo "ERROR: $DATASET_NAME holds $_labels reads, expected about $_expected." >&2
+    echo "       Refusing to mark a dataset complete at the wrong depth." >&2
+    exit 1
+fi
+echo "  $_labels labelled reads (expected ~$_expected), ${OBSERVED_READ_LENGTH} bp"
 
 touch "$DATASET_DIR/completed.flag"
 
