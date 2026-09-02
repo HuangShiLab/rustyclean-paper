@@ -61,6 +61,11 @@ logs/monitor_*.log
 
 # Run outputs. These are hundreds of GB and must never enter the repository.
 runs/
+# Simulated reads and per-experiment results. Only the metadata is small enough
+# to commit by accident, and doing so records a dataset's properties without the
+# dataset -- which is how 15 empty datasets came to be described in the repo as
+# though they held reads.
+scratch/
 data/*
 !data/.gitkeep
 figures/*
