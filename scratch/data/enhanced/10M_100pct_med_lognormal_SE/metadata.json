@@ -1,0 +1,14 @@
+{
+    "dataset_name": "10M_100pct_med_lognormal_SE",
+    "total_reads": 10000000,
+    "host_percentage": 1.00,
+    "host_reads": 10000000,
+    "microbial_reads": 0,
+    "complexity": "med",
+    "abundance_distribution": "lognormal",
+    "read_mode": "SE",
+    "read_length": 0,
+    "simulator": "InSilicoSeq",
+    "model": "novaseq",
+    "seed": "60"
+}

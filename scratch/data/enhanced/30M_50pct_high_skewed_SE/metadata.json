@@ -1,0 +1,14 @@
+{
+    "dataset_name": "30M_50pct_high_skewed_SE",
+    "total_reads": 30000000,
+    "host_percentage": 0.50,
+    "host_reads": 15000000,
+    "microbial_reads": 15000000,
+    "complexity": "high",
+    "abundance_distribution": "skewed",
+    "read_mode": "SE",
+    "read_length": 0,
+    "simulator": "InSilicoSeq",
+    "model": "novaseq",
+    "seed": "50"
+}
