@@ -380,6 +380,10 @@ merge_and_label() {
     local host_file="$3"
     local microbe_count="$4"
     local mode="$5"
+    # Paired-end calls this twice, once per mate. Both writes truncated the same
+    # label file, so the labels that survived described R2 while every consumer
+    # reads R1. Write them once, from the first mate.
+    local write_labels="${6:-yes}"
 
     > "$out_fastq"
 
@@ -401,6 +405,7 @@ merge_and_label() {
 
         # Ground truth: microbe reads first
         local label_file="$WORKDIR/ground_truth_labels.txt"
+        [ "$write_labels" = "yes" ] || return 0
         > "$label_file"
         if [ -f "$microbe_file" ]; then
             awk 'NR%4==1 {print substr($0, 2) "\tmicrobe"}' "$microbe_file" >> "$label_file"
@@ -414,6 +419,7 @@ merge_and_label() {
         [ -f "$host_file" ] && cat "$host_file" >> "$out_fastq"
 
         local label_file="$WORKDIR/ground_truth_labels.txt"
+        [ "$write_labels" = "yes" ] || return 0
         > "$label_file"
         if [ -f "$microbe_file" ]; then
             awk 'NR%4==1 {print substr($0, 2) "\tmicrobe"}' "$microbe_file" >> "$label_file"
@@ -431,7 +437,7 @@ if [ "$READ_MODE" == "PE" ]; then
 
     merge_and_label "$WORKDIR/reads_R2.fastq" \
         "$WORKDIR/microbe_R2.fastq" "$WORKDIR/host_R2.fastq" \
-        "$MICROBE_READS" "PE"
+        "$MICROBE_READS" "PE" "no"
 
     pigz -p "$SLURM_CPUS_PER_TASK" "$WORKDIR/reads_R1.fastq"
     pigz -p "$SLURM_CPUS_PER_TASK" "$WORKDIR/reads_R2.fastq"
