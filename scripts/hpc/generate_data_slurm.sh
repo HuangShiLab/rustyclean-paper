@@ -383,6 +383,17 @@ merge_and_label() {
 
     > "$out_fastq"
 
+    # ISS names its output <prefix>_R1.fastq. The SE branch used to ask for
+    # <prefix>_reads.fastq, a leftover from the art_illumina generator, and the
+    # [ -f ] guards below turned that into an empty FASTQ with no error: 15 of 18
+    # datasets were written empty and still received a completed.flag. Missing
+    # input that should exist is now fatal.
+    if [ "$microbe_count" -gt 0 ] && [ ! -f "$microbe_file" ]; then
+        echo "ERROR: expected microbial reads at $microbe_file" >&2
+        echo "       ISS writes <prefix>_R1.fastq; check the name passed here." >&2
+        exit 1
+    fi
+
     if [ "$mode" == "PE" ]; then
         # For PE, microbe_R1 then host_R1
         [ -f "$microbe_file" ] && cat "$microbe_file" >> "$out_fastq"
@@ -426,7 +437,7 @@ if [ "$READ_MODE" == "PE" ]; then
     pigz -p "$SLURM_CPUS_PER_TASK" "$WORKDIR/reads_R2.fastq"
 else
     merge_and_label "$WORKDIR/reads.fastq" \
-        "$WORKDIR/microbe_reads.fastq" "$WORKDIR/host_reads.fastq" \
+        "$WORKDIR/microbe_R1.fastq" "$WORKDIR/host_R1.fastq" \
         "$MICROBE_READS" "SE"
 
     pigz -p "$SLURM_CPUS_PER_TASK" "$WORKDIR/reads.fastq"
@@ -467,6 +478,19 @@ cat > "$DATASET_DIR/metadata.json" <<EOF
     "seed": "${ISS_SEED_ARGS#--seed }"
 }
 EOF
+
+# A completed.flag on an empty dataset is worse than no dataset: every later
+# stage trusts it. Verify there are reads before claiming success.
+if [ "${OBSERVED_READ_LENGTH:-0}" -eq 0 ]; then
+    echo "ERROR: $DATASET_NAME contains no reads; refusing to mark it complete." >&2
+    exit 1
+fi
+_labels=$(wc -l < "$DATASET_DIR/ground_truth_labels.txt")
+if [ "$_labels" -eq 0 ]; then
+    echo "ERROR: $DATASET_NAME has an empty ground-truth label file." >&2
+    exit 1
+fi
+echo "  $_labels labelled reads, ${OBSERVED_READ_LENGTH} bp"
 
 touch "$DATASET_DIR/completed.flag"
 
