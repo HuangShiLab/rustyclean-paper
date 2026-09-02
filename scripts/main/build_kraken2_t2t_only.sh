@@ -80,5 +80,10 @@ kraken2-build --clean --db "${K2_DB}" 2>&1 | tee -a "${K2_DB}/build.log" || true
 echo "Final database files:"
 ls -lh "${K2_DB}/"
 echo "Inspect:"
-kraken2-inspect --db "${K2_DB}" | head -30
+# awk rather than head: this script now sources config.sh, which enables
+# pipefail, and head exiting first makes kraken2-inspect take SIGPIPE. The
+# pipeline then returns 141 and set -e kills the job -- after the database has
+# already been built and cleaned. awk reads to the end, and the inspect is only
+# diagnostic, so it must not be able to fail the build.
+kraken2-inspect --db "${K2_DB}" 2>/dev/null | awk 'NR<=30' || true
 echo "Job finished at: $(date)"
