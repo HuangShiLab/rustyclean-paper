@@ -17,9 +17,19 @@
 
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-REPO_DIR="$(dirname "$REPO_DIR")"
-[ -f "$REPO_DIR/scripts/hpc/config.sh" ] || {
+# run_all.sh exports REPO_DIR as the repository root. Taking dirname of it
+# unconditionally, as this script used to, walked one level above the repository
+# and the job died at once with "cannot locate the repository".
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/config.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+[ -n "${REPO_DIR:-}" ] && [ -f "$REPO_DIR/scripts/hpc/config.sh" ] || {
     echo "ERROR: cannot locate the repository. Set REPO_DIR." >&2; exit 1; }
 source "$REPO_DIR/scripts/hpc/config.sh"
 activate_conda
