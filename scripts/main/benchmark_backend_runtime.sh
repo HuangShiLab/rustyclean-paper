@@ -36,9 +36,14 @@ LOGS_DIR="${RESULTS_DIR}/logs"
 THREADS=8
 RUSTYCLEAN="/lustre1/g/aos_shihuang/rustyclean/target/release/rustyclean"
 KRAKEN2_DB="/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t_only/kraken2/t2t_only"
-BT2_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}"
-MM_INDEX="${HOSTILE_INDEX:-$HOME/.local/share/hostile/human-t2t-hla}.mmi"
-CF_INDEX="/lustre1/g/aos_shihuang/databases/centrifuge/host_indexes/human_t2t_hla_cf"
+# RustyClean must be measured against the indexes this project builds, not
+# against Hostile's. Hostile's default reference is T2T plus IPD-IMGT/HLA
+# while every index here is T2T alone, so pointing RustyClean at it made the
+# backend comparison a test of differing reference content rather than of the
+# algorithms, and gave a script named t2t_only results that included HLA.
+BT2_INDEX="${BOWTIE2_INDEX:?BOWTIE2_INDEX is not set; source scripts/hpc/config.sh}"
+MM_INDEX="${MINIMAP2_INDEX:?MINIMAP2_INDEX is not set; source scripts/hpc/config.sh}"
+CF_INDEX="${CENTRIFUGE_INDEX:?CENTRIFUGE_INDEX is not set; source scripts/hpc/config.sh}"
 
 DATASETS=(
     "5M_1pct_low_even_SE"
