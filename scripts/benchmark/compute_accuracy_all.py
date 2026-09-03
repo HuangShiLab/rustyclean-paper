@@ -108,6 +108,17 @@ def read_ground_truth(gt_path: Path) -> tuple:
 
 
 def compute_metrics(host_ids: set, microbe_ids: set, kept_ids: set) -> dict:
+    # A read kept by the tool that matches no ground-truth ID means the two sides
+    # are not naming reads the same way, not that the tool removed everything.
+    # Both look identical in the output -- precision 0, recall 0 -- so refuse to
+    # report the second when it is really the first.
+    if kept_ids and not (kept_ids & (microbe_ids | host_ids)):
+        raise SystemExit(
+            f"ERROR: none of the {len(kept_ids)} kept reads matched a ground-truth "
+            f"ID ({len(microbe_ids)} microbial, {len(host_ids)} host).\n"
+            "       The FASTQ headers and ground_truth_labels.txt disagree; "
+            "comparing them would report precision 0 and recall 0 for every tool."
+        )
     tp = len(kept_ids & microbe_ids)
     fp = len(kept_ids & host_ids)
     fn = len(microbe_ids - kept_ids)

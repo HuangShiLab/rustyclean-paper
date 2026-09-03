@@ -1,0 +1,16 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,1,641.33,16254608,2026-09-03T11:51:22+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,2,439.29,16242852,2026-09-03T11:58:46+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,3,439.22,16258876,2026-09-03T12:06:05+08:00
+rustyclean_k2_mixed,60M_90pct_high_lognormal_SE,1,878.56,16254836,2026-09-03T11:59:28+08:00
+rustyclean_k2_mixed,60M_90pct_high_lognormal_SE,2,742.00,16259188,2026-09-03T12:11:50+08:00
+rustyclean_k2_mixed,60M_90pct_high_lognormal_SE,3,756.42,16251864,2026-09-03T12:24:27+08:00
+rustyclean_k2_mixed,60M_99pct_med_lognormal_SE,1,836.17,16182884,2026-09-03T11:54:37+08:00
+rustyclean_k2_mixed,60M_99pct_med_lognormal_SE,2,683.05,16208168,2026-09-03T12:06:00+08:00
+rustyclean_k2_mixed,60M_99pct_med_lognormal_SE,3,712.84,16176548,2026-09-03T12:17:59+08:00
+rustyclean_k2_mixed,100M_50pct_high_lognormal_SE,1,1524.08,16320716,2026-09-03T12:16:41+08:00
+rustyclean_k2_mixed,100M_50pct_high_lognormal_SE,2,1574.37,16350824,2026-09-03T12:42:56+08:00
+rustyclean_k2_mixed,100M_50pct_high_lognormal_SE,3,1599.73,16293792,2026-09-03T13:09:38+08:00
+rustyclean_k2_mixed,100M_90pct_high_lognormal_SE,1,1549.26,16309592,2026-09-03T12:26:48+08:00
+rustyclean_k2_mixed,100M_90pct_high_lognormal_SE,2,1816.80,16390892,2026-09-03T12:57:05+08:00
+rustyclean_k2_mixed,100M_90pct_high_lognormal_SE,3,1382.57,16279808,2026-09-03T13:20:09+08:00

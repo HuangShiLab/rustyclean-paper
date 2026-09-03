@@ -387,6 +387,12 @@ fi
 # ---------------------------------------------------------------------------
 echo "  Merging and labeling..."
 
+# The ground-truth ID must be normalised exactly as the accuracy scripts
+# normalise the FASTQ header: first whitespace-delimited token, with any /N or
+# #N mate suffix removed. Writing the whole header line instead meant no label
+# ever matched a read, and the accuracy tables came out as precision 0, recall 0
+# for every tool and dataset -- indistinguishable from a tool that removed
+# everything.
 merge_and_label() {
     local out_fastq="$1"
     local microbe_file="$2"
@@ -421,10 +427,10 @@ merge_and_label() {
         [ "$write_labels" = "yes" ] || return 0
         > "$label_file"
         if [ -f "$microbe_file" ]; then
-            awk 'NR%4==1 {print substr($0, 2) "\tmicrobe"}' "$microbe_file" >> "$label_file"
+            awk 'NR%4==1 {id=substr($1,2); sub(/\/.*$/,"",id); sub(/#.*$/,"",id); print id "\tmicrobe"}' "$microbe_file" >> "$label_file"
         fi
         if [ -f "$host_file" ]; then
-            awk 'NR%4==1 {print substr($0, 2) "\thost"}' "$host_file" >> "$label_file"
+            awk 'NR%4==1 {id=substr($1,2); sub(/\/.*$/,"",id); sub(/#.*$/,"",id); print id "\thost"}' "$host_file" >> "$label_file"
         fi
     else
         # SE: microbe reads first
@@ -435,10 +441,10 @@ merge_and_label() {
         [ "$write_labels" = "yes" ] || return 0
         > "$label_file"
         if [ -f "$microbe_file" ]; then
-            awk 'NR%4==1 {print substr($0, 2) "\tmicrobe"}' "$microbe_file" >> "$label_file"
+            awk 'NR%4==1 {id=substr($1,2); sub(/\/.*$/,"",id); sub(/#.*$/,"",id); print id "\tmicrobe"}' "$microbe_file" >> "$label_file"
         fi
         if [ -f "$host_file" ]; then
-            awk 'NR%4==1 {print substr($0, 2) "\thost"}' "$host_file" >> "$label_file"
+            awk 'NR%4==1 {id=substr($1,2); sub(/\/.*$/,"",id); sub(/#.*$/,"",id); print id "\thost"}' "$host_file" >> "$label_file"
         fi
     fi
 }

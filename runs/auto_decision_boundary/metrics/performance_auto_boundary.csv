@@ -1,0 +1,13 @@
+mode,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+bowtie2,10M_0pct_med_lognormal_SE,1,251,1043140,2026-09-03T12:15:24+08:00
+kraken2,10M_0pct_med_lognormal_SE,1,188,4891836,2026-09-03T12:18:32+08:00
+bowtie2,10M_1pct_med_lognormal_SE,1,220,2481884,2026-09-03T12:16:05+08:00
+kraken2,10M_1pct_med_lognormal_SE,1,67,4931880,2026-09-03T12:17:13+08:00
+bowtie2,10M_5pct_med_lognormal_SE,1,254,2863908,2026-09-03T12:17:16+08:00
+kraken2,10M_5pct_med_lognormal_SE,1,213,4943264,2026-09-03T12:20:49+08:00
+bowtie2,10M_10pct_med_even_SE,1,216,2967600,2026-09-03T12:19:24+08:00
+kraken2,10M_10pct_med_even_SE,1,91,4967616,2026-09-03T12:20:55+08:00
+bowtie2,10M_30pct_med_lognormal_SE,1,179,3080452,2026-09-03T12:20:38+08:00
+kraken2,10M_30pct_med_lognormal_SE,1,67,5018452,2026-09-03T12:21:46+08:00
+bowtie2,10M_100pct_med_lognormal_SE,1,163,3236108,2026-09-03T12:20:46+08:00
+kraken2,10M_100pct_med_lognormal_SE,1,131,4979064,2026-09-03T12:22:57+08:00

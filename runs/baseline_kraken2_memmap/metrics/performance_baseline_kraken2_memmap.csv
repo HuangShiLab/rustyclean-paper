@@ -1,0 +1,16 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_baseline_k2_memmap,30M_50pct_high_skewed_SE,1,526.74,5036596,2026-09-03T11:42:30+08:00
+rustyclean_baseline_k2_memmap,30M_50pct_high_skewed_SE,2,552.90,5082616,2026-09-03T11:51:44+08:00
+rustyclean_baseline_k2_memmap,30M_50pct_high_skewed_SE,3,563.51,5060840,2026-09-03T12:01:08+08:00
+rustyclean_baseline_k2_memmap,60M_90pct_high_lognormal_SE,1,933.03,7039452,2026-09-03T11:49:17+08:00
+rustyclean_baseline_k2_memmap,60M_90pct_high_lognormal_SE,2,1373.97,7037612,2026-09-03T12:12:11+08:00
+rustyclean_baseline_k2_memmap,60M_90pct_high_lognormal_SE,3,881.17,7039536,2026-09-03T12:27:06+08:00
+rustyclean_baseline_k2_memmap,60M_99pct_med_lognormal_SE,1,750.32,6982736,2026-09-03T11:46:14+08:00
+rustyclean_baseline_k2_memmap,60M_99pct_med_lognormal_SE,2,692.61,6982788,2026-09-03T11:57:47+08:00
+rustyclean_baseline_k2_memmap,60M_99pct_med_lognormal_SE,3,804.32,7018588,2026-09-03T12:11:11+08:00
+rustyclean_baseline_k2_memmap,100M_50pct_high_lognormal_SE,1,1425.44,10072076,2026-09-03T11:57:29+08:00
+rustyclean_baseline_k2_memmap,100M_50pct_high_lognormal_SE,2,1338.96,10069776,2026-09-03T12:19:49+08:00
+rustyclean_baseline_k2_memmap,100M_50pct_high_lognormal_SE,3,1370.22,10069236,2026-09-03T12:42:39+08:00
+rustyclean_baseline_k2_memmap,100M_90pct_high_lognormal_SE,1,1399.65,12935960,2026-09-03T11:56:45+08:00
+rustyclean_baseline_k2_memmap,100M_90pct_high_lognormal_SE,2,1281.50,12934000,2026-09-03T12:18:07+08:00
+rustyclean_baseline_k2_memmap,100M_90pct_high_lognormal_SE,3,1254.06,12896324,2026-09-03T12:39:01+08:00

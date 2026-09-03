@@ -93,6 +93,10 @@ def collect(roots, out_dir):
         for path in glob.glob(os.path.join(root, "**", "*.csv"), recursive=True):
             if TASK_RE.match(os.path.basename(path)):
                 continue  # a part; its merged parent is read instead
+            # This script's own output lands under RUNS_DIR, so a second run
+            # would read the previous summary back in and count everything twice.
+            if os.path.basename(path) == "resources.csv":
+                continue
             real = os.path.realpath(path)
             if real in seen:
                 continue
@@ -204,6 +208,14 @@ def main():
         return 1
 
     out_dir = args.out or os.path.join(env("RUNS_DIR", "."), "summary")
+
+    # Roots that nest inside one another make the recursive glob find the same
+    # file more than once, and every measurement is then counted twice. The
+    # default roots do nest -- RESULTS_DIR sits inside SCRATCH_DIR -- so drop
+    # duplicates and any root contained in another before searching.
+    resolved = sorted({os.path.realpath(r) for r in roots})
+    roots = [r for r in resolved
+             if not any(r != other and r.startswith(other + os.sep) for other in resolved)]
 
     print("Merging per-task metric files")
     merge_task_parts(roots)
