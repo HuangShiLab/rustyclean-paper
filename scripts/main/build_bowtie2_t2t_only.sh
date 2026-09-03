@@ -71,7 +71,18 @@ echo "Decompressing..."
 zcat "$T2T_FASTA" > "$TMP_FA"
 
 echo "Building Bowtie2 index..."
-bowtie2-build --large-index --threads "${N_THREADS:-16}" "$TMP_FA" "$OUT_PREFIX" \
+# No --large-index. That flag is inherited from the GRCh38+T2T merged builder,
+# where it is required because the merged reference is about 6.2 Gbp and passes
+# Bowtie2's 4 Gbp (2^32) limit for the small format. T2T alone is about 3.1 Gbp,
+# so the small format applies, and Bowtie2 switches formats on its own if a
+# reference ever does exceed the limit.
+#
+# The format is not cosmetic here: .bt2l stores 64-bit offsets and so is larger
+# than the equivalent .bt2, and index size is both a reported figure and the
+# input to RustyClean's own database-size estimate. Forcing the large format
+# would overstate RustyClean's footprint against the .bt2 indexes KneadData and
+# Hostile ship, as an artefact of a flag rather than of the method.
+bowtie2-build --threads "${N_THREADS:-16}" "$TMP_FA" "$OUT_PREFIX" \
     2>&1 | tee "$WORK/build.log"
 
 rm -f "$TMP_FA"
