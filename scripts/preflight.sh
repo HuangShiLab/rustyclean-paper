@@ -226,6 +226,10 @@ opt_k2    "Kraken2 human-only  [DEFAULT]" "$KRAKEN2_DB_T2T_ONLY"
 opt_bt2   "Bowtie2 T2T-only"        "$BOWTIE2_INDEX"
 opt_file  "minimap2 index"          "$MINIMAP2_INDEX"
 opt_file  "sylph database"          "$SYLPH_DB"
+# The centrifuge index was checked only by the provenance line below, which reads
+# the stamp rather than the index, so a missing or truncated index passed as
+# "reuse" and every centrifuge run failed at the backend comparison instead.
+opt_file  "centrifuge index"        "${CENTRIFUGE_INDEX}.1.cf"
 opt_k2    "Kraken2 mixed [ablation only]" "$KRAKEN2_DB_MIXED"
 
 # An index existing says nothing about which reference built it. Report the
