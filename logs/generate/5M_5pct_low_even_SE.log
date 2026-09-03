@@ -1,0 +1,26 @@
+<frozen importlib._bootstrap>:491: RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module 'Bio.Align._aligncore', which has not declared that it can run safely without the GIL. To override this behavior and keep the GIL disabled (at your own risk), run with PYTHON_GIL=0 or -Xgil=0.
+INFO:iss.app:Starting iss generate
+INFO:iss.generator:Using kde ErrorModel
+INFO:iss.generator:Setting random seed to 44
+INFO:iss.util:Stitching input files together
+INFO:iss.generator:Using abundance file:/tmp/rustyclean_2324223/generate_5M_5pct_low_even_SE/abundance.txt
+INFO:iss.app:Using 16 cpus for read generation
+INFO:iss.app:Generating 9500000 reads
+<frozen importlib._bootstrap>:491: RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module 'Bio.Align._aligncore', which has not declared that it can run safely without the GIL. To override this behavior and keep the GIL disabled (at your own risk), run with PYTHON_GIL=0 or -Xgil=0.
+INFO:iss.util:Stitching input files together
+INFO:iss.util:Stitching input files together
+INFO:iss.util:Cleaning up
+INFO:iss.app:Read generation complete
+<frozen importlib._bootstrap>:491: RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module 'Bio.Align._aligncore', which has not declared that it can run safely without the GIL. To override this behavior and keep the GIL disabled (at your own risk), run with PYTHON_GIL=0 or -Xgil=0.
+INFO:iss.app:Starting iss generate
+INFO:iss.generator:Using kde ErrorModel
+INFO:iss.generator:Setting random seed to 44
+INFO:iss.util:Stitching input files together
+INFO:iss.generator:Using lognormal abundance distribution
+INFO:iss.app:Using 16 cpus for read generation
+INFO:iss.app:Generating 500000 reads
+<frozen importlib._bootstrap>:491: RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module 'Bio.Align._aligncore', which has not declared that it can run safely without the GIL. To override this behavior and keep the GIL disabled (at your own risk), run with PYTHON_GIL=0 or -Xgil=0.
+INFO:iss.util:Stitching input files together
+INFO:iss.util:Stitching input files together
+INFO:iss.util:Cleaning up
+INFO:iss.app:Read generation complete

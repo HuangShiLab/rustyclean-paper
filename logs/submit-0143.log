@@ -1,0 +1,42 @@
+nohup: ignoring input
+RustyClean full rerun
+  repo      : /lustre1/g/aos_shihuang/rustyclean-paper
+  databases : /lustre1/g/aos_shihuang/databases
+  data      : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/data/enhanced
+  results   : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/results
+
+Stage 1 — references and indexes
+  [stage 1] Kraken2 human-only index -> job 3980317
+  [stage 1] Bowtie2 T2T-only index -> job 3980318
+  [stage 1] minimap2 / sylph / centrifuge -> job 3980319
+
+Stage 2 — simulated datasets
+  [stage 2] generate 18 simulated datasets (ISS, job array) -> job 3980320
+
+Stage 3 — main comparisons
+  [stage 3] RustyClean auto vs KneadData -> job 3980321 (after 3980320:3980317:3980318:3980319)
+  [stage 3] RustyClean --skip-qc vs Hostile -> job 3980322 (after 3980320:3980317:3980318:3980319)
+  [stage 3] backend comparison -> job 3980323 (after 3980320:3980317:3980318:3980319)
+
+Stage 4 — verification pass and index ablation
+  [stage 4] Kraken2 baseline (no recheck) -> job 3980324 (after 3980320:3980317:3980318:3980319)
+  [stage 4] Kraken2 + Bowtie2 recheck — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 4] Kraken2 + Bowtie2 recheck — sbatch failed: sbatch: error: Batch job submission failed: Job dependency problem
+  [stage 4] index ablation (human-only) — sbatch failed: sbatch: error: Batch job submission failed: Job dependency problem
+
+Stage 5 — previously unmeasured
+  [stage 5] auto decision boundary — sbatch failed: sbatch: error: Batch job submission failed: Job dependency problem
+  [stage 5] paired-end panel — sbatch failed: sbatch: error: Batch job submission failed: Job dependency problem
+
+Stage 6 — accuracy
+  [stage 6] accuracy, all tools -> job 3980417 (after 3980321:3980322:3980324)
+  [stage 6] accuracy, recheck arms -> job 3980418 (after 3980321:3980322:3980324)
+  [stage 6] accuracy, index ablation -> job 3980419 (after 3980321:3980322:3980324)
+  [stage 6] runtime and memory summary -> job 3980420 (after 3980321:3980322:3980323:3980324)
+
+Submitted. Watch with: squeue -u $USER
+
+Runtime and peak memory land in /lustre1/g/aos_shihuang/rustyclean-paper/runs/summary/resources.csv once the
+last job finishes. To see partial results at any time, run:
+    python3 /lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/collect_resources.py

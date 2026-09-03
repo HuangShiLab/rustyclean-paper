@@ -1,0 +1,46 @@
+nohup: ignoring input
+RustyClean full rerun
+  repo      : /lustre1/g/aos_shihuang/rustyclean-paper
+  databases : /lustre1/g/aos_shihuang/databases
+  data      : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/data/enhanced
+  results   : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/results
+
+Stage 1 — references and indexes
+  [stage 1] Kraken2 human-only index — SKIPPED (--from 3)
+  [stage 1] Bowtie2 T2T-only index — SKIPPED (--from 3)
+  [stage 1] minimap2 / sylph / centrifuge — SKIPPED (--from 3)
+
+Stage 2 — simulated datasets
+  [stage 2] generate 18 simulated datasets (ISS, job array) — SKIPPED (--from 3)
+
+Stage 3 — main comparisons
+  [stage 3] RustyClean auto vs KneadData -> job 3980733 (after 3980320)
+  [stage 3] RustyClean --skip-qc vs Hostile -> job 3980734 (after 3980320)
+  [stage 3] backend comparison -> job 3980735 (after 3980320)
+
+Stage 4 — verification pass and index ablation
+  [stage 4] Kraken2 baseline (no recheck) -> job 3980736 (after 3980320)
+  [stage 4] Kraken2 + Bowtie2 recheck -> job 3980737 (after 3980320)
+  [stage 4] index ablation (human-only) -> job 3980738 (after 3980320)
+
+Stage 5 — previously unmeasured
+  [stage 5] auto decision boundary -> job 3980739 (after 3980320)
+  [stage 5] paired-end panel — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 5] paired-end panel -> job 3980768 (after 3980320)
+
+Stage 6 — accuracy
+  [stage 6] accuracy, all tools — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 6] accuracy, all tools -> job 3981007 (after 3980320:3980733:3980734:3980736:3980737:3980738)
+  [stage 6] accuracy, recheck arms — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 6] accuracy, recheck arms -> job 3981064 (after 3980320:3980733:3980734:3980736:3980737:3980738)
+  [stage 6] accuracy, index ablation -> job 3981065 (after 3980320:3980733:3980734:3980736:3980737:3980738)
+  [stage 6] runtime and memory summary -> job 3981066 (after 3980320:3980733:3980734:3980735:3980736:3980737:3980738:3980739:3980768)
+
+Submitted. Watch with: squeue -u $USER
+
+Runtime and peak memory land in /lustre1/g/aos_shihuang/rustyclean-paper/runs/summary/resources.csv once the
+last job finishes. To see partial results at any time, run:
+    python3 /lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/collect_resources.py
