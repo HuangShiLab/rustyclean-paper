@@ -399,9 +399,78 @@
     <div><span class="n void">1</span><span class="k">未决科学问题</span></div>
   </div>
 
+  <!-- ============ 测试目的与设计 ============ -->
+  <section>
+    <h2><span class="num">01</span>测试目的与设计</h2>
+
+    <p class="lede">
+      去宿主的两类错误代价并不对称。<b>漏掉的宿主读会污染下游的丰度与功能分析</b>,
+      而<b>误删的微生物读是永久的数据损失,且在结果里看不出来</b>——没有人会发现某个物种少了 1%。
+      多数工具在这条轴上取一个固定位置,但真实样本的宿主比例从口腔拭子的 1% 到组织活检的 99% 不等。
+    </p>
+    <p class="lede">
+      RustyClean 的设计假设是:<b>按样本实际的宿主比例选择去宿主策略,能在两类错误之间取得比固定策略更好的平衡</b>。
+      这次测试就是检验这个假设,并给出代价——时间、内存、以及在哪些场景下并无优势。
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>被测机制</th><th>做法</th><th>要验证什么</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>auto 路由</b></td>
+            <td>先抽 10 万条读估计宿主比例:低比例走 bowtie2 比对,高比例走 kraken2 k-mer 分类</td>
+            <td>抽样估计是否准确;切换点是否落在该落的地方</td>
+          </tr>
+          <tr>
+            <td><b>recheck 验证通道</b></td>
+            <td>kraken2 判为宿主的读,再用 bowtie2 复核一次才删</td>
+            <td>能挽回多少被误删的微生物读,代价是多少时间</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>对照工具</th><th>它做什么</th><th>RustyClean 的对应用法</th></tr></thead>
+        <tbody>
+          <tr><td>KneadData</td><td>质控(trimmomatic + 串联重复屏蔽)+ 去宿主</td><td><code>auto</code>,带 fastp 质控</td></tr>
+          <tr><td>Hostile</td><td>只做去宿主,不做质控</td><td><code>auto --skip-qc</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      <b>两组分开跑是为了让对比的范围一致。</b>拿带质控的 RustyClean 去比只做去宿主的 Hostile,
+      等于让它多干一份活再比时间,得出的差距一部分是"多做的事"而不是"做得更快"。
+    </p>
+
+    <p class="lede">
+      衡量标准是<b>每条读的真值标签</b>:数据由 InSilicoSeq 模拟,宿主读来自 GRCh38、微生物读来自 GTDB 群落,
+      因此每条读的归属是已知的,可以逐条核对工具的判断。宿主读从 GRCh38 模拟而去宿主对 T2T-CHM13v2.0 进行——
+      两者是不同的组装版本,<b>去宿主必须应对真实的组装差异,而不是匹配读的来源本身</b>。
+    </p>
+
+    <div class="flag" data-tone="void">
+      <h4>为什么是"重跑"而不是首次测试</h4>
+      <p>
+        2026-08 的一轮结果已整体作废,归档于 <code>archive/v1/</code>。主要原因有两条:
+        <b>一是索引与 Methods 不符</b>——所有实验实际用的是 <code>kraken16</code> 混合库和 <code>hg_39</code>,
+        而非稿件描述的人类专用 T2T 索引;混合库下 Kraken2 会把宿主读归到人类的祖先节点,
+        很可能解释了当时观察到的大部分宿主残留。<b>二是重复实验可能没有真正执行</b>——
+        三次重复共用一个检查点目录,第 2、3 次可能直接返回而未做任何计算。
+        此外还有 Hostile 两个互相矛盾的运行时、正类约定不一致、以及 Methods 写的模拟器与代码实际调用的不是同一个。
+      </p>
+      <p>
+        这一轮的目标不只是拿到数字,更是让<b>每个数字都能追溯到它是怎么产生的</b>:
+        索引带来源标记、数据集带种子与实测读长、每次测量都记录在案。
+      </p>
+    </div>
+  </section>
+
   <!-- ============ 阶段状态 ============ -->
   <section>
-    <h2><span class="num">01</span>阶段状态</h2>
+    <h2><span class="num">02</span>阶段状态</h2>
     <p class="lede">
       六个阶段按依赖顺序提交。stage 3–6 通过 <code>afterok</code> 依赖 stage 1 与 stage 2,
       因此上游任一任务失败,下游会被 SLURM 立刻取消——这是本轮多次"队列突然清空"的原因,不是下游自身出错。
@@ -532,7 +601,7 @@
 
   <!-- ============ 结果 ============ -->
   <section>
-    <h2><span class="num">02</span>已得到的结果</h2>
+    <h2><span class="num">03</span>已得到的结果</h2>
     <p class="lede">
       运行时间与内存峰值来自 <code>/usr/bin/time -v</code>,每次工具调用一条记录,合计 136 条,
       汇总于 <code>runs/summary/resources.csv</code>。<b>准确性数字尚不可用</b>,原因见第 06 节。
@@ -871,7 +940,7 @@
 
   <!-- ============ 软件 ============ -->
   <section>
-    <h2><span class="num">03</span>软件</h2>
+    <h2><span class="num">04</span>软件</h2>
     <p class="lede">
       被测工具是 RustyClean;KneadData 与 Hostile 是对照工具,均使用各自官方发布的默认数据库,不做修改。
       其余为 RustyClean 各后端所依赖的比对/分类程序。
@@ -898,7 +967,7 @@
 
   <!-- ============ 参考与数据库 ============ -->
   <section>
-    <h2><span class="num">04</span>参考序列与数据库</h2>
+    <h2><span class="num">05</span>参考序列与数据库</h2>
     <p class="lede">
       核心设计:<b>宿主读从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,因此去宿主必须应对真实的组装差异,
       而不是匹配读的来源本身。本项目构建的五个索引全部来自同一份 T2T FASTA,并带 provenance stamp 记录来源。
@@ -933,7 +1002,7 @@
 
   <!-- ============ 数据集 ============ -->
   <section>
-    <h2><span class="num">05</span>模拟数据集</h2>
+    <h2><span class="num">06</span>模拟数据集</h2>
     <p class="lede">
       18 个数据集,合计 5.4 亿条读,覆盖测序深度(5M–100M)、宿主比例(0–100%)、群落复杂度(5/30/100 物种)、
       丰度分布(均匀/对数正态/偏斜)与读取模式(单端/双端)。群落按复杂度用固定种子随机抽样,
@@ -975,7 +1044,7 @@
 
   <!-- ============ 待决 ============ -->
   <section>
-    <h2><span class="num">06</span>待决事项</h2>
+    <h2><span class="num">07</span>待决事项</h2>
 
     <div class="flag" data-tone="void">
       <h4>索引消融:唯一还没答案的科学问题</h4>
