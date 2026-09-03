@@ -14,5 +14,5 @@ source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 conda activate /lustre1/g/aos_shihuang/rustyclean-paper/.conda_envs/rustyclean-benchmark
 
 python /lustre1/g/aos_shihuang/rustyclean/compute_accuracy_baseline_k2.py \
-    /lustre1/g/aos_shihuang/rustyclean-paper/baseline_kraken2_memmap \
-    /lustre1/g/aos_shihuang/rustyclean-paper/baseline_kraken2_memmap/metrics/accuracy_baseline_kraken2_memmap.csv
+    ${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/baseline_kraken2_memmap \
+    ${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/baseline_kraken2_memmap/metrics/accuracy_baseline_kraken2_memmap.csv

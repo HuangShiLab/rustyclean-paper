@@ -37,7 +37,7 @@ def arm_a(name):
 ARM_A_ACC = arm_a("accuracy_bowtie2_recheck.csv")
 ARM_A_PERF = arm_a("performance_bowtie2_recheck.csv")
 ARM_B_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(
-    "/lustre1/g/aos_shihuang/rustyclean-paper/k2_index_ablation/metrics")
+    os.environ.get("RUNS_DIR", "/lustre1/g/aos_shihuang/rustyclean-paper/runs") + "/k2_index_ablation/metrics")
 
 DATASETS = [
     "30M_50pct_high_skewed_SE",

@@ -119,6 +119,16 @@ def main():
             })
             print(f"{dataset} rep{rep}: f1={metrics['f1']:.4f} precision={metrics['precision']:.4f} recall={metrics['recall']:.4f}")
 
+    # Every dataset skipped means the results directory is wrong, not that the
+    # runs produced nothing. Say so instead of crashing on a missing output dir.
+    if not rows:
+        sys.exit(
+            "ERROR: no dataset yielded a cleaned FASTQ; nothing to score.\n"
+            f"       Looked under {project_dir}\n"
+            "       Check that this is where the benchmark wrote its results "
+            "(RUNS_DIR), not the repository root."
+        )
+    os.makedirs(os.path.dirname(out_csv), exist_ok=True)
     with open(out_csv, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=[
             "dataset", "rep", "tool", "accuracy", "precision", "recall", "f1",
