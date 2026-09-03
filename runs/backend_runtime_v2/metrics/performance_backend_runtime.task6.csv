@@ -3,3 +3,4 @@ bowtie2,60M_90pct_high_lognormal_SE,1,646,3540160,2026-09-03T12:16:59+08:00
 kraken2,60M_90pct_high_lognormal_SE,1,359,7061704,2026-09-03T12:22:58+08:00
 minimap2,60M_90pct_high_lognormal_SE,1,1100,14102880,2026-09-03T12:41:19+08:00
 centrifuge,60M_90pct_high_lognormal_SE,1,FAILED,,2026-09-03T12:41:19+08:00
+bowtie2,60M_90pct_high_lognormal_SE,1,1804,3540904,2026-09-04T01:18:57+08:00

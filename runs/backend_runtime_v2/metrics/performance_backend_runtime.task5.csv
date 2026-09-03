@@ -3,3 +3,5 @@ bowtie2,30M_90pct_med_lognormal_SE,1,4667,3248708,2026-09-03T13:13:59+08:00
 kraken2,30M_90pct_med_lognormal_SE,1,274,5020912,2026-09-03T13:18:34+08:00
 minimap2,30M_90pct_med_lognormal_SE,1,2380,12735384,2026-09-03T13:58:25+08:00
 centrifuge,30M_90pct_med_lognormal_SE,1,FAILED,,2026-09-03T13:58:27+08:00
+bowtie2,30M_90pct_med_lognormal_SE,1,988,3452768,2026-09-04T01:04:16+08:00
+kraken2,30M_90pct_med_lognormal_SE,1,234,5019768,2026-09-04T01:08:10+08:00
