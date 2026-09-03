@@ -24,8 +24,8 @@
 <text x="53" y="46.8" text-anchor="end" class="tick">1%</text>
 <line x1="62" y1="26" x2="62" y2="378" stroke="var(--chart-axis)" stroke-width="1"/>
 <line x1="62" y1="378" x2="544" y2="378" stroke="var(--chart-axis)" stroke-width="1"/>
-<text x="303" y="418" text-anchor="middle" class="axis-label">宿主残留 — 未清除的宿主读占比 →</text>
-<text x="16" y="202" text-anchor="middle" class="axis-label" transform="rotate(-90 16 202)">微生物误删 — 被删的微生物读占比 →</text>
+<text x="303" y="418" text-anchor="middle" class="axis-label">宿主残留 — 未清除的宿主序列占比 →</text>
+<text x="16" y="202" text-anchor="middle" class="axis-label" transform="rotate(-90 16 202)">微生物误删 — 被删的微生物序列占比 →</text>
 <text x="72" y="368" class="annot">← 两类错误都更小</text>
 <path d="M390.7,378.0 L483.8,378.0 L490.3,378.0 L376.8,378.0" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.42" stroke-linejoin="round"/>
 <g><title>Hostile · 5M_1pct_low_even_SE

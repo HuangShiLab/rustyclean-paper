@@ -404,8 +404,8 @@
     <h2><span class="num">01</span>测试目的与设计</h2>
 
     <p class="lede">
-      去宿主的两类错误代价并不对称。<b>漏掉的宿主读会污染下游的丰度与功能分析</b>,
-      而<b>误删的微生物读是永久的数据损失,且在结果里看不出来</b>——没有人会发现某个物种少了 1%。
+      去宿主的两类错误代价并不对称。<b>漏掉的宿主序列会污染下游的丰度与功能分析</b>,
+      而<b>误删的微生物序列是永久的数据损失,且在结果里看不出来</b>——没有人会发现某个物种少了 1%。
       多数工具在这条轴上取一个固定位置,但真实样本的宿主比例从口腔拭子的 1% 到组织活检的 99% 不等。
     </p>
     <p class="lede">
@@ -419,13 +419,13 @@
         <tbody>
           <tr>
             <td><b>auto 路由</b></td>
-            <td>先抽 10 万条读估计宿主比例:低比例走 bowtie2 比对,高比例走 kraken2 k-mer 分类</td>
+            <td>先抽 10 万条序列估计宿主比例:低比例走 bowtie2 比对,高比例走 kraken2 k-mer 分类</td>
             <td>抽样估计是否准确;切换点是否落在该落的地方</td>
           </tr>
           <tr>
             <td><b>recheck 验证通道</b></td>
-            <td>kraken2 判为宿主的读,再用 bowtie2 复核一次才删</td>
-            <td>能挽回多少被误删的微生物读,代价是多少时间</td>
+            <td>kraken2 判为宿主的序列,再用 bowtie2 复核一次才删</td>
+            <td>能挽回多少被误删的微生物序列,代价是多少时间</td>
           </tr>
         </tbody>
       </table>
@@ -446,9 +446,9 @@
     </p>
 
     <p class="lede">
-      衡量标准是<b>每条读的真值标签</b>:数据由 InSilicoSeq 模拟,宿主读来自 GRCh38、微生物读来自 GTDB 群落,
-      因此每条读的归属是已知的,可以逐条核对工具的判断。宿主读从 GRCh38 模拟而去宿主对 T2T-CHM13v2.0 进行——
-      两者是不同的组装版本,<b>去宿主必须应对真实的组装差异,而不是匹配读的来源本身</b>。
+      衡量标准是<b>每条序列的真值标签</b>:数据由 InSilicoSeq 模拟,宿主序列来自 GRCh38、微生物序列来自 GTDB 群落,
+      因此每条序列的归属是已知的,可以逐条核对工具的判断。宿主序列从 GRCh38 模拟而去宿主对 T2T-CHM13v2.0 进行——
+      两者是不同的组装版本,<b>去宿主必须应对真实的组装差异,而不是匹配序列的来源本身</b>。
     </p>
 
     <div class="flag" data-tone="void">
@@ -456,14 +456,14 @@
       <p>
         2026-08 的一轮结果已整体作废,归档于 <code>archive/v1/</code>。主要原因有两条:
         <b>一是索引与 Methods 不符</b>——所有实验实际用的是 <code>kraken16</code> 混合库和 <code>hg_39</code>,
-        而非稿件描述的人类专用 T2T 索引;混合库下 Kraken2 会把宿主读归到人类的祖先节点,
+        而非稿件描述的人类专用 T2T 索引;混合库下 Kraken2 会把宿主序列归到人类的祖先节点,
         很可能解释了当时观察到的大部分宿主残留。<b>二是重复实验可能没有真正执行</b>——
         三次重复共用一个检查点目录,第 2、3 次可能直接返回而未做任何计算。
         此外还有 Hostile 两个互相矛盾的运行时、正类约定不一致、以及 Methods 写的模拟器与代码实际调用的不是同一个。
       </p>
       <p>
         这一轮的目标不只是拿到数字,更是让<b>每个数字都能追溯到它是怎么产生的</b>:
-        索引带来源标记、数据集带种子与实测读长、每次测量都记录在案。
+        索引带来源标记、数据集带种子与实测序列长度、每次测量都记录在案。
       </p>
     </div>
   </section>
@@ -500,7 +500,7 @@
         <div class="stage-head">
           <h3>Stage 2 — 模拟数据生成</h3>
           <span class="chip done">已完成</span>
-          <span class="tag">18 任务 · 5.4 亿条读</span>
+          <span class="tag">18 任务 · 5.4 亿条序列</span>
         </div>
         <p class="stage-note">
           18 个数据集全部生成并通过校验:统一 novaseq 模型、151 bp、种子 43–60 各不相同、实际深度与声明值一致。
@@ -522,7 +522,7 @@
             <thead><tr><th>实验</th><th>对比对象</th><th>结果</th><th>状态</th></tr></thead>
             <tbody>
               <tr><td>RustyClean auto vs KneadData</td><td>KneadData(含 QC)</td><td>中位 4.42× 更快,最大 8.60×</td><td><span class="chip done">8/8</span></td></tr>
-              <tr><td>RustyClean --skip-qc vs Hostile</td><td>Hostile(原始读)</td><td>中位 0.99×,基本持平</td><td><span class="chip done">8/8</span></td></tr>
+              <tr><td>RustyClean --skip-qc vs Hostile</td><td>Hostile(原始序列)</td><td>中位 0.99×,基本持平</td><td><span class="chip done">8/8</span></td></tr>
               <tr><td>后端运行时对比</td><td>bowtie2 / kraken2 / minimap2 / centrifuge</td><td>kraken2 最快,minimap2 最慢</td><td><span class="chip void">24/32 运行</span></td></tr>
             </tbody>
           </table>
@@ -782,8 +782,8 @@
     </p>
     <h3 style="margin:20px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">准确性:两类错误的取舍曲线</h3>
     <p class="lede">
-      正类为"微生物读被保留"。<b>横轴是没能清除的宿主读</b>(污染残留),
-      <b>纵轴是被误删的微生物读</b>(数据损失)。越靠近左下角越好,而没有工具能同时到达两端——
+      正类为"微生物序列被保留"。<b>横轴是没能清除的宿主序列</b>(污染残留),
+      <b>纵轴是被误删的微生物序列</b>(数据损失)。越靠近左下角越好,而没有工具能同时到达两端——
       四个工具连成的这条线就是取舍本身。每个工具四个点,对应四个数据集;细线按测序深度串联。
     </p>
     <figure class="viz">
@@ -813,8 +813,8 @@
 <text x="53" y="46.8" text-anchor="end" class="tick">1%</text>
 <line x1="62" y1="26" x2="62" y2="378" stroke="var(--chart-axis)" stroke-width="1"/>
 <line x1="62" y1="378" x2="544" y2="378" stroke="var(--chart-axis)" stroke-width="1"/>
-<text x="303" y="418" text-anchor="middle" class="axis-label">宿主残留 — 未清除的宿主读占比 →</text>
-<text x="16" y="202" text-anchor="middle" class="axis-label" transform="rotate(-90 16 202)">微生物误删 — 被删的微生物读占比 →</text>
+<text x="303" y="418" text-anchor="middle" class="axis-label">宿主残留 — 未清除的宿主序列占比 →</text>
+<text x="16" y="202" text-anchor="middle" class="axis-label" transform="rotate(-90 16 202)">微生物误删 — 被删的微生物序列占比 →</text>
 <text x="72" y="368" class="annot">← 两类错误都更小</text>
 <path d="M390.7,378.0 L483.8,378.0 L490.3,378.0 L376.8,378.0" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.42" stroke-linejoin="round"/>
 <g><title>Hostile · 5M_1pct_low_even_SE
@@ -859,16 +859,16 @@
 </svg>
       <div class="legend"><span><i class="circle" style="background:var(--s1)"></i>RustyClean auto</span><span><i class="square" style="background:var(--s2)"></i>RustyClean --skip-qc</span><span><i class="triangle" style="background:var(--s3)"></i>Hostile</span><span><i class="diamond" style="background:var(--s4)"></i>KneadData</span></div>
       <figcaption>
-        <b>Hostile 停在左上角外侧</b>:一条微生物读都不丢,但宿主残留 2–2.7%。
-        <b>KneadData 在右下角</b>:宿主清得最干净,却误删了近 1% 的微生物读。
+        <b>Hostile 停在左上角外侧</b>:一条微生物序列都不丢,但宿主残留 2–2.7%。
+        <b>KneadData 在右下角</b>:宿主清得最干净,却误删了近 1% 的微生物序列。
         <b>RustyClean auto 落在拐点</b>——两个方向都接近最优,F1 因此最高。
         悬停任一标记可看具体数值。
       </figcaption>
     </figure>
 
     <p class="lede">
-      正类为"微生物读被保留"。<b>FP 是没能清除的宿主读</b>(污染残留),
-      <b>FN 是被误删的微生物读</b>(数据损失)。两者不可同时最小化,四个工具正好排成一条单调的取舍曲线。
+      正类为"微生物序列被保留"。<b>FP 是没能清除的宿主序列</b>(污染残留),
+      <b>FN 是被误删的微生物序列</b>(数据损失)。两者不可同时最小化,四个工具正好排成一条单调的取舍曲线。
     </p>
     <div class="scroll">
       <table>
@@ -910,9 +910,9 @@
     </div>
     <p class="lede">
       三点值得写进论文:<b>RustyClean auto 的 F1 最高</b>(0.9992);
-      KneadData 的宿主清除最彻底(0.30%),代价是误删的微生物读比 RustyClean auto <b>多近十倍</b>(0.884% vs 0.092%),
+      KneadData 的宿主清除最彻底(0.30%),代价是误删的微生物序列比 RustyClean auto <b>多近十倍</b>(0.884% vs 0.092%),
       F1 因此垫底;<b>RustyClean --skip-qc 在两条轴上都优于 Hostile</b>——宿主残留低 0.56 个百分点,
-      而多付出的微生物损失只有 0.008%。在 60M / 90% 宿主这个极端点上,Hostile 残留 105 万条宿主读,
+      而多付出的微生物损失只有 0.008%。在 60M / 90% 宿主这个极端点上,Hostile 残留 105 万条宿主序列,
       RustyClean auto 只有 13.5 万条。
     </p>
 
@@ -933,7 +933,7 @@
       </table>
     </div>
     <p class="lede">
-      十万条读的抽样估计与标称值最大偏差 0.59 个百分点,八个数据集全部正确路由:
+      十万条序列的抽样估计与标称值最大偏差 0.59 个百分点,八个数据集全部正确路由:
       ≤ 9.87% 走 bowtie2,≥ 49.41% 走 kraken2。这条规则的两半——估计准确、切换合理——都得到了验证。
     </p>
   </section>
@@ -952,7 +952,7 @@
           <tr><td><b>RustyClean</b></td><td>被测工具</td><td>stage 3–5 全部实验</td><td class="mono dim">rustyclean/target/release</td></tr>
           <tr><td>KneadData</td><td>对照工具</td><td>stage 3 主对比</td><td class="mono dim">conda envs/kneaddata</td></tr>
           <tr><td>Hostile</td><td>对照工具</td><td>stage 3 <code>--skip-qc</code> 对比</td><td class="mono dim">~/.local/bin</td></tr>
-          <tr><td>InSilicoSeq</td><td>读模拟</td><td>stage 2 生成全部数据</td><td class="mono dim">.conda_envs/rustyclean-benchmark</td></tr>
+          <tr><td>InSilicoSeq</td><td>序列模拟</td><td>stage 2 生成全部数据</td><td class="mono dim">.conda_envs/rustyclean-benchmark</td></tr>
           <tr><td>Kraken2</td><td>RustyClean 后端</td><td>k-mer 分类去宿主</td><td class="mono dim">conda envs/kraken2</td></tr>
           <tr><td>Bowtie2</td><td>RustyClean 后端</td><td>比对去宿主 + recheck 验证通道</td><td class="mono dim">conda envs/metaphlan</td></tr>
           <tr><td>minimap2</td><td>RustyClean 后端</td><td>后端对比</td><td class="mono dim">.conda_envs/rustyclean-benchmark</td></tr>
@@ -969,8 +969,8 @@
   <section>
     <h2><span class="num">05</span>参考序列与数据库</h2>
     <p class="lede">
-      核心设计:<b>宿主读从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,因此去宿主必须应对真实的组装差异,
-      而不是匹配读的来源本身。本项目构建的五个索引全部来自同一份 T2T FASTA,并带 provenance stamp 记录来源。
+      核心设计:<b>宿主序列从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,因此去宿主必须应对真实的组装差异,
+      而不是匹配序列的来源本身。本项目构建的五个索引全部来自同一份 T2T FASTA,并带 provenance stamp 记录来源。
     </p>
 
     <div class="scroll">
@@ -978,7 +978,7 @@
         <thead><tr><th>类别</th><th>名称</th><th>用途</th><th>状态</th></tr></thead>
         <tbody>
           <tr><td class="nowrap">参考序列</td><td>T2T-CHM13v2.0 <span class="dim mono">GCF_009914755.1</span></td><td>去宿主参考,五个索引的共同来源</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">参考序列</td><td>GRCh38.p14 <span class="dim mono">GCF_000001405.40</span></td><td>宿主读的模拟来源</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">参考序列</td><td>GRCh38.p14 <span class="dim mono">GCF_000001405.40</span></td><td>宿主序列的模拟来源</td><td><span class="chip done">就绪</span></td></tr>
           <tr><td class="nowrap">参考序列</td><td>GTDB r202 参考基因组</td><td>微生物群落取材,9,057 个基因组</td><td><span class="chip done">就绪</span></td></tr>
           <tr><td class="nowrap">分类信息</td><td>NCBI taxonomy</td><td>Kraken2 与 centrifuge 建库</td><td><span class="chip done">就绪</span></td></tr>
           <tr><td class="nowrap">本项目索引</td><td>Kraken2 human-only (T2T)</td><td><b>默认后端</b>,除消融外全部实验使用</td><td><span class="chip done">已建成</span></td></tr>
@@ -1004,14 +1004,14 @@
   <section>
     <h2><span class="num">06</span>模拟数据集</h2>
     <p class="lede">
-      18 个数据集,合计 5.4 亿条读,覆盖测序深度(5M–100M)、宿主比例(0–100%)、群落复杂度(5/30/100 物种)、
-      丰度分布(均匀/对数正态/偏斜)与读取模式(单端/双端)。群落按复杂度用固定种子随机抽样,
+      18 个数据集,合计 5.4 亿条序列,覆盖测序深度(5M–100M)、宿主比例(0–100%)、群落复杂度(5/30/100 物种)、
+      丰度分布(均匀/对数正态/偏斜)与测序模式(单端/双端)。群落按复杂度用固定种子随机抽样,
       同一复杂度的数据集共用同一群落,因此跨深度与跨宿主比例可比。
     </p>
     <div class="scroll">
       <table>
         <thead>
-          <tr><th>数据集</th><th class="num">读数</th><th class="num">宿主</th><th>复杂度</th><th>丰度分布</th><th>模式</th><th class="num">种子</th></tr>
+          <tr><th>数据集</th><th class="num">序列数</th><th class="num">宿主</th><th>复杂度</th><th>丰度分布</th><th>模式</th><th class="num">种子</th></tr>
         </thead>
         <tbody>
           <tr><td class="mono">5M_1pct_low_even_SE</td><td class="num">5,000,000</td><td class="num">1%</td><td>low · 5 种</td><td>even</td><td>SE</td><td class="num">43</td></tr>
@@ -1036,9 +1036,9 @@
       </table>
     </div>
     <p class="lede">
-      模拟器为 InSilicoSeq,<code>novaseq</code> 误差模型,实测读长 151 bp。
-      每个数据集写入 <code>metadata.json</code> 记录实测读长、模型与种子;
-      读长是从产出的读中量取的,而非写死的常数,因此 Methods 可以对照数据核实。
+      模拟器为 InSilicoSeq,<code>novaseq</code> 误差模型,实测序列长度 151 bp。
+      每个数据集写入 <code>metadata.json</code> 记录实测序列长度、模型与种子;
+      序列长度是从产出的序列中量取的,而非写死的常数,因此 Methods 可以对照数据核实。
     </p>
   </section>
 
@@ -1052,7 +1052,7 @@
         混合库臂的准确性已测出(30M/50%:宿主残留 0.079%,微生物误删 0.084%),
         但对照的人类专用库臂来自 recheck 实验,那个作业仍在重跑。两臂齐了才能回答:
         v1 观察到的 1.41% 宿主残留,是方法本身的问题,还是混合库下 Kraken2 的 LCA
-        把宿主读归到了人类的祖先节点。答案决定 <code>feat/host-taxid-lineage</code> 分支是否需要合并。
+        把宿主序列归到了人类的祖先节点。答案决定 <code>feat/host-taxid-lineage</code> 分支是否需要合并。
       </p>
     </div>
 
@@ -1071,7 +1071,7 @@
       <p>
         对 Hostile 的速度是持平(中位 0.99×),但准确性上 RustyClean <code>--skip-qc</code>
         在两条轴上都更优。对 KneadData 则相反:速度快 4.4–8.6 倍,而 KneadData 的宿主清除
-        略胜一筹(0.30% vs 0.42%),代价是误删近十倍的微生物读。
+        略胜一筹(0.30% vs 0.42%),代价是误删近十倍的微生物序列。
         论文的主张应当是"在两类错误之间取得更好的平衡",而不是单纯的速度。
       </p>
     </div>

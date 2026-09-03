@@ -82,9 +82,9 @@ def chart_tradeoff(data):
     s.append(f'<line x1="{L}" y1="{T+ph}" x2="{L+pw}" y2="{T+ph}" stroke="var(--chart-axis)" stroke-width="1"/>')
 
     s.append(f'<text x="{L+pw/2:.0f}" y="{H-12}" text-anchor="middle" class="axis-label">'
-             f'宿主残留 — 未清除的宿主读占比 →</text>')
+             f'宿主残留 — 未清除的宿主序列占比 →</text>')
     s.append(f'<text x="16" y="{T+ph/2:.0f}" text-anchor="middle" class="axis-label" '
-             f'transform="rotate(-90 16 {T+ph/2:.0f})">微生物误删 — 被删的微生物读占比 →</text>')
+             f'transform="rotate(-90 16 {T+ph/2:.0f})">微生物误删 — 被删的微生物序列占比 →</text>')
 
     # "better" corner
     s.append(f'<text x="{L+10}" y="{T+ph-10}" class="annot">← 两类错误都更小</text>')
