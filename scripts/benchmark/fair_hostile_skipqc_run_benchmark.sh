@@ -108,8 +108,11 @@ for dataset in "${DATASETS[@]}"; do
     read -r rc_runtime rc_mem <<< "$(parse_time_log "${time_log}")"
     rc_clean=$(find "${rc_out}" -name '*_clean_R1.fastq.gz' -print -quit)
     rc_size=$(stat -c%s "${rc_clean}" 2>/dev/null || echo "unknown")
-    rc_backend=$(grep "chosen_backend" "${ds_out}/rc_auto_skipqc.log" 2>/dev/null | tail -1 | sed -E 's/.*chosen_backend=\"([^\"]+)\".*/\1/' || echo "unknown")
-    rc_hostpct=$(grep "estimated_host_pct" "${ds_out}/rc_auto_skipqc.log" 2>/dev/null | tail -1 | sed -E 's/.*estimated_host_pct=\"([^\"]+)\".*/\1/' || echo "unknown")
+    # Strip the ANSI colour codes first. Without that the quotes around the
+    # value are wrapped in escape sequences, the sed pattern never matches,
+    # and the whole log line is written into the CSV instead of the value.
+    rc_backend=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto_skipqc.log" 2>/dev/null | grep "chosen_backend" | tail -1 | sed -E 's/.*chosen_backend=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
+    rc_hostpct=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto_skipqc.log" 2>/dev/null | grep "estimated_host_pct" | tail -1 | sed -E 's/.*estimated_host_pct=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
     echo "${dataset},rustyclean_auto_skipqc,${rc_runtime},${rc_mem},${rc_size},${rc_backend},${rc_hostpct},$(date -Iseconds)" >> "${METRICS}"
     echo "RustyClean AUTO --skip-qc: ${rc_runtime}s, ${rc_mem}KB, backend=${rc_backend}, host_pct=${rc_hostpct}, size=${rc_size}B"
 
