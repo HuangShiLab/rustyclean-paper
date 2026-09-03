@@ -148,6 +148,12 @@ have "python3"        python3          required "accuracy and analysis"
 have "KneadData"      kneaddata        required "comparator"
 have "Hostile"        hostile          required "comparator"
 have "minimap2"       minimap2         optional "minimap2 backend only"
+# preflight builds its own PATH including the project environment, so a tool can
+# pass here and still be missing inside a job that sets PATH by hand. The backend
+# comparison did exactly that: centrifuge failed on all 8 datasets while
+# preflight reported it present.
+note "tools above are resolved with the project env on PATH; a job that sets"
+note "PATH itself must call activate_conda or it will not see them"
 have "sylph"          sylph            optional "sylph backend only"
 have "centrifuge"     centrifuge       optional "centrifuge backend only"
 have "centrifuge-build" centrifuge-build optional "centrifuge index build only"

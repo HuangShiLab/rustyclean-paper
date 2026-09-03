@@ -22,7 +22,26 @@ ARRAY_TAG=""
 [ -n "${SLURM_ARRAY_TASK_ID:-}" ] && ARRAY_TAG=".task${SLURM_ARRAY_TASK_ID}"
 
 
-source /group/aos_shihuang/conda/etc/profile.d/conda.sh
+# The hardcoded PATH below lists fastp, kraken2 and bowtie2 only. minimap2 and
+# centrifuge live in the project conda environment, so centrifuge failed on
+# every dataset with "not found in PATH" while the other backends ran -- a
+# comparison silently missing one of the four things it compares. Prepend the
+# project environment as well, which is what activate_conda does.
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/config.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+if [ -n "${REPO_DIR:-}" ] && [ -f "$REPO_DIR/scripts/hpc/config.sh" ]; then
+    source "$REPO_DIR/scripts/hpc/config.sh"
+    activate_conda
+else
+    source /group/aos_shihuang/conda/etc/profile.d/conda.sh
+fi
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:$HOME/.local/bin:${PATH}"
 
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
