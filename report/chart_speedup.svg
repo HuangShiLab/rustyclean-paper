@@ -1,0 +1,42 @@
+<svg viewBox="0 0 720 300" role="img" aria-label="相对两个对照工具的加速比">
+<title>加速比随宿主比例的变化</title>
+<line x1="58" y1="224.7" x2="570" y2="224.7" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="228.7" text-anchor="end" class="tick">1×</text>
+<line x1="58" y1="174.0" x2="570" y2="174.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="178.0" text-anchor="end" class="tick">3×</text>
+<line x1="58" y1="123.3" x2="570" y2="123.3" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="127.3" text-anchor="end" class="tick">5×</text>
+<line x1="58" y1="72.7" x2="570" y2="72.7" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="76.7" text-anchor="end" class="tick">7×</text>
+<line x1="58" y1="22.0" x2="570" y2="22.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="26.0" text-anchor="end" class="tick">9×</text>
+<line x1="58" y1="224.7" x2="570" y2="224.7" stroke="var(--chart-axis)" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="566" y="217.7" text-anchor="end" class="annot">1× 持平</text>
+<text x="58.0" y="268" text-anchor="middle" class="tick">0%</text>
+<text x="186.0" y="268" text-anchor="middle" class="tick">25%</text>
+<text x="314.0" y="268" text-anchor="middle" class="tick">50%</text>
+<text x="442.0" y="268" text-anchor="middle" class="tick">75%</text>
+<text x="570.0" y="268" text-anchor="middle" class="tick">100%</text>
+<line x1="58" y1="250" x2="570" y2="250" stroke="var(--chart-axis)" stroke-width="1"/>
+<text x="314" y="289" text-anchor="middle" class="axis-label">数据集的宿主比例 →</text>
+<path d="M63.1,224.9 L83.6,222.4 L109.2,206.4 L314.0,138.0 L416.4,167.2 L518.8,103.6 L518.8,82.8 L564.9,32.1" fill="none" stroke="var(--s4)" stroke-width="2" stroke-opacity="0.5" stroke-linejoin="round"/>
+<g><title>对 KneadData · 宿主 1% · 深度 5M · 0.99×</title><polygon points="63.1,218.2 69.9,224.9 63.1,231.7 56.4,224.9" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 5% · 深度 5M · 1.09×</title><polygon points="83.6,215.6 90.3,222.4 83.6,229.1 76.8,222.4" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 10% · 深度 10M · 1.72×</title><polygon points="109.2,199.7 116.0,206.4 109.2,213.2 102.5,206.4" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 50% · 深度 30M · 4.42×</title><polygon points="314.0,131.3 320.8,138.0 314.0,144.8 307.2,138.0" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 70% · 深度 30M · 3.27×</title><polygon points="416.4,160.4 423.1,167.2 416.4,173.9 409.6,167.2" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 90% · 深度 30M · 5.78×</title><polygon points="518.8,96.8 525.5,103.6 518.8,110.3 512.0,103.6" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 90% · 深度 60M · 6.60×</title><polygon points="518.8,76.1 525.5,82.8 518.8,89.6 512.0,82.8" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 99% · 深度 60M · 8.60×</title><polygon points="564.9,25.4 571.6,32.1 564.9,38.9 558.1,32.1" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="577.9" y="36.1" class="series-label">对 KneadData</text>
+<path d="M63.1,236.3 L83.6,232.8 L109.2,226.9 L314.0,216.6 L416.4,221.1 L518.8,234.3 L518.8,224.9 L564.9,222.6" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.5" stroke-linejoin="round"/>
+<g><title>对 Hostile · 宿主 1% · 深度 5M · 0.54×</title><polygon points="63.1,230.0 57.3,240.7 68.9,240.7" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 5% · 深度 5M · 0.68×</title><polygon points="83.6,226.5 77.8,237.2 89.4,237.2" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 10% · 深度 10M · 0.91×</title><polygon points="109.2,220.6 103.4,231.4 115.0,231.4" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 50% · 深度 30M · 1.32×</title><polygon points="314.0,210.3 308.2,221.0 319.8,221.0" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 70% · 深度 30M · 1.14×</title><polygon points="416.4,214.8 410.6,225.5 422.2,225.5" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 90% · 深度 30M · 0.62×</title><polygon points="518.8,228.0 513.0,238.7 524.6,238.7" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 90% · 深度 60M · 0.99×</title><polygon points="518.8,218.6 513.0,229.3 524.6,229.3" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 99% · 深度 60M · 1.08×</title><polygon points="564.9,216.3 559.1,227.0 570.7,227.0" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="577.9" y="226.6" class="series-label">对 Hostile</text>
+</svg>

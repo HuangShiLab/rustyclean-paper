@@ -1,0 +1,1033 @@
+<title>RustyClean 基准重跑状态</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground:      #F6F8F8;
+    --surface:     #FFFFFF;
+    --surface-sub: #EEF3F3;
+    --ink:         #121E26;
+    --ink-soft:    #566871;
+    --ink-faint:   #8497A0;
+    --line:        #DCE4E6;
+    --line-strong: #C2CFD2;
+    --accent:      #0D6E6E;
+    --accent-soft: #E2F0EF;
+
+    --done:      #2C7A57;
+    --done-bg:   #E3F1EA;
+    --run:       #A96F16;
+    --run-bg:    #F8EEDC;
+    --wait:      #5C6E77;
+    --wait-bg:   #E9EEEF;
+    --void:      #A0453A;
+    --void-bg:   #F7E5E2;
+
+    --radius: 6px;
+    --maxw: 1140px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0D1418;
+      --surface:     #151E23;
+      --surface-sub: #1B262C;
+      --ink:         #E2EBEE;
+      --ink-soft:    #93A6AF;
+      --ink-faint:   #6C808A;
+      --line:        #25333A;
+      --line-strong: #33454D;
+      --accent:      #4EB2AC;
+      --accent-soft: #133033;
+
+      --done:      #62BC90;
+      --done-bg:   #16302A;
+      --run:       #D9A64B;
+      --run-bg:    #34290F;
+      --wait:      #93A6AF;
+      --wait-bg:   #202C32;
+      --void:      #D97A6B;
+      --void-bg:   #351D1B;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0D1418;
+    --surface:     #151E23;
+    --surface-sub: #1B262C;
+    --ink:         #E2EBEE;
+    --ink-soft:    #93A6AF;
+    --ink-faint:   #6C808A;
+    --line:        #25333A;
+    --line-strong: #33454D;
+    --accent:      #4EB2AC;
+    --accent-soft: #133033;
+
+    --done:      #62BC90;
+    --done-bg:   #16302A;
+    --run:       #D9A64B;
+    --run-bg:    #34290F;
+    --wait:      #93A6AF;
+    --wait-bg:   #202C32;
+    --void:      #D97A6B;
+    --void-bg:   #351D1B;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Noto Sans SC", "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 52px;
+  }
+
+  /* ---------- masthead ---------- */
+  header { display: flex; flex-direction: column; gap: 14px; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-family: "Noto Serif SC", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4.2vw, 40px);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    margin: 0;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .meta b { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---------- counters ---------- */
+  .tally {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .tally div {
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .tally .n {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 27px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+  }
+  .tally .k { font-size: 12.5px; color: var(--ink-soft); }
+  .n.done { color: var(--done); }
+  .n.run  { color: var(--run); }
+  .n.wait { color: var(--wait); }
+  .n.void { color: var(--void); }
+
+  /* ---------- sections ---------- */
+  section { display: flex; flex-direction: column; gap: 18px; }
+
+  h2 {
+    font-family: "Noto Serif SC", Georgia, serif;
+    font-weight: 600;
+    font-size: 21px;
+    margin: 0;
+    padding-bottom: 9px;
+    border-bottom: 2px solid var(--ink);
+    letter-spacing: -0.005em;
+  }
+
+  h2 .num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--accent);
+    margin-right: 10px;
+    vertical-align: 2px;
+  }
+
+  .lede { max-width: 68ch; color: var(--ink-soft); margin: 0; }
+
+  /* ---------- chips ---------- */
+  .chip {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 100px;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1.6;
+  }
+  .chip.done { background: var(--done-bg); color: var(--done); }
+  .chip.run  { background: var(--run-bg);  color: var(--run); }
+  .chip.wait { background: var(--wait-bg); color: var(--wait); }
+  .chip.void { background: var(--void-bg); color: var(--void); }
+
+  /* ---------- stage cards ---------- */
+  .stages { display: flex; flex-direction: column; gap: 14px; }
+
+  .stage {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .stage[data-state="done"] { border-left-color: var(--done); }
+  .stage[data-state="run"]  { border-left-color: var(--run); }
+  .stage[data-state="wait"] { border-left-color: var(--wait); }
+  .stage[data-state="void"] { border-left-color: var(--void); }
+
+  .stage-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 14px;
+  }
+  .stage-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: "Noto Serif SC", Georgia, serif;
+  }
+  .stage-head .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+  .stage-note { margin: 0; color: var(--ink-soft); font-size: 14px; max-width: 74ch; }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+
+  th {
+    text-align: left;
+    font-weight: 500;
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-sub);
+    padding: 9px 13px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--line);
+  }
+  td {
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.mono, th.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td.nowrap { white-space: nowrap; }
+  .dim { color: var(--ink-faint); }
+
+  .stage .scroll { border-radius: 4px; }
+  .stage table { font-size: 13px; }
+  .stage th { background: transparent; padding: 6px 11px; }
+  .stage td { padding: 7px 11px; }
+
+
+  /* ---------- charts ---------- */
+  /* Series colours come from the validated four-slot palette. Each series also
+     carries a distinct marker shape: the dark palette's CVD separation sits at
+     the FLOOR, which is only admissible with a second encoding channel. */
+  .viz {
+    --chart-surface: var(--surface);
+    --chart-grid:    var(--line);
+    --chart-axis:    var(--line-strong);
+    --s1: #2a78d6;  /* RustyClean auto     */
+    --s2: #008300;  /* RustyClean --skip-qc */
+    --s3: #e87ba4;  /* Hostile             */
+    --s4: #eda100;  /* KneadData           */
+    --chart-bar-muted: var(--line-strong);
+  }
+  :root:not([data-theme="light"]) .viz { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .viz {
+      --s1: #3987e5; --s2: #008300; --s3: #d55181; --s4: #c98500;
+    }
+  }
+  :root[data-theme="dark"] .viz {
+    --s1: #3987e5; --s2: #008300; --s3: #d55181; --s4: #c98500;
+  }
+
+  figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; min-width: 560px; height: auto; }
+  figcaption { font-size: 13.5px; color: var(--ink-soft); max-width: 76ch; }
+  figcaption b { color: var(--ink); }
+
+  .viz .tick         { font-size: 11px; fill: var(--ink-faint); font-family: "IBM Plex Mono", monospace; }
+  .viz .axis-label   { font-size: 12px; fill: var(--ink-soft); }
+  .viz .series-label { font-size: 12.5px; fill: var(--ink); font-weight: 500; }
+  .viz .annot        { font-size: 11.5px; fill: var(--ink-faint); }
+  .viz .bar-label    { font-size: 12.5px; fill: var(--ink); }
+  .viz .bar-value    { font-size: 12px; fill: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
+  .viz g:hover > :is(circle, rect, polygon) { stroke: var(--ink); stroke-width: 2.5; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 11px; height: 11px; display: inline-block; flex: none; }
+  .legend i.circle   { border-radius: 50%; }
+  .legend i.square   { border-radius: 2px; }
+  .legend i.triangle { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  .legend i.diamond  { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+
+  /* ---------- callouts ---------- */
+  .flag {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 15px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .flag h4 {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+  .flag p { margin: 0; color: var(--ink-soft); font-size: 14px; max-width: 76ch; }
+  .flag[data-tone="void"] { border-left-color: var(--void); }
+  .flag[data-tone="run"]  { border-left-color: var(--run); }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.9em;
+    background: var(--surface-sub);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+    color: var(--ink-faint);
+    font-size: 12.5px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  @media (max-width: 620px) {
+    .wrap { padding: 36px 18px 72px; gap: 40px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Benchmark rerun · 状态报告</div>
+    <h1>RustyClean 基准重跑状态</h1>
+    <p class="standfirst">
+      从零重跑全部建库与测试,取代 2026-08 的旧结果。<b>运行时间、内存与准确性均已测得</b>。
+      四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,
+      这正是本项目要论证的不对称性。本页记录用什么软件、什么数据库、跑什么数据,以及每一步的状态与结果。
+    </p>
+    <div class="meta">
+      <span><b>集群</b> HPC2021 · amd 分区</span>
+      <span><b>项目目录</b> /lustre1/g/aos_shihuang/rustyclean-paper</span>
+      <span><b>作业总数</b> 73</span>
+      <span><b>测量条数</b> 136 + 16 准确性</span>
+      <span><b>更新</b> 2026-09-04</span>
+    </div>
+  </header>
+
+  <div class="tally">
+    <div><span class="n done">69</span><span class="k">任务已完成</span></div>
+    <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
+    <div><span class="n run">2</span><span class="k">重跑中</span></div>
+    <div><span class="n void">1</span><span class="k">未决科学问题</span></div>
+  </div>
+
+  <!-- ============ 阶段状态 ============ -->
+  <section>
+    <h2><span class="num">01</span>阶段状态</h2>
+    <p class="lede">
+      六个阶段按依赖顺序提交。stage 3–6 通过 <code>afterok</code> 依赖 stage 1 与 stage 2,
+      因此上游任一任务失败,下游会被 SLURM 立刻取消——这是本轮多次"队列突然清空"的原因,不是下游自身出错。
+    </p>
+
+    <div class="stages">
+
+      <div class="stage" data-state="done">
+        <div class="stage-head">
+          <h3>Stage 1 — 参考索引构建</h3>
+          <span class="chip done">已完成</span>
+          <span class="tag">3 作业</span>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>索引</th><th>脚本</th><th>状态</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td>Kraken2 human-only (T2T)</td><td class="mono">build_kraken2_t2t_only.sh</td><td><span class="chip done">已建成</span></td><td>4.3 GB,k=35 / l=31,33 个分类节点,已用 <code>kraken2-inspect</code> 验证</td></tr>
+              <tr><td>Bowtie2 T2T-only</td><td class="mono">build_bowtie2_t2t_only.sh</td><td><span class="chip done">已重建</span></td><td>已去掉 <code>--large-index</code>,现为 <code>.bt2</code> 小索引;T2T 单独 3.1 Gbp,不触及 Bowtie2 的 4 Gbp 上限</td></tr>
+              <tr><td>minimap2 / sylph / centrifuge</td><td class="mono">build_aux_indexes.sh</td><td><span class="chip done">已建成</span></td><td>均带 provenance stamp,来源为同一份 T2T FASTA</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="stage" data-state="done">
+        <div class="stage-head">
+          <h3>Stage 2 — 模拟数据生成</h3>
+          <span class="chip done">已完成</span>
+          <span class="tag">18 任务 · 5.4 亿条读</span>
+        </div>
+        <p class="stage-note">
+          18 个数据集全部生成并通过校验:统一 novaseq 模型、151 bp、种子 43–60 各不相同、实际深度与声明值一致。
+          本阶段设有四道闸门——输入缺失报错、空数据集拒绝完成、深度偏差超 3% 报错、模型/种子不符自动重生成。
+        </p>
+      </div>
+
+      <div class="stage" data-state="done">
+        <div class="stage-head">
+          <h3>Stage 3 — 主对比实验</h3>
+          <span class="chip done">已完成</span>
+          <span class="tag">24 任务</span>
+        </div>
+        <p class="stage-note">
+          时间与内存全部测得。后端对比中 <b>centrifuge 的 8 个运行全部失败</b>,因此只有 3/4 个后端有数据。
+        </p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>实验</th><th>对比对象</th><th>结果</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>RustyClean auto vs KneadData</td><td>KneadData(含 QC)</td><td>中位 4.42× 更快,最大 8.60×</td><td><span class="chip done">8/8</span></td></tr>
+              <tr><td>RustyClean --skip-qc vs Hostile</td><td>Hostile(原始读)</td><td>中位 0.99×,基本持平</td><td><span class="chip done">8/8</span></td></tr>
+              <tr><td>后端运行时对比</td><td>bowtie2 / kraken2 / minimap2 / centrifuge</td><td>kraken2 最快,minimap2 最慢</td><td><span class="chip void">24/32 运行</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="stage" data-state="done">
+        <div class="stage-head">
+          <h3>Stage 4 — 验证通道与索引消融</h3>
+          <span class="chip done">已完成</span>
+          <span class="tag">15 任务 · 各 3 次重复</span>
+        </div>
+        <p class="stage-note">
+          三条臂的时间与内存都已测得。但<b>索引消融要回答的是准确性问题,而准确性数据目前为零</b>,
+          所以这个实验虽已运行,结论仍未得到——它需要修复真值后重算准确性。
+        </p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>实验</th><th>中位运行时间</th><th>峰值内存</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>Kraken2 基线(无 recheck)</td><td>15 分 33 秒</td><td>12.3 GB</td><td><span class="chip done">已测</span></td></tr>
+              <tr><td>Kraken2 + Bowtie2 recheck</td><td>24 分 18 秒</td><td>12.7 GB</td><td><span class="chip done">已测</span></td></tr>
+              <tr><td>索引消融(混合库)</td><td>13 分 56 秒</td><td>15.6 GB</td><td><span class="chip void">缺准确性</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="stage" data-state="done">
+        <div class="stage-head">
+          <h3>Stage 5 — 此前未测量的部分</h3>
+          <span class="chip done">已完成</span>
+          <span class="tag">9 任务</span>
+        </div>
+        <p class="stage-note">
+          此前一轮用错了参考索引(指向 Hostile 的 T2T+HLA),结果已作废;本轮脚本已改为使用本项目的纯 T2T 索引,
+          重跑完成。决策边界扫描给出 bowtie2 与 kraken2 在各宿主比例下的实测代价。
+        </p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>实验</th><th>结果</th><th>峰值内存</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>auto 路由决策边界</td><td>bowtie2 中位 3 分 40 秒 · kraken2 中位 2 分 11 秒</td><td>3.1 / 4.8 GB</td><td><span class="chip done">6/6</span></td></tr>
+              <tr><td>双端 panel</td><td>RustyClean 15 分 23 秒 · Hostile 17 分 46 秒 · KneadData 45 分 26 秒</td><td>3.6 GB</td><td><span class="chip done">3/3</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="stage" data-state="run">
+        <div class="stage-head">
+          <h3>Stage 6 — 准确性与资源汇总</h3>
+          <span class="chip done">准确性已得</span>
+          <span class="chip run">recheck 臂重跑中</span>
+          <span class="tag">4 作业</span>
+        </div>
+        <p class="stage-note">
+          真值 ID 修复后重算,四工具对比与索引消融的准确性都已产出真实数值。
+          recheck 臂此前因包装脚本路径缺少 <code>runs/</code> 而找不到清洗输出,路径已修,正在重跑。
+        </p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>作业</th><th>产出</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>四工具准确性</td><td class="mono">accuracy_comparison.csv</td><td><span class="chip done">16 行</span></td></tr>
+              <tr><td>索引消融准确性(混合库臂)</td><td class="mono">accuracy_k2_mixed.csv</td><td><span class="chip done">12 行</span></td></tr>
+              <tr><td>recheck 臂准确性</td><td class="mono">accuracy_bowtie2_recheck.csv</td><td><span class="chip run">重跑中</span></td></tr>
+              <tr><td>资源汇总</td><td class="mono">resources.csv</td><td><span class="chip done">136 条</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 结果 ============ -->
+  <section>
+    <h2><span class="num">02</span>已得到的结果</h2>
+    <p class="lede">
+      运行时间与内存峰值来自 <code>/usr/bin/time -v</code>,每次工具调用一条记录,合计 136 条,
+      汇总于 <code>runs/summary/resources.csv</code>。<b>准确性数字尚不可用</b>,原因见第 06 节。
+    </p>
+
+    <h3 style="margin:6px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">对 KneadData:优势随宿主比例与深度增长</h3>
+    <figure class="viz">
+      <svg viewBox="0 0 720 300" role="img" aria-label="相对两个对照工具的加速比">
+<title>加速比随宿主比例的变化</title>
+<line x1="58" y1="224.7" x2="570" y2="224.7" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="228.7" text-anchor="end" class="tick">1×</text>
+<line x1="58" y1="174.0" x2="570" y2="174.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="178.0" text-anchor="end" class="tick">3×</text>
+<line x1="58" y1="123.3" x2="570" y2="123.3" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="127.3" text-anchor="end" class="tick">5×</text>
+<line x1="58" y1="72.7" x2="570" y2="72.7" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="76.7" text-anchor="end" class="tick">7×</text>
+<line x1="58" y1="22.0" x2="570" y2="22.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="49" y="26.0" text-anchor="end" class="tick">9×</text>
+<line x1="58" y1="224.7" x2="570" y2="224.7" stroke="var(--chart-axis)" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="566" y="217.7" text-anchor="end" class="annot">1× 持平</text>
+<text x="58.0" y="268" text-anchor="middle" class="tick">0%</text>
+<text x="186.0" y="268" text-anchor="middle" class="tick">25%</text>
+<text x="314.0" y="268" text-anchor="middle" class="tick">50%</text>
+<text x="442.0" y="268" text-anchor="middle" class="tick">75%</text>
+<text x="570.0" y="268" text-anchor="middle" class="tick">100%</text>
+<line x1="58" y1="250" x2="570" y2="250" stroke="var(--chart-axis)" stroke-width="1"/>
+<text x="314" y="289" text-anchor="middle" class="axis-label">数据集的宿主比例 →</text>
+<path d="M63.1,224.9 L83.6,222.4 L109.2,206.4 L314.0,138.0 L416.4,167.2 L518.8,103.6 L518.8,82.8 L564.9,32.1" fill="none" stroke="var(--s4)" stroke-width="2" stroke-opacity="0.5" stroke-linejoin="round"/>
+<g><title>对 KneadData · 宿主 1% · 深度 5M · 0.99×</title><polygon points="63.1,218.2 69.9,224.9 63.1,231.7 56.4,224.9" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 5% · 深度 5M · 1.09×</title><polygon points="83.6,215.6 90.3,222.4 83.6,229.1 76.8,222.4" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 10% · 深度 10M · 1.72×</title><polygon points="109.2,199.7 116.0,206.4 109.2,213.2 102.5,206.4" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 50% · 深度 30M · 4.42×</title><polygon points="314.0,131.3 320.8,138.0 314.0,144.8 307.2,138.0" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 70% · 深度 30M · 3.27×</title><polygon points="416.4,160.4 423.1,167.2 416.4,173.9 409.6,167.2" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 90% · 深度 30M · 5.78×</title><polygon points="518.8,96.8 525.5,103.6 518.8,110.3 512.0,103.6" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 90% · 深度 60M · 6.60×</title><polygon points="518.8,76.1 525.5,82.8 518.8,89.6 512.0,82.8" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 KneadData · 宿主 99% · 深度 60M · 8.60×</title><polygon points="564.9,25.4 571.6,32.1 564.9,38.9 558.1,32.1" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="577.9" y="36.1" class="series-label">对 KneadData</text>
+<path d="M63.1,236.3 L83.6,232.8 L109.2,226.9 L314.0,216.6 L416.4,221.1 L518.8,234.3 L518.8,224.9 L564.9,222.6" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.5" stroke-linejoin="round"/>
+<g><title>对 Hostile · 宿主 1% · 深度 5M · 0.54×</title><polygon points="63.1,230.0 57.3,240.7 68.9,240.7" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 5% · 深度 5M · 0.68×</title><polygon points="83.6,226.5 77.8,237.2 89.4,237.2" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 10% · 深度 10M · 0.91×</title><polygon points="109.2,220.6 103.4,231.4 115.0,231.4" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 50% · 深度 30M · 1.32×</title><polygon points="314.0,210.3 308.2,221.0 319.8,221.0" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 70% · 深度 30M · 1.14×</title><polygon points="416.4,214.8 410.6,225.5 422.2,225.5" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 90% · 深度 30M · 0.62×</title><polygon points="518.8,228.0 513.0,238.7 524.6,238.7" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 90% · 深度 60M · 0.99×</title><polygon points="518.8,218.6 513.0,229.3 524.6,229.3" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>对 Hostile · 宿主 99% · 深度 60M · 1.08×</title><polygon points="564.9,216.3 559.1,227.0 570.7,227.0" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="577.9" y="226.6" class="series-label">对 Hostile</text>
+</svg>
+      <div class="legend">
+        <span><i class="diamond" style="background:var(--s4)"></i>相对 KneadData 的加速比</span>
+        <span><i class="triangle" style="background:var(--s3)"></i>相对 Hostile 的加速比</span>
+      </div>
+      <figcaption>
+        对 KneadData 的优势随宿主比例单调上升,从持平到 8.6 倍;<b>对 Hostile 始终贴着 1× 那条线</b>。
+        90% 处的两个点(5.78× 与 6.60×)来自 30M 和 60M 两个数据集,说明深度也有贡献。
+      </figcaption>
+    </figure>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>数据集</th><th class="num">RustyClean auto</th><th class="num">KneadData</th><th class="num">倍数</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">5M_1pct_low_even_SE</td><td class="num">3.3 分</td><td class="num">3.2 分</td><td class="num">0.99×</td></tr>
+          <tr><td class="mono">5M_5pct_low_even_SE</td><td class="num">3.2 分</td><td class="num">3.4 分</td><td class="num">1.09×</td></tr>
+          <tr><td class="mono">10M_10pct_med_even_SE</td><td class="num">4.8 分</td><td class="num">8.2 分</td><td class="num">1.72×</td></tr>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">9.1 分</td><td class="num">40.3 分</td><td class="num">4.42×</td></tr>
+          <tr><td class="mono">30M_70pct_med_lognormal_SE</td><td class="num">11.7 分</td><td class="num">38.1 分</td><td class="num">3.27×</td></tr>
+          <tr><td class="mono">30M_90pct_med_lognormal_SE</td><td class="num">9.4 分</td><td class="num">54.5 分</td><td class="num">5.78×</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">17.4 分</td><td class="num">114.9 分</td><td class="num">6.60×</td></tr>
+          <tr><td class="mono">60M_99pct_med_lognormal_SE</td><td class="num">15.9 分</td><td class="num">136.9 分</td><td class="num"><b>8.60×</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      在 5M / 1% 宿主上两者<b>没有差别</b>(0.99×),优势从 10M / 10% 开始出现,到 60M / 99% 达到 8.60×。
+      这条趋势本身就是论证:auto 路由在宿主占比高时才切换到 kraken2,加速正出现在它该出现的地方。
+    </p>
+
+    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">对 Hostile:速度基本持平</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>数据集</th><th class="num">RustyClean --skip-qc</th><th class="num">Hostile</th><th class="num">倍数</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">5M_1pct_low_even_SE</td><td class="num">3.6 分</td><td class="num">1.9 分</td><td class="num">0.54×</td></tr>
+          <tr><td class="mono">5M_5pct_low_even_SE</td><td class="num">3.4 分</td><td class="num">2.3 分</td><td class="num">0.68×</td></tr>
+          <tr><td class="mono">10M_10pct_med_even_SE</td><td class="num">3.5 分</td><td class="num">3.2 分</td><td class="num">0.91×</td></tr>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">6.5 分</td><td class="num">8.6 分</td><td class="num">1.32×</td></tr>
+          <tr><td class="mono">30M_70pct_med_lognormal_SE</td><td class="num">8.0 分</td><td class="num">9.1 分</td><td class="num">1.14×</td></tr>
+          <tr><td class="mono">30M_90pct_med_lognormal_SE</td><td class="num">9.5 分</td><td class="num">5.9 分</td><td class="num">0.62×</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">14.6 分</td><td class="num">14.5 分</td><td class="num">0.99×</td></tr>
+          <tr><td class="mono">60M_99pct_med_lognormal_SE</td><td class="num">14.2 分</td><td class="num">15.4 分</td><td class="num">1.08×</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      中位 0.99×,且在小数据集上 RustyClean <b>更慢</b>(最低 0.54×)。
+      对 Hostile 不存在速度优势,论文里若要主张,只能主张持平——这也让准确性成为唯一能区分二者的维度。
+    </p>
+
+    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">内存:RustyClean 的代价</h3>
+    <figure class="viz">
+      <svg viewBox="0 0 720 318" role="img" aria-label="各工具峰值内存">
+<title>峰值内存</title>
+<line x1="168.0" y1="18" x2="168.0" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="168.0" y="308" text-anchor="middle" class="tick">0 GB</text>
+<line x1="287.5" y1="18" x2="287.5" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="287.5" y="308" text-anchor="middle" class="tick">4 GB</text>
+<line x1="407.0" y1="18" x2="407.0" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="407.0" y="308" text-anchor="middle" class="tick">8 GB</text>
+<line x1="526.5" y1="18" x2="526.5" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="526.5" y="308" text-anchor="middle" class="tick">12 GB</text>
+<line x1="646.0" y1="18" x2="646.0" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="646.0" y="308" text-anchor="middle" class="tick">16 GB</text>
+<text x="156" y="37" text-anchor="end" class="bar-label">RustyClean k2 混合库</text>
+<g><title>RustyClean k2 混合库 · 峰值 15.6 GB</title><rect x="168" y="18" width="466.1" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="643.0" y="37" class="bar-value">15.6</text>
+<text x="156" y="75" text-anchor="end" class="bar-label">minimap2 后端</text>
+<g><title>minimap2 后端 · 峰值 13.4 GB</title><rect x="168" y="56" width="400.3" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="577.3" y="75" class="bar-value">13.4</text>
+<text x="156" y="113" text-anchor="end" class="bar-label">RustyClean + recheck</text>
+<g><title>RustyClean + recheck · 峰值 12.7 GB</title><rect x="168" y="94" width="379.4" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="556.4" y="113" class="bar-value">12.7</text>
+<text x="156" y="151" text-anchor="end" class="bar-label">RustyClean k2 基线</text>
+<g><title>RustyClean k2 基线 · 峰值 12.3 GB</title><rect x="168" y="132" width="367.5" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="544.5" y="151" class="bar-value">12.3</text>
+<text x="156" y="189" text-anchor="end" class="bar-label">RustyClean auto</text>
+<g><title>RustyClean auto · 峰值 6.7 GB</title><rect x="168" y="170" width="200.2" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="377.2" y="189" class="bar-value">6.7</text>
+<text x="156" y="227" text-anchor="end" class="bar-label">Hostile</text>
+<g><title>Hostile · 峰值 3.5 GB</title><rect x="168" y="208" width="104.6" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="281.6" y="227" class="bar-value">3.5</text>
+<text x="156" y="265" text-anchor="end" class="bar-label">KneadData</text>
+<g><title>KneadData · 峰值 1.1 GB</title><rect x="168" y="246" width="32.9" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="209.9" y="265" class="bar-value">1.1</text>
+</svg>
+      <figcaption>
+        蓝色为 RustyClean 的各条路径。<b>比 KneadData 快最多 8.6 倍,峰值内存却是它的 6–14 倍</b>——
+        Kraken2 哈希表常驻的直接后果,应与速度一并报告。
+      </figcaption>
+    </figure>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>工具 / 后端</th><th class="num">峰值内存</th><th class="num">样本数</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>RustyClean k2 混合库</td><td class="num">15.6 GB</td><td class="num">15</td><td>仅消融实验使用</td></tr>
+          <tr><td>minimap2 后端</td><td class="num">13.4 GB</td><td class="num">8</td><td>后端中最耗内存也最慢</td></tr>
+          <tr><td>RustyClean + recheck</td><td class="num">12.7 GB</td><td class="num">15</td><td>相对基线仅增 0.4 GB</td></tr>
+          <tr><td>RustyClean k2 基线</td><td class="num">12.3 GB</td><td class="num">15</td><td>常驻 Kraken2 哈希表</td></tr>
+          <tr><td>RustyClean auto</td><td class="num">6.7 GB</td><td class="num">8</td><td>主对比实验</td></tr>
+          <tr><td>Hostile</td><td class="num">3.5 GB</td><td class="num">8</td><td></td></tr>
+          <tr><td>KneadData</td><td class="num">1.1 GB</td><td class="num">11</td><td><b>内存占用最低</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      RustyClean 用时间换内存:比 KneadData 快最多 8.6 倍,但峰值内存是它的 6–14 倍。
+      这是 Kraken2 哈希表常驻的直接后果,应当如实报告,而不是只讲速度。
+    </p>
+
+    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">recheck 验证通道的开销</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>数据集</th><th class="num">基线</th><th class="num">+ recheck</th><th class="num">增幅</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">9.4 分</td><td class="num">14.0 分</td><td class="num">+48.9%</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">14.7 分</td><td class="num">16.7 分</td><td class="num">+13.4%</td></tr>
+          <tr><td class="mono">60M_99pct_med_lognormal_SE</td><td class="num">13.4 分</td><td class="num">22.4 分</td><td class="num">+66.8%</td></tr>
+          <tr><td class="mono">100M_50pct_high_lognormal_SE</td><td class="num">22.8 分</td><td class="num">36.2 分</td><td class="num">+58.6%</td></tr>
+          <tr><td class="mono">100M_90pct_high_lognormal_SE</td><td class="num">20.9 分</td><td class="num">27.4 分</td><td class="num">+31.1%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      时间增加 13%–67%,内存几乎不变(12.3 → 12.7 GB)。
+      这个代价值不值,取决于它挽回多少假阳性——而那正是目前缺失的准确性数字。
+    </p>
+    <h3 style="margin:20px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">准确性:两类错误的取舍曲线</h3>
+    <p class="lede">
+      正类为"微生物读被保留"。<b>横轴是没能清除的宿主读</b>(污染残留),
+      <b>纵轴是被误删的微生物读</b>(数据损失)。越靠近左下角越好,而没有工具能同时到达两端——
+      四个工具连成的这条线就是取舍本身。每个工具四个点,对应四个数据集;细线按测序深度串联。
+    </p>
+    <figure class="viz">
+      <svg viewBox="0 0 720 430" role="img" aria-label="宿主残留与微生物误删的取舍">
+<title>四个工具在两类错误上的取舍</title>
+<line x1="142.3" y1="26" x2="142.3" y2="378" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="142.3" y="396" text-anchor="middle" class="tick">0.5%</text>
+<line x1="222.7" y1="26" x2="222.7" y2="378" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="222.7" y="396" text-anchor="middle" class="tick">1%</text>
+<line x1="303.0" y1="26" x2="303.0" y2="378" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="303.0" y="396" text-anchor="middle" class="tick">1.5%</text>
+<line x1="383.3" y1="26" x2="383.3" y2="378" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="383.3" y="396" text-anchor="middle" class="tick">2%</text>
+<line x1="463.7" y1="26" x2="463.7" y2="378" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="463.7" y="396" text-anchor="middle" class="tick">2.5%</text>
+<line x1="544.0" y1="26" x2="544.0" y2="378" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="544.0" y="396" text-anchor="middle" class="tick">3%</text>
+<line x1="62" y1="311.0" x2="544" y2="311.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="53" y="315.0" text-anchor="end" class="tick">0.2%</text>
+<line x1="62" y1="243.9" x2="544" y2="243.9" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="53" y="247.9" text-anchor="end" class="tick">0.4%</text>
+<line x1="62" y1="176.9" x2="544" y2="176.9" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="53" y="180.9" text-anchor="end" class="tick">0.6%</text>
+<line x1="62" y1="109.8" x2="544" y2="109.8" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="53" y="113.8" text-anchor="end" class="tick">0.8%</text>
+<line x1="62" y1="42.8" x2="544" y2="42.8" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="53" y="46.8" text-anchor="end" class="tick">1%</text>
+<line x1="62" y1="26" x2="62" y2="378" stroke="var(--chart-axis)" stroke-width="1"/>
+<line x1="62" y1="378" x2="544" y2="378" stroke="var(--chart-axis)" stroke-width="1"/>
+<text x="303" y="418" text-anchor="middle" class="axis-label">宿主残留 — 未清除的宿主读占比 →</text>
+<text x="16" y="202" text-anchor="middle" class="axis-label" transform="rotate(-90 16 202)">微生物误删 — 被删的微生物读占比 →</text>
+<text x="72" y="368" class="annot">← 两类错误都更小</text>
+<path d="M390.7,378.0 L483.8,378.0 L490.3,378.0 L376.8,378.0" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.42" stroke-linejoin="round"/>
+<g><title>Hostile · 5M_1pct_low_even_SE
+宿主残留 2.05% · 微生物误删 0.000%</title><polygon points="390.7,371.1 384.4,382.9 397.1,382.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · 10M_10pct_med_even_SE
+宿主残留 2.63% · 微生物误删 0.000%</title><polygon points="483.8,371.1 477.4,382.9 490.1,382.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · 30M_50pct_high_skewed_SE
+宿主残留 2.67% · 微生物误删 0.000%</title><polygon points="490.3,371.1 483.9,382.9 496.6,382.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · 60M_90pct_high_lognormal_SE
+宿主残留 1.96% · 微生物误删 0.000%</title><polygon points="376.8,371.1 370.4,382.9 383.1,382.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M338.0,377.2 L436.8,375.8 L394.1,375.2 L326.5,374.2" fill="none" stroke="var(--s2)" stroke-width="2" stroke-opacity="0.42" stroke-linejoin="round"/>
+<g><title>RustyClean --skip-qc · 5M_1pct_low_even_SE
+宿主残留 1.72% · 微生物误删 0.002%</title><rect x="333.1" y="372.2" width="9.9" height="9.9" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · 10M_10pct_med_even_SE
+宿主残留 2.33% · 微生物误删 0.007%</title><rect x="431.8" y="370.8" width="9.9" height="9.9" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · 30M_50pct_high_skewed_SE
+宿主残留 2.07% · 微生物误删 0.008%</title><rect x="389.2" y="370.3" width="9.9" height="9.9" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · 60M_90pct_high_lognormal_SE
+宿主残留 1.65% · 微生物误删 0.011%</title><rect x="321.6" y="369.2" width="9.9" height="9.9" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M129.2,325.8 L128.7,358.4 L104.7,347.9 L102.3,347.1" fill="none" stroke="var(--s1)" stroke-width="2" stroke-opacity="0.42" stroke-linejoin="round"/>
+<g><title>RustyClean auto · 5M_1pct_low_even_SE
+宿主残留 0.42% · 微生物误删 0.156%</title><circle cx="129.2" cy="325.8" r="5.5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · 10M_10pct_med_even_SE
+宿主残留 0.42% · 微生物误删 0.059%</title><circle cx="128.7" cy="358.4" r="5.5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · 30M_50pct_high_skewed_SE
+宿主残留 0.27% · 微生物误删 0.090%</title><circle cx="104.7" cy="347.9" r="5.5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · 60M_90pct_high_lognormal_SE
+宿主残留 0.25% · 微生物误删 0.092%</title><circle cx="102.3" cy="347.1" r="5.5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M109.9,81.8 L111.4,150.4 L95.1,164.0 L95.2,53.0" fill="none" stroke="var(--s4)" stroke-width="2" stroke-opacity="0.42" stroke-linejoin="round"/>
+<g><title>KneadData · 5M_1pct_low_even_SE
+宿主残留 0.30% · 微生物误删 0.884%</title><polygon points="109.9,74.4 117.3,81.8 109.9,89.2 102.5,81.8" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · 10M_10pct_med_even_SE
+宿主残留 0.31% · 微生物误删 0.679%</title><polygon points="111.4,142.9 118.9,150.4 111.4,157.8 104.0,150.4" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · 30M_50pct_high_skewed_SE
+宿主残留 0.21% · 微生物误删 0.638%</title><polygon points="95.1,156.5 102.5,164.0 95.1,171.4 87.7,164.0" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · 60M_90pct_high_lognormal_SE
+宿主残留 0.21% · 微生物误删 0.970%</title><polygon points="95.2,45.5 102.6,53.0 95.2,60.4 87.8,53.0" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="125.4" y="135.6" class="series-label">KneadData</text>
+<text x="143.2" y="311.0" class="series-label">RustyClean auto</text>
+<text x="450.8" y="361.0" class="series-label">RustyClean --skip-qc</text>
+<text x="504.3" y="378.0" class="series-label">Hostile</text>
+</svg>
+      <div class="legend"><span><i class="circle" style="background:var(--s1)"></i>RustyClean auto</span><span><i class="square" style="background:var(--s2)"></i>RustyClean --skip-qc</span><span><i class="triangle" style="background:var(--s3)"></i>Hostile</span><span><i class="diamond" style="background:var(--s4)"></i>KneadData</span></div>
+      <figcaption>
+        <b>Hostile 停在左上角外侧</b>:一条微生物读都不丢,但宿主残留 2–2.7%。
+        <b>KneadData 在右下角</b>:宿主清得最干净,却误删了近 1% 的微生物读。
+        <b>RustyClean auto 落在拐点</b>——两个方向都接近最优,F1 因此最高。
+        悬停任一标记可看具体数值。
+      </figcaption>
+    </figure>
+
+    <p class="lede">
+      正类为"微生物读被保留"。<b>FP 是没能清除的宿主读</b>(污染残留),
+      <b>FN 是被误删的微生物读</b>(数据损失)。两者不可同时最小化,四个工具正好排成一条单调的取舍曲线。
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>数据集</th><th>工具</th><th class="num">宿主残留 FP</th><th class="num">微生物误删 FN</th><th class="num">F1</th></tr></thead>
+        <tbody>
+          <tr><td class="mono" rowspan="4">5M_1pct_low_even_SE</td><td>Hostile</td><td class="num">1,023 · 2.05%</td><td class="num">0 · 0.000%</td><td class="num">0.9999</td></tr>
+          <tr><td>RustyClean --skip-qc</td><td class="num">859 · 1.72%</td><td class="num">123 · 0.002%</td><td class="num">0.9999</td></tr>
+          <tr><td>RustyClean auto</td><td class="num">209 · 0.42%</td><td class="num">7,712 · 0.156%</td><td class="num">0.9992</td></tr>
+          <tr><td>KneadData</td><td class="num">149 · 0.30%</td><td class="num">43,739 · 0.884%</td><td class="num">0.9955</td></tr>
+
+          <tr><td class="mono" rowspan="4">10M_10pct_med_even_SE</td><td>Hostile</td><td class="num">26,252 · 2.63%</td><td class="num">0 · 0.000%</td><td class="num">0.9985</td></tr>
+          <tr><td>RustyClean --skip-qc</td><td class="num">23,326 · 2.33%</td><td class="num">596 · 0.007%</td><td class="num">0.9987</td></tr>
+          <tr><td>RustyClean auto</td><td class="num">4,151 · 0.42%</td><td class="num">5,269 · 0.059%</td><td class="num">0.9995</td></tr>
+          <tr><td>KneadData</td><td class="num">3,077 · 0.31%</td><td class="num">61,114 · 0.679%</td><td class="num">0.9964</td></tr>
+
+          <tr><td class="mono" rowspan="4">30M_50pct_high_skewed_SE</td><td>Hostile</td><td class="num">399,819 · 2.67%</td><td class="num">0 · 0.000%</td><td class="num">0.9868</td></tr>
+          <tr><td>RustyClean --skip-qc</td><td class="num">310,060 · 2.07%</td><td class="num">1,244 · 0.008%</td><td class="num">0.9897</td></tr>
+          <tr><td>RustyClean auto</td><td class="num">39,892 · 0.27%</td><td class="num">13,481 · 0.090%</td><td class="num">0.9982</td></tr>
+          <tr><td>KneadData</td><td class="num">30,897 · 0.21%</td><td class="num">95,774 · 0.638%</td><td class="num">0.9958</td></tr>
+
+          <tr><td class="mono" rowspan="4">60M_90pct_high_lognormal_SE</td><td>Hostile</td><td class="num">1,057,928 · 1.96%</td><td class="num">0 · 0.000%</td><td class="num">0.9190</td></tr>
+          <tr><td>RustyClean --skip-qc</td><td class="num">889,123 · 1.65%</td><td class="num">687 · 0.011%</td><td class="num">0.9310</td></tr>
+          <tr><td>RustyClean auto</td><td class="num">135,380 · 0.25%</td><td class="num">5,531 · 0.092%</td><td class="num">0.9884</td></tr>
+          <tr><td>KneadData</td><td class="num">111,645 · 0.21%</td><td class="num">58,174 · 0.970%</td><td class="num">0.9859</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>四个数据集的中位数</th><th class="num">宿主残留</th><th class="num">微生物误删</th><th class="num">F1</th></tr></thead>
+        <tbody>
+          <tr><td>Hostile</td><td class="num">2.63%</td><td class="num">0.000%</td><td class="num">0.9985</td></tr>
+          <tr><td>RustyClean --skip-qc</td><td class="num">2.07%</td><td class="num">0.008%</td><td class="num">0.9987</td></tr>
+          <tr><td><b>RustyClean auto</b></td><td class="num"><b>0.42%</b></td><td class="num"><b>0.092%</b></td><td class="num"><b>0.9992</b></td></tr>
+          <tr><td>KneadData</td><td class="num">0.30%</td><td class="num">0.884%</td><td class="num">0.9958</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      三点值得写进论文:<b>RustyClean auto 的 F1 最高</b>(0.9992);
+      KneadData 的宿主清除最彻底(0.30%),代价是误删的微生物读比 RustyClean auto <b>多近十倍</b>(0.884% vs 0.092%),
+      F1 因此垫底;<b>RustyClean --skip-qc 在两条轴上都优于 Hostile</b>——宿主残留低 0.56 个百分点,
+      而多付出的微生物损失只有 0.008%。在 60M / 90% 宿主这个极端点上,Hostile 残留 105 万条宿主读,
+      RustyClean auto 只有 13.5 万条。
+    </p>
+
+    <h3 style="margin:20px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">auto 路由:估计准确,切换点符合设计</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>数据集</th><th class="num">标称宿主比例</th><th class="num">抽样估计</th><th>选择的后端</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">5M_1pct_low_even_SE</td><td class="num">1%</td><td class="num">0.98%</td><td>bowtie2</td></tr>
+          <tr><td class="mono">5M_5pct_low_even_SE</td><td class="num">5%</td><td class="num">4.98%</td><td>bowtie2</td></tr>
+          <tr><td class="mono">10M_10pct_med_even_SE</td><td class="num">10%</td><td class="num">9.87%</td><td>bowtie2</td></tr>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">50%</td><td class="num">49.41%</td><td>kraken2</td></tr>
+          <tr><td class="mono">30M_70pct_med_lognormal_SE</td><td class="num">70%</td><td class="num">69.23%</td><td>kraken2</td></tr>
+          <tr><td class="mono">30M_90pct_med_lognormal_SE</td><td class="num">90%</td><td class="num">89.16%</td><td>kraken2</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">90%</td><td class="num">89.68%</td><td>kraken2</td></tr>
+          <tr><td class="mono">60M_99pct_med_lognormal_SE</td><td class="num">99%</td><td class="num">98.63%</td><td>kraken2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      十万条读的抽样估计与标称值最大偏差 0.59 个百分点,八个数据集全部正确路由:
+      ≤ 9.87% 走 bowtie2,≥ 49.41% 走 kraken2。这条规则的两半——估计准确、切换合理——都得到了验证。
+    </p>
+  </section>
+
+  <!-- ============ 软件 ============ -->
+  <section>
+    <h2><span class="num">03</span>软件</h2>
+    <p class="lede">
+      被测工具是 RustyClean;KneadData 与 Hostile 是对照工具,均使用各自官方发布的默认数据库,不做修改。
+      其余为 RustyClean 各后端所依赖的比对/分类程序。
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>软件</th><th>角色</th><th>用于</th><th class="mono">位置</th></tr></thead>
+        <tbody>
+          <tr><td><b>RustyClean</b></td><td>被测工具</td><td>stage 3–5 全部实验</td><td class="mono dim">rustyclean/target/release</td></tr>
+          <tr><td>KneadData</td><td>对照工具</td><td>stage 3 主对比</td><td class="mono dim">conda envs/kneaddata</td></tr>
+          <tr><td>Hostile</td><td>对照工具</td><td>stage 3 <code>--skip-qc</code> 对比</td><td class="mono dim">~/.local/bin</td></tr>
+          <tr><td>InSilicoSeq</td><td>读模拟</td><td>stage 2 生成全部数据</td><td class="mono dim">.conda_envs/rustyclean-benchmark</td></tr>
+          <tr><td>Kraken2</td><td>RustyClean 后端</td><td>k-mer 分类去宿主</td><td class="mono dim">conda envs/kraken2</td></tr>
+          <tr><td>Bowtie2</td><td>RustyClean 后端</td><td>比对去宿主 + recheck 验证通道</td><td class="mono dim">conda envs/metaphlan</td></tr>
+          <tr><td>minimap2</td><td>RustyClean 后端</td><td>后端对比</td><td class="mono dim">.conda_envs/rustyclean-benchmark</td></tr>
+          <tr><td>sylph</td><td>RustyClean 后端</td><td>sketch 预筛</td><td class="mono dim">conda envs/sylph</td></tr>
+          <tr><td>centrifuge</td><td>RustyClean 后端</td><td>后端对比</td><td class="mono dim">.conda_envs/rustyclean-benchmark</td></tr>
+          <tr><td>fastp</td><td>质控</td><td>RustyClean 默认 QC 步骤</td><td class="mono dim">conda envs/metagem</td></tr>
+          <tr><td>samtools / seqtk</td><td>辅助</td><td>比对输出处理 / auto 模式抽样</td><td class="mono dim">conda envs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 参考与数据库 ============ -->
+  <section>
+    <h2><span class="num">04</span>参考序列与数据库</h2>
+    <p class="lede">
+      核心设计:<b>宿主读从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,因此去宿主必须应对真实的组装差异,
+      而不是匹配读的来源本身。本项目构建的五个索引全部来自同一份 T2T FASTA,并带 provenance stamp 记录来源。
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>类别</th><th>名称</th><th>用途</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td class="nowrap">参考序列</td><td>T2T-CHM13v2.0 <span class="dim mono">GCF_009914755.1</span></td><td>去宿主参考,五个索引的共同来源</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">参考序列</td><td>GRCh38.p14 <span class="dim mono">GCF_000001405.40</span></td><td>宿主读的模拟来源</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">参考序列</td><td>GTDB r202 参考基因组</td><td>微生物群落取材,9,057 个基因组</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">分类信息</td><td>NCBI taxonomy</td><td>Kraken2 与 centrifuge 建库</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">本项目索引</td><td>Kraken2 human-only (T2T)</td><td><b>默认后端</b>,除消融外全部实验使用</td><td><span class="chip done">已建成</span></td></tr>
+          <tr><td class="nowrap">本项目索引</td><td>Bowtie2 T2T-only</td><td>比对后端与 recheck 验证通道</td><td><span class="chip done">已重建 (.bt2)</span></td></tr>
+          <tr><td class="nowrap">本项目索引</td><td>minimap2 / sylph / centrifuge (T2T)</td><td>后端对比</td><td><span class="chip done">已建成</span></td></tr>
+          <tr><td class="nowrap">消融对照</td><td>Kraken2 mixed <span class="dim mono">kraken16</span></td><td>仅索引消融实验;含人类以外多个类群</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">对照工具库</td><td>KneadData <span class="dim mono">hg39_T2T</span></td><td>KneadData 官方默认库</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td class="nowrap">对照工具库</td><td>Hostile <span class="dim mono">human-t2t-hla</span></td><td>Hostile 官方默认库(T2T + IPD-IMGT/HLA)</td><td><span class="chip done">就绪</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flag">
+      <h4>一处必须在论文中说明的不对称</h4>
+      <p>
+        Hostile 的默认索引在 T2T 之外还包含 IPD-IMGT/HLA,而本系统上没有 HLA 序列,因此 RustyClean 的所有索引都是纯 T2T。
+        这个差异是比较本身的属性,应当如实报告,而不是通过改动 Hostile 的默认配置来抹平。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 数据集 ============ -->
+  <section>
+    <h2><span class="num">05</span>模拟数据集</h2>
+    <p class="lede">
+      18 个数据集,合计 5.4 亿条读,覆盖测序深度(5M–100M)、宿主比例(0–100%)、群落复杂度(5/30/100 物种)、
+      丰度分布(均匀/对数正态/偏斜)与读取模式(单端/双端)。群落按复杂度用固定种子随机抽样,
+      同一复杂度的数据集共用同一群落,因此跨深度与跨宿主比例可比。
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>数据集</th><th class="num">读数</th><th class="num">宿主</th><th>复杂度</th><th>丰度分布</th><th>模式</th><th class="num">种子</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">5M_1pct_low_even_SE</td><td class="num">5,000,000</td><td class="num">1%</td><td>low · 5 种</td><td>even</td><td>SE</td><td class="num">43</td></tr>
+          <tr><td class="mono">5M_5pct_low_even_SE</td><td class="num">5,000,000</td><td class="num">5%</td><td>low · 5 种</td><td>even</td><td>SE</td><td class="num">44</td></tr>
+          <tr><td class="mono">10M_0pct_med_lognormal_SE</td><td class="num">10,000,000</td><td class="num">0%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">59</td></tr>
+          <tr><td class="mono">10M_1pct_med_lognormal_SE</td><td class="num">10,000,000</td><td class="num">1%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">45</td></tr>
+          <tr><td class="mono">10M_5pct_med_lognormal_SE</td><td class="num">10,000,000</td><td class="num">5%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">46</td></tr>
+          <tr><td class="mono">10M_10pct_med_even_SE</td><td class="num">10,000,000</td><td class="num">10%</td><td>med · 30 种</td><td>even</td><td>SE</td><td class="num">47</td></tr>
+          <tr><td class="mono">10M_30pct_med_lognormal_SE</td><td class="num">10,000,000</td><td class="num">30%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">48</td></tr>
+          <tr><td class="mono">10M_100pct_med_lognormal_SE</td><td class="num">10,000,000</td><td class="num">100%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">60</td></tr>
+          <tr><td class="mono">20M_10pct_med_even_PE</td><td class="num">20,000,000</td><td class="num">10%</td><td>med · 30 种</td><td>even</td><td>PE</td><td class="num">57</td></tr>
+          <tr><td class="mono">20M_50pct_med_lognormal_PE</td><td class="num">20,000,000</td><td class="num">50%</td><td>med · 30 种</td><td>lognormal</td><td>PE</td><td class="num">49</td></tr>
+          <tr><td class="mono">20M_90pct_med_lognormal_PE</td><td class="num">20,000,000</td><td class="num">90%</td><td>med · 30 种</td><td>lognormal</td><td>PE</td><td class="num">58</td></tr>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">30,000,000</td><td class="num">50%</td><td>high · 100 种</td><td>skewed</td><td>SE</td><td class="num">50</td></tr>
+          <tr><td class="mono">30M_70pct_med_lognormal_SE</td><td class="num">30,000,000</td><td class="num">70%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">51</td></tr>
+          <tr><td class="mono">30M_90pct_med_lognormal_SE</td><td class="num">30,000,000</td><td class="num">90%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">52</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">60,000,000</td><td class="num">90%</td><td>high · 100 种</td><td>lognormal</td><td>SE</td><td class="num">53</td></tr>
+          <tr><td class="mono">60M_99pct_med_lognormal_SE</td><td class="num">60,000,000</td><td class="num">99%</td><td>med · 30 种</td><td>lognormal</td><td>SE</td><td class="num">54</td></tr>
+          <tr><td class="mono">100M_50pct_high_lognormal_SE</td><td class="num">100,000,000</td><td class="num">50%</td><td>high · 100 种</td><td>lognormal</td><td>SE</td><td class="num">55</td></tr>
+          <tr><td class="mono">100M_90pct_high_lognormal_SE</td><td class="num">100,000,000</td><td class="num">90%</td><td>high · 100 种</td><td>lognormal</td><td>SE</td><td class="num">56</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      模拟器为 InSilicoSeq,<code>novaseq</code> 误差模型,实测读长 151 bp。
+      每个数据集写入 <code>metadata.json</code> 记录实测读长、模型与种子;
+      读长是从产出的读中量取的,而非写死的常数,因此 Methods 可以对照数据核实。
+    </p>
+  </section>
+
+  <!-- ============ 待决 ============ -->
+  <section>
+    <h2><span class="num">06</span>待决事项</h2>
+
+    <div class="flag" data-tone="void">
+      <h4>索引消融:唯一还没答案的科学问题</h4>
+      <p>
+        混合库臂的准确性已测出(30M/50%:宿主残留 0.079%,微生物误删 0.084%),
+        但对照的人类专用库臂来自 recheck 实验,那个作业仍在重跑。两臂齐了才能回答:
+        v1 观察到的 1.41% 宿主残留,是方法本身的问题,还是混合库下 Kraken2 的 LCA
+        把宿主读归到了人类的祖先节点。答案决定 <code>feat/host-taxid-lineage</code> 分支是否需要合并。
+      </p>
+    </div>
+
+    <div class="flag" data-tone="run">
+      <h4>centrifuge 后端待重跑</h4>
+      <p>
+        8 次运行全部失败,原因是脚本手写的 PATH 只含 fastp、kraken2、bowtie2,
+        而 centrifuge 装在项目 conda 环境里。已改为调用 <code>activate_conda</code>,
+        重跑约 40 分钟即可补齐第四个后端。preflight 检查工具时用的是自己拼的 PATH,
+        所以它一直报 OK——这类"preflight 通过但作业失败"的盲区已在脚本中标注。
+      </p>
+    </div>
+
+    <div class="flag">
+      <h4>论述重心应从速度移到准确性</h4>
+      <p>
+        对 Hostile 的速度是持平(中位 0.99×),但准确性上 RustyClean <code>--skip-qc</code>
+        在两条轴上都更优。对 KneadData 则相反:速度快 4.4–8.6 倍,而 KneadData 的宿主清除
+        略胜一筹(0.30% vs 0.42%),代价是误删近十倍的微生物读。
+        论文的主张应当是"在两类错误之间取得更好的平衡",而不是单纯的速度。
+      </p>
+    </div>
+
+    <div class="flag">
+      <h4>内存是需要如实交代的代价</h4>
+      <p>
+        RustyClean 的 kraken2 路径峰值 6.7–15.6 GB,而 KneadData 只要 1.1 GB、Hostile 3.5 GB。
+        这是 Kraken2 哈希表常驻的直接后果。速度与准确性的优势建立在更高的内存占用之上,
+        对内存受限的使用者,这个取舍应当写明。
+      </p>
+    </div>
+
+    <div class="flag">
+      <h4>消融实验的三次重复完全相同</h4>
+      <p>
+        <code>accuracy_k2_mixed.csv</code> 里 rep1/rep2/rep3 的每个数字都一模一样。
+        这符合预期——同样的输入、确定性的工具,输出必然相同——但也说明这三次重复
+        只测量了运行时间的波动,准确性上没有提供任何额外信息。论文中不应把它们当作独立重复。
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    脚本与配置:HuangShiLab/rustyclean-paper · 工具:HuangShiLab/rustyclean · 旧结果归档于 archive/v1/
+  </footer>
+
+</div>
