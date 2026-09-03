@@ -1,0 +1,5 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+bowtie2,60M_99pct_med_lognormal_SE,1,689,3561124,2026-09-03T12:17:42+08:00
+kraken2,60M_99pct_med_lognormal_SE,1,312,7037416,2026-09-03T12:22:54+08:00
+minimap2,60M_99pct_med_lognormal_SE,1,1115,13535660,2026-09-03T12:41:30+08:00
+centrifuge,60M_99pct_med_lognormal_SE,1,FAILED,,2026-09-03T12:41:30+08:00

@@ -1,0 +1,4 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,1,1458.77,7042312,2026-09-03T11:57:44+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,2,1575.18,6983120,2026-09-03T12:23:59+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,3,990.25,7042216,2026-09-03T12:40:30+08:00

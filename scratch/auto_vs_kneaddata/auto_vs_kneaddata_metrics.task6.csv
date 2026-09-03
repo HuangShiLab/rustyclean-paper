@@ -1,0 +1,3 @@
+dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+60M_90pct_high_lognormal_SE,rustyclean_auto,1045.32,7040044,577214717,kraken2,89.68,2026-09-03T11:57:36+08:00
+60M_90pct_high_lognormal_SE,kneaddata,6894,1152172,2020788774,bowtie2,NA,2026-09-03T13:52:31+08:00

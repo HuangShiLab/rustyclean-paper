@@ -1,0 +1,6 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_t2t_only,20M_90pct_med_lognormal_PE,1,7479,3747404,2026-09-03T14:24:41+08:00
+rustyclean_t2t_only,20M_90pct_med_lognormal_PE,2,1075,3720684,2026-09-03T14:42:37+08:00
+rustyclean_t2t_only,20M_90pct_med_lognormal_PE,3,1043,3720760,2026-09-03T15:00:00+08:00
+hostile,20M_90pct_med_lognormal_PE,1,1577,3827452,2026-09-03T15:26:17+08:00
+kneaddata,20M_90pct_med_lognormal_PE,1,5135,1166808,2026-09-03T16:51:56+08:00

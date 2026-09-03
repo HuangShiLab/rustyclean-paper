@@ -1,0 +1,3 @@
+dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+10M_10pct_med_even_SE,rustyclean_auto,285.06,3587212,581923042,bowtie2,9.87,2026-09-03T11:37:59+08:00
+10M_10pct_med_even_SE,kneaddata,489.55,1148324,2986546283,bowtie2,NA,2026-09-03T11:46:09+08:00

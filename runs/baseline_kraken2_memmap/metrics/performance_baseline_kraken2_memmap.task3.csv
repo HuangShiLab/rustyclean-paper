@@ -1,0 +1,4 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_baseline_k2_memmap,100M_50pct_high_lognormal_SE,1,1425.44,10072076,2026-09-03T11:57:29+08:00
+rustyclean_baseline_k2_memmap,100M_50pct_high_lognormal_SE,2,1338.96,10069776,2026-09-03T12:19:49+08:00
+rustyclean_baseline_k2_memmap,100M_50pct_high_lognormal_SE,3,1370.22,10069236,2026-09-03T12:42:39+08:00

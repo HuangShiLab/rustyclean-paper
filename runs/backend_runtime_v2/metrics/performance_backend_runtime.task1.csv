@@ -1,0 +1,5 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+bowtie2,5M_5pct_low_even_SE,1,623,2726644,2026-09-03T11:43:34+08:00
+kraken2,5M_5pct_low_even_SE,1,47,4918416,2026-09-03T11:44:22+08:00
+minimap2,5M_5pct_low_even_SE,1,1713,11992948,2026-09-03T12:12:56+08:00
+centrifuge,5M_5pct_low_even_SE,1,FAILED,,2026-09-03T12:12:56+08:00
