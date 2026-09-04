@@ -40,6 +40,16 @@ def read_ground_truth(gt_path: Path) -> tuple:
 
 
 def compute_metrics(host_ids: set, microbe_ids: set, kept_ids: set) -> dict:
+    # Kept reads that match no ground-truth id mean the two sides are naming
+    # reads differently, or the ground truth being read belongs to another copy
+    # of the data -- not that the tool removed everything. Both look identical in
+    # the output: precision 0, recall 0 for every dataset.
+    if kept_ids and not (kept_ids & (microbe_ids | host_ids)):
+        raise SystemExit(
+            f"ERROR: none of the {len(kept_ids)} kept reads matched a ground-truth "
+            f"id ({len(microbe_ids)} microbial, {len(host_ids)} host).\n"
+            "       Check that SCRATCH_DIR points at the data these runs used."
+        )
     tp = len(kept_ids & microbe_ids)
     fp = len(kept_ids & host_ids)
     fn = len(microbe_ids - kept_ids)

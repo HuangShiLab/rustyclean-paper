@@ -92,9 +92,11 @@ echo "Job started at: $(date)"
 echo "Host: $(hostname)"
 echo "Threads: ${THREADS}"
 
-if [ ! -f "${METRICS_FILE}" ]; then
-    echo "tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_FILE}"
-fi
+# Start each run from a fresh file. Writing the header only when the file is
+# absent meant a rerun appended to the previous run's rows, so the first
+# backend comparison (with centrifuge failing and the large Bowtie2 index) and
+# the second sat in one CSV and were averaged together.
+echo "tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_FILE}"
 
 parse_time() {
     local timefile="$1"

@@ -22,6 +22,12 @@ if [ -z "${REPO_DIR:-}" ]; then
     done
 fi
 [ -n "${REPO_DIR:-}" ] || { echo "ERROR: cannot locate the repository. Set REPO_DIR." >&2; exit 1; }
+# Source config.sh so the data and results paths do not depend on how the job was
+# launched. Without it SCRATCH_DIR is only set when run_all.sh exported it, and a
+# bare sbatch fell back to /scr/u/$USER/rustyclean-paper -- the scratch location
+# this project moved away from -- where an older, unrepaired copy of the ground
+# truth still sits. The run completed and reported precision 0 for every dataset.
+[ -n "${REPO_DIR:-}" ] && [ -f "$REPO_DIR/scripts/hpc/config.sh" ] && source "$REPO_DIR/scripts/hpc/config.sh"
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 conda activate /lustre1/g/aos_shihuang/rustyclean-paper/.conda_envs/rustyclean-benchmark
 

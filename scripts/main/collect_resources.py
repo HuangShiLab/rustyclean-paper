@@ -122,6 +122,7 @@ def collect(roots, out_dir):
                             "max_memory_kb": mem,
                             "max_memory_gb": (f"{float(mem)/1048576:.2f}"
                                               if mem.replace(".", "", 1).isdigit() else ""),
+                            "timestamp": row.get("timestamp", ""),
                             "source": os.path.relpath(path, out_dir) if out_dir else path,
                         })
                 except (csv.Error, UnicodeDecodeError):
@@ -129,11 +130,31 @@ def collect(roots, out_dir):
     return records
 
 
+def drop_superseded(records):
+    """Keep only the latest measurement for each (experiment, tool, dataset, rep).
+
+    A benchmark that appended to its previous CSV leaves two runs in one file,
+    and pooling them averages a fixed configuration with the one that replaced
+    it. Report what was dropped rather than doing it quietly.
+    """
+    latest = {}
+    for r in records:
+        key = (r["experiment"], r["tool"], r["dataset"], r["rep"])
+        prev = latest.get(key)
+        if prev is None or r.get("timestamp", "") > prev.get("timestamp", ""):
+            latest[key] = r
+    dropped = len(records) - len(latest)
+    if dropped:
+        print(f"  {dropped} superseded measurement(s) dropped: an earlier run of the "
+              f"same tool and dataset was still in the file")
+    return list(latest.values())
+
+
 def write_summary(records, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     out_csv = os.path.join(out_dir, "resources.csv")
     cols = ["experiment", "tool", "dataset", "rep", "runtime_seconds",
-            "runtime_hms", "max_memory_kb", "max_memory_gb", "source"]
+            "runtime_hms", "max_memory_kb", "max_memory_gb", "timestamp", "source"]
     with open(out_csv, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()
@@ -225,6 +246,7 @@ def main():
     if not records:
         print("  no metrics found; did the benchmarks run?", file=sys.stderr)
         return 1
+    records = drop_superseded(records)
     write_summary(records, out_dir)
     sacct_snapshot(out_dir, args.sacct_days)
     return 0
