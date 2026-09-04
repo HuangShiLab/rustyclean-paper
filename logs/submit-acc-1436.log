@@ -1,0 +1,41 @@
+nohup: ignoring input
+RustyClean full rerun
+  repo      : /lustre1/g/aos_shihuang/rustyclean-paper
+  databases : /lustre1/g/aos_shihuang/databases
+  data      : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/data/enhanced
+  results   : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/results
+
+Stage 1 — references and indexes
+  [stage 1] Kraken2 human-only index — SKIPPED (--from 6)
+  [stage 1] Bowtie2 T2T-only index — SKIPPED (--from 6)
+  [stage 1] minimap2 / sylph / centrifuge — SKIPPED (--from 6)
+
+Stage 2 — simulated datasets
+  [stage 2] generate 18 simulated datasets (ISS, job array) — SKIPPED (--from 6)
+
+Stage 3 — main comparisons
+  [stage 3] RustyClean auto vs KneadData — SKIPPED (--from 6)
+  [stage 3] RustyClean --skip-qc vs Hostile — SKIPPED (--from 6)
+  [stage 3] backend comparison — SKIPPED (--from 6)
+
+Stage 4 — verification pass and index ablation
+  [stage 4] Kraken2 baseline (no recheck) — SKIPPED (--from 6)
+  [stage 4] Kraken2 + Bowtie2 recheck — SKIPPED (--from 6)
+  [stage 4] index ablation (human-only) — SKIPPED (--from 6)
+
+Stage 5 — previously unmeasured
+  [stage 5] auto decision boundary — SKIPPED (--from 6)
+  [stage 5] paired-end panel — SKIPPED (--from 6)
+
+Stage 6 — accuracy
+  [stage 6] accuracy, all tools -> job 3987923
+  [stage 6] accuracy, recheck arms -> job 3987924
+  [stage 6] accuracy, index ablation -> job 3987925
+  [stage 6] accuracy, no-recheck baseline -> job 3987926
+  [stage 6] runtime and memory summary -> job 3987927
+
+Submitted. Watch with: squeue -u $USER
+
+Runtime and peak memory land in /lustre1/g/aos_shihuang/rustyclean-paper/runs/summary/resources.csv once the
+last job finishes. To see partial results at any time, run:
+    python3 /lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/collect_resources.py
