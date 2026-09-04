@@ -396,7 +396,7 @@
     <div><span class="n done">73</span><span class="k">任务全部完成</span></div>
     <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
     <div><span class="n done">3×</span><span class="k">混合库的宿主残留更低</span></div>
-    <div><span class="n void">1</span><span class="k">recheck 收益仍未测</span></div>
+    <div><span class="n void">2</span><span class="k">未决:recheck 收益 · 内存口径</span></div>
   </div>
 
   <!-- ============ 测试目的与设计 ============ -->
@@ -751,9 +751,36 @@
       </table>
     </div>
     <p class="lede">
-      RustyClean 用时间换内存:比 KneadData 快最多 8.6 倍,但峰值内存是它的 6–14 倍。
-      这是 Kraken2 哈希表常驻的直接后果,应当如实报告,而不是只讲速度。
+      按这组数字,RustyClean 用时间换内存:比 KneadData 快最多 8.6 倍,峰值内存是它的 6–14 倍。
+      但<b>这些数字来自 <code>/usr/bin/time</code>,而 SLURM 自己的记账给出的值高得多</b>,见下。
     </p>
+
+    <div class="flag" data-tone="void">
+      <h4>两套内存测量相差 3–12 倍,原因未查明</h4>
+      <p>
+        <code>/usr/bin/time</code> 报告它启动的进程及其等待到的子进程的峰值 RSS;
+        <code>sacct</code> 测量整个 cgroup。两者本就不同,但差距之大超出预期,且<b>系统性地出现在每个作业上</b>:
+      </p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>作业</th><th class="num">/usr/bin/time</th><th class="num">sacct</th><th class="num">倍数</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">rc_auto_vs_kneaddata</td><td class="num">6.7 GB</td><td class="num">64.0 GB</td><td class="num">9.6×</td></tr>
+            <tr><td class="mono">rc_bt2recheck</td><td class="num">12.7 GB</td><td class="num">85.0 GB</td><td class="num">6.7×</td></tr>
+            <tr><td class="mono">rc_k2_index_ablation</td><td class="num">15.6 GB</td><td class="num">83.9 GB</td><td class="num">5.4×</td></tr>
+            <tr><td class="mono">t2t_pe_panel</td><td class="num">3.6 GB</td><td class="num">44.9 GB</td><td class="num">12.5×</td></tr>
+            <tr><td class="mono">backend_runtime</td><td class="num">13.2 GB</td><td class="num">52.7 GB</td><td class="num">4.0×</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        不是个别离群值:<code>t2t_pe_panel</code> 六个任务稳定在 31–45 GB,
+        <code>rc_bt2recheck</code> 呈 5–9 GB 与 26–85 GB 的双峰分布。
+        <b>在查清原因之前,论文中的任何内存数字都不应发表。</b>
+        另外注意 <code>sacct</code> 是按整个作业记账的,一个作业里同时跑了 RustyClean 和对照工具,
+        因此它无法给出分工具的内存——分工具的对比只能来自 <code>/usr/bin/time</code>,而那正是存疑的一套。
+      </p>
+    </div>
 
     <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">recheck 验证通道的开销</h3>
     <div class="scroll">
@@ -1073,7 +1100,8 @@
         验证通道的代价已知:多花 13% 到 67% 的运行时间,内存几乎不变。
         但它换回多少被误删的微生物序列,<b>至今没有数字</b>——无 recheck 基线臂的评分作业
         (<code>run_accuracy_baseline_k2.sh</code>)一直存在,却从未被 stage 6 提交,
-        所以那一臂只有运行时间和内存。已补进流水线,重跑 stage 6 即可得到。
+        所以那一臂只有运行时间和内存。已补进流水线并随 stage 6 提交(作业 3987926),
+        但输出尚未出现,需要确认该作业的最终状态。
       </p>
       <p>
         这也影响上一条结论的边界:索引消融的两臂都开启了 recheck,
@@ -1091,12 +1119,18 @@
       </p>
     </div>
 
-    <div class="flag">
-      <h4>内存是需要如实交代的代价</h4>
+    <div class="flag" data-tone="void">
+      <h4>内存口径未定 — 两套测量相差 3–12 倍</h4>
       <p>
-        RustyClean 的 kraken2 路径峰值 6.7–15.6 GB,而 KneadData 只要 1.1 GB、Hostile 3.5 GB。
-        这是 Kraken2 哈希表常驻的直接后果。速度与准确性的优势建立在更高的内存占用之上,
-        对内存受限的使用者,这个取舍应当写明。
+        <code>/usr/bin/time</code> 给出 RustyClean 峰值 6.7–15.6 GB,KneadData 1.1 GB、Hostile 3.5 GB;
+        <code>sacct</code> 对同一批作业给出 44.9–85.0 GB。差距系统性地出现在每个作业上,不是离群值。
+        两者测的本就不是同一个东西(进程树 vs 整个 cgroup),但倍数之大需要解释。
+      </p>
+      <p>
+        <b>这直接影响论文的一个主要论点。</b>"RustyClean 用更高内存换取速度与准确性"这句话,
+        取决于用哪套数字、以及它们各自意味着什么。查清之前,内存对比不应写进稿件。
+        排查方向:确认 RustyClean 在单样本作业里实际起了几个并发 worker,
+        以及 <code>/usr/bin/time</code> 的 <code>ru_maxrss</code> 对并发子进程是取最大值而非求和。
       </p>
     </div>
 
