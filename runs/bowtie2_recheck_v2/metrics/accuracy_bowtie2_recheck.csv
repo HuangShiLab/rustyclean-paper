@@ -1,0 +1,13 @@
+dataset,rep,tool,accuracy,precision,recall,f1,tp,fp,tn,fn
+30M_50pct_high_skewed_SE,1,rustyclean_bt2recheck,0.597311,0.000000,0.000000,0.000000,0,0,14264819,9616911
+30M_50pct_high_skewed_SE,2,rustyclean_bt2recheck,0.597311,0.000000,0.000000,0.000000,0,0,14264819,9616911
+30M_50pct_high_skewed_SE,3,rustyclean_bt2recheck,0.597311,0.000000,0.000000,0.000000,0,0,14264819,9616911
+60M_90pct_high_lognormal_SE,1,rustyclean_bt2recheck,0.913972,0.000000,0.000000,0.000000,0,0,51351173,4833421
+60M_90pct_high_lognormal_SE,2,rustyclean_bt2recheck,0.913972,0.000000,0.000000,0.000000,0,0,51351173,4833421
+60M_90pct_high_lognormal_SE,3,rustyclean_bt2recheck,0.913972,0.000000,0.000000,0.000000,0,0,51351173,4833421
+100M_50pct_high_lognormal_SE,1,rustyclean_bt2recheck,0.541381,0.000000,0.000000,0.000000,0,0,47550449,40281270
+100M_50pct_high_lognormal_SE,2,rustyclean_bt2recheck,0.541381,0.000000,0.000000,0.000000,0,0,47550449,40281270
+100M_50pct_high_lognormal_SE,3,rustyclean_bt2recheck,0.541381,0.000000,0.000000,0.000000,0,0,47550449,40281270
+100M_90pct_high_lognormal_SE,1,rustyclean_bt2recheck,0.913970,0.000000,0.000000,0.000000,0,0,85585130,8055991
+100M_90pct_high_lognormal_SE,2,rustyclean_bt2recheck,0.913970,0.000000,0.000000,0.000000,0,0,85585130,8055991
+100M_90pct_high_lognormal_SE,3,rustyclean_bt2recheck,0.913970,0.000000,0.000000,0.000000,0,0,85585130,8055991
