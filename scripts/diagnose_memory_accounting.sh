@@ -14,16 +14,17 @@
 # =============================================================================
 # The panel's memory figures come from /usr/bin/time, which reports the peak RSS
 # of the process it launched. sacct reports the cgroup's peak, and on this
-# cluster that is 3 to 12 times higher on every job. Across the backend
-# comparison the sacct figure tracks dataset size (r = 0.755) rather than the
-# tool, and even a 5M dataset reads 19-29 GB where the Kraken2 hash table is
-# 4.3 GB -- both of which point at reclaimable page cache being counted.
+# cluster (JobAcctGatherType = jobacct_gather/cgroup) that is 3 to 12 times
+# higher on every job. Across the backend comparison the sacct figure tracks
+# dataset size (r = 0.755) rather than the tool, which points at reclaimable
+# page cache being charged to the cgroup.
 #
-# This job settles it. It runs no analysis at all: it reads a large file and
-# discards it. Any memory sacct reports beyond a few MB can only be page cache.
+# This job settles it by measuring one thing: read a large file, discard it, and
+# watch the job's OWN cgroup before and after. cat holds a few hundred kB, so if
+# the cgroup grows by roughly the size of the file, the growth is page cache and
+# sacct's MaxRSS is a job footprint rather than a memory requirement.
 #
 #   sbatch scripts/diagnose_memory_accounting.sh
-#   sacct -j <jobid> --format=JobID,MaxRSS,MaxVMSize,Elapsed --units=G
 # =============================================================================
 
 set -euo pipefail
@@ -40,47 +41,77 @@ fi
 [ -n "${REPO_DIR:-}" ] || { echo "ERROR: cannot locate the repository." >&2; exit 1; }
 source "$REPO_DIR/scripts/hpc/config.sh"
 
-BIG=$(find "$DATA_DIR" -name 'reads*.fastq.gz' -size +1G 2>/dev/null | head -1)
-[ -n "$BIG" ] || { echo "ERROR: no dataset larger than 1 GB under $DATA_DIR" >&2; exit 1; }
-
-# SLURM's own .out is gitignored, so the finding would never leave the cluster.
-# Tee a copy into the summary directory, which is synced.
 OUT="${RUNS_DIR:-$REPO_DIR/runs}/summary/memory_accounting_probe.txt"
 mkdir -p "$(dirname "$OUT")"
-exec > >(tee "$OUT") 2>&1
+exec > "$OUT" 2>&1          # one destination; the earlier tee lost the timing output
+
+BIG=$(find "$DATA_DIR" -name 'reads*.fastq.gz' -size +1G 2>/dev/null | head -1)
+[ -n "$BIG" ] || { echo "ERROR: no dataset larger than 1 GB under $DATA_DIR" >&2; exit 1; }
+BYTES=$(stat -c %s "$BIG")
 
 echo "Job:  ${SLURM_JOB_ID:-none}   node: $(hostname)"
-echo "File: $BIG ($(du -h "$BIG" | cut -f1))"
-echo
+echo "File: $BIG"
+printf 'Size: %.2f GB\n\n' "$(echo "$BYTES" | awk '{print $1/1073741824}')"
 
-echo "=== 1. read the file and discard it, under /usr/bin/time ==="
-# cat holds a few hundred kB. Everything else the cgroup charges for this step
-# is page cache.
-/usr/bin/time -v cat "$BIG" > /dev/null 2> >(grep -E 'Maximum resident|Elapsed' >&2)
+# The job's own cgroup, not the node's. /proc/self/cgroup gives the path
+# relative to the mount; the previous version read /sys/fs/cgroup/memory.stat
+# directly, which describes the whole machine and says nothing about this job.
+CG_REL=$(awk -F: '$1=="0"{print $3} $2=="memory"{print $3}' /proc/self/cgroup | head -1)
+CG="/sys/fs/cgroup${CG_REL}"
+echo "cgroup: $CG"
+[ -d "$CG" ] || { echo "ERROR: cannot find this job's cgroup" >&2; exit 1; }
 
-echo
-echo "=== 2. what the kernel says this cgroup is using ==="
-for f in /sys/fs/cgroup/memory/slurm/uid_$(id -u)/job_${SLURM_JOB_ID}/memory.max_usage_in_bytes \
-         /sys/fs/cgroup/memory.peak \
-         /sys/fs/cgroup/memory.current; do
-    [ -r "$f" ] && printf '  %-72s %s\n' "$f" "$(awk '{printf "%.1f GB", $1/1073741824}' "$f")"
-done
-# cgroup v1 splits the total into rss and cache; v2 calls the latter "file".
-for f in /sys/fs/cgroup/memory/slurm/uid_$(id -u)/job_${SLURM_JOB_ID}/memory.stat \
-         /sys/fs/cgroup/memory.stat; do
-    if [ -r "$f" ]; then
-        echo "  --- $f"
-        grep -E '^(rss|cache|file|anon) ' "$f" | awk '{printf "      %-8s %.1f GB\n", $1, $2/1073741824}'
-        break
-    fi
-done
+gb () { awk -v b="$1" 'BEGIN{printf "%.2f", b/1073741824}'; }
+read_field () {   # read_field <file> <key>   (cgroup v2 memory.stat)
+    [ -r "$CG/$1" ] && awk -v k="$2" '$1==k{print $2}' "$CG/$1" || echo ""
+}
+current () {
+    for f in memory.current memory.usage_in_bytes; do
+        [ -r "$CG/$f" ] && { cat "$CG/$f"; return; }
+    done
+    echo 0
+}
 
-echo
-echo "=== 3. how this cluster gathers job accounting ==="
-scontrol show config 2>/dev/null | grep -iE 'JobAcctGatherType|JobAcctGatherParams' | sed 's/^/  /'
+BEFORE_CUR=$(current)
+BEFORE_FILE=$(read_field memory.stat file)
+BEFORE_ANON=$(read_field memory.stat anon)
 
 echo
-echo "Read step 1 against step 2. cat needs well under 1 GB, so a cgroup peak in"
-echo "the tens of GB is page cache, and sacct's MaxRSS is a job footprint that"
-echo "includes reclaimable cache -- not a memory requirement. In that case the"
+echo "=== before reading ==="
+printf '  memory.current %8s GB\n' "$(gb "$BEFORE_CUR")"
+[ -n "$BEFORE_ANON" ] && printf '  anon           %8s GB\n' "$(gb "$BEFORE_ANON")"
+[ -n "$BEFORE_FILE" ] && printf '  file (cache)   %8s GB\n' "$(gb "$BEFORE_FILE")"
+
+echo
+echo "=== reading the file and discarding it ==="
+TIMEFILE=$(mktemp)
+/usr/bin/time -v cat "$BIG" > /dev/null 2> "$TIMEFILE"
+grep -E 'Maximum resident set size|Elapsed \(wall' "$TIMEFILE" | sed 's/^\s*/  /'
+CAT_KB=$(awk -F': ' '/Maximum resident set size/{print $2}' "$TIMEFILE")
+rm -f "$TIMEFILE"
+
+AFTER_CUR=$(current)
+AFTER_FILE=$(read_field memory.stat file)
+AFTER_ANON=$(read_field memory.stat anon)
+
+echo
+echo "=== after reading ==="
+printf '  memory.current %8s GB\n' "$(gb "$AFTER_CUR")"
+[ -n "$AFTER_ANON" ] && printf '  anon           %8s GB\n' "$(gb "$AFTER_ANON")"
+[ -n "$AFTER_FILE" ] && printf '  file (cache)   %8s GB\n' "$(gb "$AFTER_FILE")"
+
+echo
+echo "=== the comparison that settles it ==="
+printf '  file on disk                    %8s GB\n' "$(gb "$BYTES")"
+printf '  cgroup grew by                  %8s GB\n' "$(gb "$((AFTER_CUR - BEFORE_CUR))")"
+[ -n "$AFTER_FILE" ] && [ -n "$BEFORE_FILE" ] && \
+    printf '  of which page cache             %8s GB\n' "$(gb "$((AFTER_FILE - BEFORE_FILE))")"
+printf '  cat peak RSS (/usr/bin/time)    %8s GB\n' "$(gb "$(( ${CAT_KB:-0} * 1024 ))")"
+
+echo
+echo "cat needs a few hundred kB. If the cgroup grew by roughly the size of the"
+echo "file, and the growth is in the cache line, then sacct's MaxRSS counts"
+echo "reclaimable page cache and is not a memory requirement -- in which case the"
 echo "figures to publish are the /usr/bin/time ones already in the report."
+echo
+scontrol show config 2>/dev/null | grep -iE 'JobAcctGatherType|JobAcctGatherParams' | sed 's/^/  /'
