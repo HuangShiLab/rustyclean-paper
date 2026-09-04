@@ -72,7 +72,7 @@ scratch/**
 !scratch/**/
 !runs/**/*.csv
 !scratch/**/*.csv
-!runs/summary/sacct.txt
+!runs/summary/*.txt
 data/*
 !data/.gitkeep
 figures/*

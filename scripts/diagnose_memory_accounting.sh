@@ -43,6 +43,12 @@ source "$REPO_DIR/scripts/hpc/config.sh"
 BIG=$(find "$DATA_DIR" -name 'reads*.fastq.gz' -size +1G 2>/dev/null | head -1)
 [ -n "$BIG" ] || { echo "ERROR: no dataset larger than 1 GB under $DATA_DIR" >&2; exit 1; }
 
+# SLURM's own .out is gitignored, so the finding would never leave the cluster.
+# Tee a copy into the summary directory, which is synced.
+OUT="${RUNS_DIR:-$REPO_DIR/runs}/summary/memory_accounting_probe.txt"
+mkdir -p "$(dirname "$OUT")"
+exec > >(tee "$OUT") 2>&1
+
 echo "Job:  ${SLURM_JOB_ID:-none}   node: $(hostname)"
 echo "File: $BIG ($(du -h "$BIG" | cut -f1))"
 echo

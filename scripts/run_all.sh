@@ -78,6 +78,22 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# A dependency on a job SLURM has already purged is rejected with an opaque
+# "Job dependency problem", once per submission, so a stale id from an earlier
+# round fails the whole plan ten times over. Check the ids first.
+if [ -n "$AFTER_JOB" ] && [ "$DRY_RUN" -eq 0 ] && command -v sacct >/dev/null 2>&1; then
+    _stale=""
+    for _j in ${AFTER_JOB//:/ }; do
+        sacct -n -j "${_j%%_*}" --format=JobID 2>/dev/null | grep -q . || _stale="$_stale $_j"
+    done
+    if [ -n "$_stale" ]; then
+        echo "ERROR: --after names job(s) SLURM no longer knows:$_stale" >&2
+        echo "       Every submission would be refused with 'Job dependency problem'." >&2
+        echo "       If the work those jobs produced is already on disk, drop --after." >&2
+        exit 1
+    fi
+fi
+
 run_all_lock
 
 # Resuming past stage 2 skips the jobs the later stages depend on, so without an
