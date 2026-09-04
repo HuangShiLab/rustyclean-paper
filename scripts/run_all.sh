@@ -196,6 +196,9 @@ echo "Stage 4 — verification pass and index ablation" >&2
 J_BASE=$(submit  4 "Kraken2 baseline (no recheck)"  scripts/benchmark/benchmark_baseline_kraken2_memmap.sh "$DEP3")
 J_RECH=$(submit  4 "Kraken2 + Bowtie2 recheck"      scripts/benchmark/benchmark_bowtie2_recheck_v2.sh "$DEP3")
 J_ABL=$(submit   4 "index ablation (human-only)"    scripts/benchmark/benchmark_k2_index_ablation.sh "$DEP3")
+# The configuration the verification pass was added to compensate for, and the
+# reference the rewritten pass is judged against.
+J_MIXNR=$(submit 4 "mixed library, no recheck"      scripts/benchmark/benchmark_k2_mixed_norecheck.sh "$DEP3")
 echo >&2
 
 # --- Stage 5: gaps the published results never covered -----------------------
@@ -219,11 +222,12 @@ submit 6 "accuracy, index ablation"   scripts/benchmark/run_accuracy_k2_index_ab
 # cost of the verification pass was known and none of its benefit: it is the
 # control the recheck arm is compared against.
 submit 6 "accuracy, no-recheck baseline" scripts/benchmark/run_accuracy_baseline_k2.sh "$ALL_RUNS" >/dev/null
+submit 6 "accuracy, mixed no-recheck"   scripts/benchmark/run_accuracy_k2_mixed_norecheck.sh "$ALL_RUNS" >/dev/null
 
 # The resource summary reads output from every benchmark, including the three
 # that ALL_RUNS leaves out, so it needs its own dependency list.
 EVERY_RUN=$(printf "%s\n" "$AFTER_JOB" "$AFTER_RUNS" "$J_KD" "$J_HOST" "$J_BACK" "$J_BASE" "$J_RECH" \
-    "$J_ABL" "$J_BOUND" "$J_PE" | { grep -v '^$' || true; } | paste -sd: -)
+    "$J_ABL" "$J_MIXNR" "$J_BOUND" "$J_PE" | { grep -v '^$' || true; } | paste -sd: -)
 submit 6 "runtime and memory summary" scripts/benchmark/run_collect_resources.sh "$EVERY_RUN" >/dev/null
 echo >&2
 
