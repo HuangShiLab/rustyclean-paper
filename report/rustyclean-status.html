@@ -379,9 +379,9 @@
     <div class="eyebrow">Benchmark rerun · 状态报告</div>
     <h1>RustyClean 基准重跑状态</h1>
     <p class="standfirst">
-      从零重跑全部建库与测试,取代 2026-08 的旧结果。<b>运行时间、内存与准确性均已测得</b>。
-      四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,
-      这正是本项目要论证的不对称性。本页记录用什么软件、什么数据库、跑什么数据,以及每一步的状态与结果。
+      从零重跑全部建库与测试,取代 2026-08 的旧结果。<b>73 个任务全部完成</b>,
+      运行时间、内存与准确性均已测得。四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,
+      这正是本项目要论证的不对称性。索引消融给出了与预期相反的答案。
     </p>
     <div class="meta">
       <span><b>集群</b> HPC2021 · amd 分区</span>
@@ -393,10 +393,10 @@
   </header>
 
   <div class="tally">
-    <div><span class="n done">69</span><span class="k">任务已完成</span></div>
+    <div><span class="n done">73</span><span class="k">任务全部完成</span></div>
     <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
-    <div><span class="n run">2</span><span class="k">重跑中</span></div>
-    <div><span class="n void">1</span><span class="k">未决科学问题</span></div>
+    <div><span class="n done">3×</span><span class="k">混合库的宿主残留更低</span></div>
+    <div><span class="n void">1</span><span class="k">recheck 收益仍未测</span></div>
   </div>
 
   <!-- ============ 测试目的与设计 ============ -->
@@ -515,7 +515,8 @@
           <span class="tag">24 任务</span>
         </div>
         <p class="stage-note">
-          时间与内存全部测得。后端对比中 <b>centrifuge 的 8 个运行全部失败</b>,因此只有 3/4 个后端有数据。
+          时间与内存全部测得,四个后端齐全。centrifuge 曾因脚本手写的 PATH 不含它而 8 次全挂,
+          修正后补跑完成。
         </p>
         <div class="scroll">
           <table>
@@ -523,7 +524,7 @@
             <tbody>
               <tr><td>RustyClean auto vs KneadData</td><td>KneadData(含 QC)</td><td>中位 4.42× 更快,最大 8.60×</td><td><span class="chip done">8/8</span></td></tr>
               <tr><td>RustyClean --skip-qc vs Hostile</td><td>Hostile(原始序列)</td><td>中位 0.99×,基本持平</td><td><span class="chip done">8/8</span></td></tr>
-              <tr><td>后端运行时对比</td><td>bowtie2 / kraken2 / minimap2 / centrifuge</td><td>kraken2 最快,minimap2 最慢</td><td><span class="chip void">24/32 运行</span></td></tr>
+              <tr><td>后端运行时对比</td><td>bowtie2 / kraken2 / minimap2 / centrifuge</td><td>kraken2 4分37秒 · centrifuge 7分50秒 · bowtie2 18分09秒 · minimap2 31分01秒</td><td><span class="chip done">32/32</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -536,16 +537,17 @@
           <span class="tag">15 任务 · 各 3 次重复</span>
         </div>
         <p class="stage-note">
-          三条臂的时间与内存都已测得。但<b>索引消融要回答的是准确性问题,而准确性数据目前为零</b>,
-          所以这个实验虽已运行,结论仍未得到——它需要修复真值后重算准确性。
+          三条臂的时间与内存都已测得,消融的准确性也已得出并给出了与预期相反的答案(见 03 节)。
+          <b>唯一缺口是无 recheck 基线臂没有准确性</b>——它的评分作业存在但从未被 stage 6 提交,
+          已补进流水线。
         </p>
         <div class="scroll">
           <table>
             <thead><tr><th>实验</th><th>中位运行时间</th><th>峰值内存</th><th>状态</th></tr></thead>
             <tbody>
-              <tr><td>Kraken2 基线(无 recheck)</td><td>15 分 33 秒</td><td>12.3 GB</td><td><span class="chip done">已测</span></td></tr>
+              <tr><td>Kraken2 基线(无 recheck)</td><td>15 分 33 秒</td><td>12.3 GB</td><td><span class="chip void">缺准确性</span></td></tr>
               <tr><td>Kraken2 + Bowtie2 recheck</td><td>24 分 18 秒</td><td>12.7 GB</td><td><span class="chip done">已测</span></td></tr>
-              <tr><td>索引消融(混合库)</td><td>13 分 56 秒</td><td>15.6 GB</td><td><span class="chip void">缺准确性</span></td></tr>
+              <tr><td>索引消融(混合库)</td><td>13 分 56 秒</td><td>15.6 GB</td><td><span class="chip done">已测</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -572,28 +574,18 @@
         </div>
       </div>
 
-      <div class="stage" data-state="run">
+      <div class="stage" data-state="done">
         <div class="stage-head">
           <h3>Stage 6 — 准确性与资源汇总</h3>
-          <span class="chip done">准确性已得</span>
-          <span class="chip run">recheck 臂重跑中</span>
+          <span class="chip done">已完成</span>
           <span class="tag">4 作业</span>
         </div>
         <p class="stage-note">
-          真值 ID 修复后重算,四工具对比与索引消融的准确性都已产出真实数值。
-          recheck 臂此前因包装脚本路径缺少 <code>runs/</code> 而找不到清洗输出,路径已修,正在重跑。
+          四工具对比、索引消融、recheck 臂的准确性全部产出真实数值,资源汇总 136 条测量。
+          recheck 臂曾两次给出全零结果:第一次是真值 ID 带着描述和 <code>/1</code> 后缀对不上,
+          第二次是包装脚本不 <code>source config.sh</code>、回退到了本项目早已弃用的旧 scratch,
+          拿新结果去对旧标签打分。两处都已修,并加了零匹配守卫。
         </p>
-        <div class="scroll">
-          <table>
-            <thead><tr><th>作业</th><th>产出</th><th>状态</th></tr></thead>
-            <tbody>
-              <tr><td>四工具准确性</td><td class="mono">accuracy_comparison.csv</td><td><span class="chip done">16 行</span></td></tr>
-              <tr><td>索引消融准确性(混合库臂)</td><td class="mono">accuracy_k2_mixed.csv</td><td><span class="chip done">12 行</span></td></tr>
-              <tr><td>recheck 臂准确性</td><td class="mono">accuracy_bowtie2_recheck.csv</td><td><span class="chip run">重跑中</span></td></tr>
-              <tr><td>资源汇总</td><td class="mono">resources.csv</td><td><span class="chip done">136 条</span></td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
 
     </div>
@@ -916,6 +908,35 @@
       RustyClean auto 只有 13.5 万条。
     </p>
 
+    <h3 style="margin:20px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">索引消融:结果与预期相反</h3>
+    <p class="lede">
+      v1 的推断是:混合库(<code>kraken16</code>)下 Kraken2 会把宿主序列归到人类的祖先节点,
+      从而逃过按 taxid 的宿主判定,<b>因而应当有更高的宿主残留</b>。实测把这个推断推翻了。
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>数据集</th><th class="num">宿主残留 混合库</th><th class="num">人类专用库</th><th class="num">微生物误删 混合库</th><th class="num">人类专用库</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">0.079%</td><td class="num">0.249%</td><td class="num">0.084%</td><td class="num">0.091%</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">0.101%</td><td class="num">0.238%</td><td class="num">0.084%</td><td class="num">0.094%</td></tr>
+          <tr><td class="mono">100M_50pct_high_lognormal_SE</td><td class="num">0.054%</td><td class="num">0.216%</td><td class="num">0.085%</td><td class="num">0.095%</td></tr>
+          <tr><td class="mono">100M_90pct_high_lognormal_SE</td><td class="num">0.089%</td><td class="num">0.279%</td><td class="num">0.085%</td><td class="num">0.096%</td></tr>
+          <tr><td><b>平均</b></td><td class="num"><b>0.081%</b></td><td class="num">0.245%</td><td class="num"><b>0.084%</b></td><td class="num">0.094%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      <b>混合库在两条轴上都更好</b>:宿主残留低约 3 倍(0.081% vs 0.245%),微生物误删也略低,
+      F1 为 0.99729 对 0.99320。一个合理的解释是:人类专用库里,任何与人类共享少量 k-mer 的序列
+      都<b>没有别的归属可选</b>;混合库给了 Kraken2 微生物的参照,反而判得更准。
+      v1 担心的"LCA 逃逸"没有出现——至少在开启 recheck 的情况下没有。
+    </p>
+    <p class="lede">
+      这个结果<b>不支持</b>为祖先 taxid 补丁而合并 <code>feat/host-taxid-lineage</code> 分支:
+      它要解决的问题在实测中并不存在。但要注意两臂都开启了 recheck,验证通道可能掩盖了差异——
+      在下一条说明的对照补齐之前,这个结论仅在"开启 recheck"的前提下成立。
+    </p>
+
     <h3 style="margin:20px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">auto 路由:估计准确,切换点符合设计</h3>
     <div class="scroll">
       <table>
@@ -1047,22 +1068,16 @@
     <h2><span class="num">07</span>待决事项</h2>
 
     <div class="flag" data-tone="void">
-      <h4>索引消融:唯一还没答案的科学问题</h4>
+      <h4>recheck 的收益仍未测量 — 唯一实质缺口</h4>
       <p>
-        混合库臂的准确性已测出(30M/50%:宿主残留 0.079%,微生物误删 0.084%),
-        但对照的人类专用库臂来自 recheck 实验,那个作业仍在重跑。两臂齐了才能回答:
-        v1 观察到的 1.41% 宿主残留,是方法本身的问题,还是混合库下 Kraken2 的 LCA
-        把宿主序列归到了人类的祖先节点。答案决定 <code>feat/host-taxid-lineage</code> 分支是否需要合并。
+        验证通道的代价已知:多花 13% 到 67% 的运行时间,内存几乎不变。
+        但它换回多少被误删的微生物序列,<b>至今没有数字</b>——无 recheck 基线臂的评分作业
+        (<code>run_accuracy_baseline_k2.sh</code>)一直存在,却从未被 stage 6 提交,
+        所以那一臂只有运行时间和内存。已补进流水线,重跑 stage 6 即可得到。
       </p>
-    </div>
-
-    <div class="flag" data-tone="run">
-      <h4>centrifuge 后端待重跑</h4>
       <p>
-        8 次运行全部失败,原因是脚本手写的 PATH 只含 fastp、kraken2、bowtie2,
-        而 centrifuge 装在项目 conda 环境里。已改为调用 <code>activate_conda</code>,
-        重跑约 40 分钟即可补齐第四个后端。preflight 检查工具时用的是自己拼的 PATH,
-        所以它一直报 OK——这类"preflight 通过但作业失败"的盲区已在脚本中标注。
+        这也影响上一条结论的边界:索引消融的两臂都开启了 recheck,
+        在拿到无 recheck 的对照之前,"混合库更好"仅在开启验证通道的前提下成立。
       </p>
     </div>
 
@@ -1086,11 +1101,24 @@
     </div>
 
     <div class="flag">
-      <h4>消融实验的三次重复完全相同</h4>
+      <h4>三次重复只测量了时间波动</h4>
       <p>
-        <code>accuracy_k2_mixed.csv</code> 里 rep1/rep2/rep3 的每个数字都一模一样。
-        这符合预期——同样的输入、确定性的工具,输出必然相同——但也说明这三次重复
-        只测量了运行时间的波动,准确性上没有提供任何额外信息。论文中不应把它们当作独立重复。
+        消融与 recheck 的 rep1/rep2/rep3 每个准确性数字都一模一样。这符合预期——
+        确定性工具、同样输入、输出必然相同——但意味着这三次重复在准确性上没有提供任何额外信息,
+        论文中不应把它们当作独立重复。
+      </p>
+    </div>
+
+    <div class="flag">
+      <h4>本轮暴露的两类数据缺陷,均已加守卫</h4>
+      <p>
+        <b>静默的全零结果。</b>准确性脚本在一条都匹配不上时会输出一整张 precision 0、recall 0 的表,
+        与"工具删掉了一切"无法区分。现在命中数为零会直接报错。
+      </p>
+      <p>
+        <b>静默的重复累积。</b>三个 benchmark 脚本只在文件不存在时写表头,重跑会追加而非覆盖,
+        失败的那次与重跑结果被一起算了平均。现在每次运行覆盖,汇总也会按时间戳剔除被取代的测量并报数
+        ——本次剔除了 32 条。
       </p>
     </div>
   </section>
