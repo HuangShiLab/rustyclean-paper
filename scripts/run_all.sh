@@ -215,6 +215,10 @@ ALL_RUNS=$(printf "%s\n" "$AFTER_JOB" "$AFTER_RUNS" "$J_KD" "$J_HOST" "$J_BASE" 
 submit 6 "accuracy, all tools"        scripts/benchmark/run_compute_accuracy.sh          "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, recheck arms"     scripts/benchmark/run_accuracy_bowtie2_recheck_v2.sh "$ALL_RUNS" >/dev/null
 submit 6 "accuracy, index ablation"   scripts/benchmark/run_accuracy_k2_index_ablation.sh  "$ALL_RUNS" >/dev/null
+# The no-recheck arm was measured for runtime but never scored, so the whole
+# cost of the verification pass was known and none of its benefit: it is the
+# control the recheck arm is compared against.
+submit 6 "accuracy, no-recheck baseline" scripts/benchmark/run_accuracy_baseline_k2.sh "$ALL_RUNS" >/dev/null
 
 # The resource summary reads output from every benchmark, including the three
 # that ALL_RUNS leaves out, so it needs its own dependency list.
