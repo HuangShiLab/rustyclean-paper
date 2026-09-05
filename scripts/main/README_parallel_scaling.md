@@ -106,18 +106,43 @@ bash scripts/run_parallel_scaling.sh
 两个阶段,共 25 个 array task(20 生成 + 5 测试),在本集群 `MaxSubmitJobPerUser=50`
 之内,可以和常规 panel 并存。
 
-**投入 24 小时之前,先用几分钟验证接线:**
+### 推荐的四步
+
+**第 1 步 — 接线检查(几秒,不占节点,数据还没生成时就能跑)**
 
 ```bash
 PARALLEL_DRY_RUN=1 bash scripts/main/benchmark_parallel_scaling.sh
 ```
 
+检查五个臂的工具和索引是否都在,打印将要执行的脚本。没有数据也能跑——这一步的意义
+正是在花一天模拟数据**之前**发现缺少的工具。
+
+**第 2 步 — 只生成数据(20 个 task 并行,每个约 1–1.5 h)**
+
+```bash
+sbatch scripts/main/generate_parallel_data.sh
+```
+
+跑完确认 120 个:`ls $PARALLEL_DATA_DIR/reads/*.fastq.gz | wc -l`
+
+**第 3 步 — 6 个样品的实跑冒烟测试(约 10–20 分钟)**
+
 ```bash
 PARALLEL_LIMIT=6 sbatch --array=2 scripts/main/benchmark_parallel_scaling.sh
 ```
 
-后者是真正重要的那一步:它用 6 个样品把五个臂全跑一遍,证明每个工具确实把输出写在了
-指纹步骤去找的位置——这一点没有别的办法能验证。
+这一步真正重要:它用真工具把五个臂全跑一遍,证明每个工具确实把输出写在了指纹步骤
+去找的位置——这一点没有别的办法能验证。输出写在 `${PARALLEL_RUNS_DIR}_smoke`,
+不会污染正式结果。看 `metrics/fingerprint_W4_*.tsv`:不该有 `MISSING`。
+
+**第 4 步 — 正式跑**
+
+```bash
+sbatch scripts/main/benchmark_parallel_scaling.sh
+```
+
+一步到位(生成 + 测试,带依赖)则是 `bash scripts/run_parallel_scaling.sh`,
+但那样跳过了第 3 步。
 
 分析:
 

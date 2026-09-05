@@ -253,6 +253,16 @@ def main():
     out_dir = args.out or os.path.join(runs, "summary")
 
     rows = load(runs)
+
+    # A summary that silently mixes a 6-sample smoke run with a 120-sample
+    # measurement would read as a wild scaling result rather than as a mistake.
+    sizes = {r.get("n_samples") for r in rows.values() if r.get("n_samples")}
+    if len(sizes) > 1:
+        print(f"WARNING: rows describe different panel sizes ({', '.join(sorted(sizes))} "
+              f"samples).\n         A smoke run has been mixed into the measurements; "
+              f"the numbers below are not\n         comparable. Remove the short rows "
+              f"from {runs}/metrics and rerun.\n", file=sys.stderr)
+
     out, arms, widths, csv_path = summarise(rows, out_dir)
     text = render(out, arms, widths, rows)
     fp_text, fp_ok = check_fingerprints(runs)

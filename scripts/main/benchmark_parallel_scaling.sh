@@ -100,8 +100,15 @@ T=$(( CPUS / W ))
 ARMS_DEFAULT="kneaddata rustyclean_batch rustyclean_xargs hostile rustyclean_batch_skipqc"
 read -r -a ARMS <<< "${PARALLEL_ARMS:-$ARMS_DEFAULT}"
 
-RUN_ROOT="$PARALLEL_RUNS_DIR/W${W}"
-METRICS_DIR="$PARALLEL_RUNS_DIR/metrics"
+RUNS_BASE="$PARALLEL_RUNS_DIR"
+if [ -n "${PARALLEL_LIMIT:-}" ]; then
+    # A 6-sample run and a 120-sample run write the same file names. Keeping the
+    # smoke test in its own tree means it cannot end up averaged into the real
+    # curve, and the real run does not have to be told to clean up after it.
+    RUNS_BASE="${PARALLEL_RUNS_DIR}_smoke"
+fi
+RUN_ROOT="$RUNS_BASE/W${W}"
+METRICS_DIR="$RUNS_BASE/metrics"
 LOGS_ROOT="$RUN_ROOT/logs"
 mkdir -p "$RUN_ROOT" "$METRICS_DIR" "$LOGS_ROOT"
 
@@ -121,10 +128,24 @@ echo "==============================================================="
 # Sample list
 # ---------------------------------------------------------------------------
 READS_DIR="$PARALLEL_DATA_DIR/reads"
-[ -d "$READS_DIR" ] || { echo "ERROR: no panel at $READS_DIR. Run generate_parallel_data.sh first." >&2; exit 1; }
-
-mapfile -t ALL_READS < <(find "$READS_DIR" -maxdepth 1 -name '*.fastq.gz' | sort)
 N_EXPECTED=$(( $(wc -w <<< "$PARALLEL_HOST_PCTS") * PARALLEL_N_REPS ))
+ALL_READS=()
+[ -d "$READS_DIR" ] && mapfile -t ALL_READS < <(find "$READS_DIR" -maxdepth 1 -name '*.fastq.gz' | sort)
+
+if [ "${PARALLEL_DRY_RUN:-0}" = "1" ] && [ "${#ALL_READS[@]}" -eq 0 ]; then
+    # The point of the preflight is to find a missing tool or index BEFORE
+    # spending a day simulating reads for it, so it must not require the reads.
+    echo "  NOTE: no panel at $READS_DIR yet; using the names it will have."
+    for _p in $PARALLEL_HOST_PCTS; do
+        for _r in $(seq 1 "$PARALLEL_N_REPS"); do
+            ALL_READS+=("$READS_DIR/h$(printf '%02d' "$_p")_r$(printf '%02d' "$_r").fastq.gz")
+        done
+    done
+elif [ ! -d "$READS_DIR" ]; then
+    echo "ERROR: no panel at $READS_DIR. Run generate_parallel_data.sh first." >&2
+    exit 1
+fi
+
 if [ -n "${PARALLEL_LIMIT:-}" ]; then
     echo "  NOTE: PARALLEL_LIMIT=$PARALLEL_LIMIT — this is a smoke test, not a measurement."
 elif [ "${#ALL_READS[@]}" -ne "$N_EXPECTED" ]; then
