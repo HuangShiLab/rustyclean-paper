@@ -465,7 +465,11 @@ arm_ready() {
     case "$1" in
         kneaddata)
             command -v kneaddata >/dev/null 2>&1 || { echo "not on PATH"; return 1; }
-            [ -d "$KNEADDATA_DB" ] || { echo "database missing: $KNEADDATA_DB"; return 1; } ;;
+            # -db takes either a directory of indexes or a bowtie2 index prefix,
+            # and this cluster's is a prefix. Testing only for a directory
+            # reported the working database as missing.
+            [ -e "${KNEADDATA_DB}.1.bt2" ] || [ -e "${KNEADDATA_DB}.1.bt2l" ] || [ -d "$KNEADDATA_DB" ] \
+                || { echo "no bowtie2 index at $KNEADDATA_DB (tried .1.bt2, .1.bt2l, and a directory)"; return 1; } ;;
         hostile)
             command -v hostile >/dev/null 2>&1 || { echo "not on PATH"; return 1; }
             [ -e "${HOSTILE_INDEX}.1.bt2" ] || [ -e "${HOSTILE_INDEX}.1.bt2l" ] \
