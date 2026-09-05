@@ -379,9 +379,10 @@
     <div class="eyebrow">Benchmark rerun · 状态报告</div>
     <h1>RustyClean 基准重跑状态</h1>
     <p class="standfirst">
-      从零重跑全部建库与测试,取代 2026-08 的旧结果。<b>73 个任务全部完成</b>,
-      运行时间、内存与准确性均已测得。四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,
-      这正是本项目要论证的不对称性。索引消融给出了与预期相反的答案。
+      从零重跑全部建库与测试,取代 2026-08 的旧结果。运行时间、内存与准确性均已测得。
+      四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,这正是本项目要论证的不对称性。
+      <b>三个原本预期的结论被数据推翻</b>:混合库并不更差、对 Hostile 没有速度优势、
+      验证通道两个方向都不划算。
     </p>
     <div class="meta">
       <span><b>集群</b> HPC2021 · amd 分区</span>
@@ -393,7 +394,7 @@
   </header>
 
   <div class="tally">
-    <div><span class="n done">73</span><span class="k">任务全部完成</span></div>
+    <div><span class="n done">全部</span><span class="k">实验已完成</span></div>
     <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
     <div><span class="n done">3×</span><span class="k">混合库的宿主残留更低</span></div>
     <div><span class="n done">3.09</span><span class="k">recheck 每挽回 1 条微生物<br>多留的宿主序列</span></div>
@@ -1028,24 +1029,99 @@
   <section>
     <h2><span class="num">05</span>参考序列与数据库</h2>
     <p class="lede">
-      核心设计:<b>宿主序列从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,因此去宿主必须应对真实的组装差异,
-      而不是匹配序列的来源本身。本项目构建的五个索引全部来自同一份 T2T FASTA,并带 provenance stamp 记录来源。
+      核心设计:<b>宿主序列从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,
+      因此去宿主必须应对真实的组装差异,而不是匹配序列的来源本身。
+      本项目构建的五个索引全部来自<b>同一份 T2T-CHM13v2.0 FASTA</b>,并带 provenance stamp 记录来源,
+      因此后端之间的差异归因于算法,而非参考内容。
     </p>
 
+    <h3 style="margin:10px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">参考序列</h3>
     <div class="scroll">
       <table>
-        <thead><tr><th>类别</th><th>名称</th><th>用途</th><th>状态</th></tr></thead>
+        <thead><tr><th>用途</th><th>来源</th><th>说明</th></tr></thead>
         <tbody>
-          <tr><td class="nowrap">参考序列</td><td>T2T-CHM13v2.0 <span class="dim mono">GCF_009914755.1</span></td><td>去宿主参考,五个索引的共同来源</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">参考序列</td><td>GRCh38.p14 <span class="dim mono">GCF_000001405.40</span></td><td>宿主序列的模拟来源</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">参考序列</td><td>GTDB r202 参考基因组</td><td>微生物群落取材,9,057 个基因组</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">分类信息</td><td>NCBI taxonomy</td><td>Kraken2 与 centrifuge 建库</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">本项目索引</td><td>Kraken2 human-only (T2T)</td><td><b>默认后端</b>,除消融外全部实验使用</td><td><span class="chip done">已建成</span></td></tr>
-          <tr><td class="nowrap">本项目索引</td><td>Bowtie2 T2T-only</td><td>比对后端与 recheck 验证通道</td><td><span class="chip done">已重建 (.bt2)</span></td></tr>
-          <tr><td class="nowrap">本项目索引</td><td>minimap2 / sylph / centrifuge (T2T)</td><td>后端对比</td><td><span class="chip done">已建成</span></td></tr>
-          <tr><td class="nowrap">消融对照</td><td>Kraken2 mixed <span class="dim mono">kraken16</span></td><td>仅索引消融实验;含人类以外多个类群</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">对照工具库</td><td>KneadData <span class="dim mono">hg39_T2T</span></td><td>KneadData 官方默认库</td><td><span class="chip done">就绪</span></td></tr>
-          <tr><td class="nowrap">对照工具库</td><td>Hostile <span class="dim mono">human-t2t-hla</span></td><td>Hostile 官方默认库(T2T + IPD-IMGT/HLA)</td><td><span class="chip done">就绪</span></td></tr>
+          <tr><td>去宿主参考</td><td>T2T-CHM13v2.0 <span class="dim mono">GCF_009914755.1</span></td><td>五个自建索引的共同来源</td></tr>
+          <tr><td>宿主序列的模拟来源</td><td>GRCh38.p14 <span class="dim mono">GCF_000001405.40</span></td><td>刻意与去宿主参考不同</td></tr>
+          <tr><td>微生物群落取材</td><td>GTDB r202 参考基因组</td><td>9,057 个,按复杂度定种子随机抽样</td></tr>
+          <tr><td>分类信息</td><td>NCBI taxonomy</td><td>Kraken2 与 centrifuge 共用同一份</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin:16px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">本项目构建的索引</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>索引</th><th>构建方式</th><th class="num">体积</th><th>用于</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Kraken2 human-only</b><br><span class="dim">默认后端</span></td>
+            <td class="mono">kraken2-build --build<br>--kmer-len 35 --minimizer-len 31</td>
+            <td class="num">hash.k2d 4.3 GB</td>
+            <td>除消融外的全部实验</td>
+          </tr>
+          <tr>
+            <td>Bowtie2 T2T-only</td>
+            <td class="mono">bowtie2-build(不加 --large-index)</td>
+            <td class="num">.bt2 小索引</td>
+            <td>低宿主比例的比对后端、auto 抽样、recheck</td>
+          </tr>
+          <tr>
+            <td>minimap2</td>
+            <td class="mono">minimap2 -x sr -d</td>
+            <td class="num">t2t_only.mmi</td>
+            <td>后端对比</td>
+          </tr>
+          <tr>
+            <td>sylph</td>
+            <td class="mono">sylph sketch -g</td>
+            <td class="num">t2t.syldb</td>
+            <td>sketch 预筛</td>
+          </tr>
+          <tr>
+            <td>centrifuge</td>
+            <td class="mono">centrifuge-build,全部序列映射到 taxid 9606</td>
+            <td class="num">.1.cf 999 MB<br>.2.cf 372 MB</td>
+            <td>后端对比</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      Kraken2 库只含人类,<code>kraken2-inspect</code> 报告 <b>33 个分类节点</b>——正是人类谱系的深度。
+      Bowtie2 索引原先用 <code>--large-index</code> 建成 <code>.bt2l</code>,该标志继承自 GRCh38+T2T
+      合并参考的脚本(约 6.2 Gbp,确实超过 Bowtie2 小索引 4 Gbp 的上限);T2T 单独 3.1 Gbp 并不需要,
+      且 <code>.bt2l</code> 用 64 位偏移量、体积更大,会让报告的索引占用相对
+      KneadData 与 Hostile 的 <code>.bt2</code> 被高估,已重建。
+    </p>
+
+    <h3 style="margin:16px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">消融对照库</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>库</th><th>内容</th><th class="num">体积</th><th>角色</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Kraken2 mixed</b><br><span class="mono dim">kraken16</span></td>
+            <td><b>多类群库</b>,73,690 个基因组,人类只是其中之一</td>
+            <td class="num">hash.k2d 15 GB<br>names.dmp 258 MB<br>nodes.dmp 194 MB</td>
+            <td>仅索引消融;<b>不是默认</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      <b>「混合库」指的是多类群,不是 T2T + HLA。</b>config 中另有一个 <code>KRAKEN2_DB_T2T_HLA</code>
+      的定义,但本系统没有 IPD-IMGT/HLA 序列,该库<b>从未构建</b>,任何实验都没有用到它。
+      混合库的哈希表是人类专用库的 3.5 倍(15 GB vs 4.3 GB),
+      这也是消融臂需要把库暂存到节点本地磁盘的原因。
+    </p>
+
+    <h3 style="margin:16px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">对照工具的官方库</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>工具</th><th>库</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td>KneadData</td><td class="mono">hg39_T2T</td><td>T2T-CHM13v2.0(GCF_009914755.1),<b>不含 HLA</b></td></tr>
+          <tr><td>Hostile</td><td class="mono">human-t2t-hla</td><td>T2T-CHM13v2.0 + <b>IPD-IMGT/HLA</b></td></tr>
         </tbody>
       </table>
     </div>
@@ -1053,13 +1129,15 @@
     <div class="flag">
       <h4>一处必须在论文中说明的不对称</h4>
       <p>
-        Hostile 的默认索引在 T2T 之外还包含 IPD-IMGT/HLA,而本系统上没有 HLA 序列,因此 RustyClean 的所有索引都是纯 T2T。
-        这个差异是比较本身的属性,应当如实报告,而不是通过改动 Hostile 的默认配置来抹平。
+        Hostile 的默认索引在 T2T 之外还包含 IPD-IMGT/HLA,而本系统没有 HLA 序列,
+        因此 RustyClean 与 KneadData 的索引都是纯 T2T。<b>三方中只有 Hostile 多了 HLA。</b>
+        这个差异是比较本身的属性,应当如实报告,而不是通过改动 Hostile 的默认配置来抹平——
+        使用者拿到的就是这个默认库。
       </p>
     </div>
   </section>
 
-  <!-- ============ 数据集 ============ -->
+=== 数据集 ============ -->
   <section>
     <h2><span class="num">06</span>模拟数据集</h2>
     <p class="lede">
@@ -1152,14 +1230,16 @@
       </p>
     </div>
 
-    <div class="flag" data-tone="run">
-      <h4>一个未解释的超时</h4>
+    <div class="flag">
+      <h4>决策边界臂的超时:数据完整,无需重跑</h4>
       <p>
-        <code>rc_auto_boundary</code> 的一个任务在 6 小时时限处超时,而该臂此前的中位耗时是
-        3 分 40 秒。它不开启 recheck,理论上不受本轮改动影响。可能是节点争用
-        (同期有多个 6–18 小时的作业在压同一文件系统),但尚未确认。
+        <code>rc_auto_boundary</code> 有一次尝试在 6 小时时限处超时,但该臂的六个数据集
+        <b>各有完整且正常的测量</b>(10M/30% 实测 bowtie2 612 秒、kraken2 137 秒),
+        说明超时的是一次被取代的尝试,很可能输给了节点争用——同期有多个 6–18 小时的作业在压同一文件系统。
+        时限已提高到 24 小时与其他臂一致,把 walltime 从变量里去掉。
       </p>
     </div>
+
   </section>
 
   <footer>
