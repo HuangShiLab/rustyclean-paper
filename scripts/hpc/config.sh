@@ -141,6 +141,30 @@ export PE_FRAG_MEAN="${PE_FRAG_MEAN:-300}"
 export PE_FRAG_SD="${PE_FRAG_SD:-30}"
 
 # ---------------------------------------------------------------------------
+# Parallel-scaling panel (scripts/main/*_parallel_scaling.*)
+# ---------------------------------------------------------------------------
+# A separate, deliberately uniform panel: 120 single-end samples of 1,000,000
+# reads each, 20 replicates at each of six host fractions. The enhanced panel
+# varies depth, complexity and host fraction all at once, which is what an
+# accuracy comparison needs and exactly what a throughput comparison must not
+# have -- there, every sample has to cost about the same so that batch wall
+# time reflects the scheduler rather than which sample landed on which worker.
+export PARALLEL_DATA_DIR="${PARALLEL_DATA_DIR:-$SCRATCH_DIR/data/parallel}"
+export PARALLEL_RUNS_DIR="${PARALLEL_RUNS_DIR:-$RUNS_DIR/parallel_scaling}"
+export PARALLEL_HOST_PCTS="${PARALLEL_HOST_PCTS:-1 5 10 50 70 90}"
+export PARALLEL_N_REPS="${PARALLEL_N_REPS:-20}"
+export PARALLEL_READS_PER_SAMPLE="${PARALLEL_READS_PER_SAMPLE:-1000000}"
+# Species per simulated community. Held at the enhanced panel's "med" setting so
+# the two panels are describing the same kind of metagenome.
+export PARALLEL_N_SPECIES="${PARALLEL_N_SPECIES:-30}"
+# Total cores each benchmark task is given. Concurrency W and per-sample threads
+# T are chosen so that W x T equals this, which is what makes the worker counts
+# comparable: every point on the scaling curve is handed the same machine.
+export PARALLEL_CPUS="${PARALLEL_CPUS:-16}"
+# Sampling period, in seconds, for the concurrent-memory probe.
+export PARALLEL_MEM_INTERVAL="${PARALLEL_MEM_INTERVAL:-1}"
+
+# ---------------------------------------------------------------------------
 # Compute settings
 # ---------------------------------------------------------------------------
 export N_THREADS="${N_THREADS:-16}"
