@@ -396,7 +396,7 @@
     <div><span class="n done">73</span><span class="k">任务全部完成</span></div>
     <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
     <div><span class="n done">3×</span><span class="k">混合库的宿主残留更低</span></div>
-    <div><span class="n void">1</span><span class="k">未决:内存口径</span></div>
+    <div><span class="n done">3.09</span><span class="k">recheck 每挽回 1 条微生物<br>多留的宿主序列</span></div>
   </div>
 
   <!-- ============ 测试目的与设计 ============ -->
@@ -751,74 +751,65 @@
       </table>
     </div>
     <p class="lede">
-      按这组数字,RustyClean 用时间换内存:比 KneadData 快最多 8.6 倍,峰值内存是它的 6–14 倍。
-      但<b>这些数字来自 <code>/usr/bin/time</code>,而 SLURM 自己的记账给出的值高得多</b>,见下。
+      RustyClean 用时间换内存:比 KneadData 快最多 8.6 倍,峰值内存是它的 6–14 倍。
+      这是 Kraken2 哈希表常驻的直接后果,应当如实报告,而不是只讲速度。
     </p>
 
-    <div class="flag" data-tone="void">
-      <h4>两套内存测量相差 3–12 倍,原因未查明</h4>
+    <div class="flag">
+      <h4>两套内存测量的差异已查清:sacct 计入页缓存</h4>
       <p>
-        <code>/usr/bin/time</code> 报告它启动的进程及其等待到的子进程的峰值 RSS;
-        <code>sacct</code> 测量整个 cgroup。两者本就不同,但差距之大超出预期,且<b>系统性地出现在每个作业上</b>:
+        一个只读文件、不做任何计算的作业给出了答案:<code>cat</code> 读一个 5.35 GB 的文件,
+        自身峰值 <b>5,816 KB</b>,而作业 cgroup 增长了 <b>5.35 GB——恰好是文件大小,99.8% 落在
+        cache 那一行,anon 为 0</b>。本集群 <code>JobAcctGatherType = jobacct_gather/cgroup</code>,
+        因此 <code>sacct</code> 的 MaxRSS 把可回收的页缓存算了进去。
       </p>
-      <div class="scroll">
-        <table>
-          <thead><tr><th>作业</th><th class="num">/usr/bin/time</th><th class="num">sacct</th><th class="num">倍数</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">rc_auto_vs_kneaddata</td><td class="num">6.7 GB</td><td class="num">64.0 GB</td><td class="num">9.6×</td></tr>
-            <tr><td class="mono">rc_bt2recheck</td><td class="num">12.7 GB</td><td class="num">85.0 GB</td><td class="num">6.7×</td></tr>
-            <tr><td class="mono">rc_k2_index_ablation</td><td class="num">15.6 GB</td><td class="num">83.9 GB</td><td class="num">5.4×</td></tr>
-            <tr><td class="mono">t2t_pe_panel</td><td class="num">3.6 GB</td><td class="num">44.9 GB</td><td class="num">12.5×</td></tr>
-            <tr><td class="mono">backend_runtime</td><td class="num">13.2 GB</td><td class="num">52.7 GB</td><td class="num">4.0×</td></tr>
-          </tbody>
-        </table>
-      </div>
       <p>
-        不是个别离群值:<code>t2t_pe_panel</code> 六个任务稳定在 31–45 GB,
-        <code>rc_bt2recheck</code> 呈 5–9 GB 与 26–85 GB 的双峰分布。
-        <b>在查清原因之前,论文中的任何内存数字都不应发表。</b>
-        另外注意 <code>sacct</code> 是按整个作业记账的,一个作业里同时跑了 RustyClean 和对照工具,
-        因此它无法给出分工具的内存——分工具的对比只能来自 <code>/usr/bin/time</code>,而那正是存疑的一套。
+        <b>那是作业占用,不是内存需求。</b>报告中的内存数字来自 <code>/usr/bin/time</code>,
+        衡量的是工具真正需要的常驻内存,<b>可以直接用于论文</b>。
+        此前观察到 sacct 数字随数据量增长(r = 0.755)也由此得到解释。
       </p>
     </div>
 
-    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">recheck 验证通道的开销</h3>
+
+    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">recheck 验证通道:两个方向都测过了</h3>
+    <p class="lede">
+      这个特性有过两种实现。<b>旧版</b>复核 Kraken2 判为「未分类」的序列,比对上宿主的就删掉——
+      是一道额外删除,当初为弥补混合库去不干净宿主而加。<b>新版</b>按设计意图改为复核 Kraken2
+      判为宿主的序列,Bowtie2 无法确认的就挽回。两个方向的代价与收益都已测得。
+    </p>
     <div class="scroll">
       <table>
-        <thead><tr><th>数据集</th><th class="num">基线</th><th class="num">+ recheck</th><th class="num">增幅</th></tr></thead>
+        <thead><tr><th>版本</th><th class="num">中位时间</th><th class="num">相对无 recheck</th><th class="num">宿主残留</th><th class="num">微生物误删</th><th class="num">F1</th></tr></thead>
         <tbody>
-          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">9.4 分</td><td class="num">14.0 分</td><td class="num">+48.9%</td></tr>
-          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">14.7 分</td><td class="num">16.7 分</td><td class="num">+13.4%</td></tr>
-          <tr><td class="mono">60M_99pct_med_lognormal_SE</td><td class="num">13.4 分</td><td class="num">22.4 分</td><td class="num">+66.8%</td></tr>
-          <tr><td class="mono">100M_50pct_high_lognormal_SE</td><td class="num">22.8 分</td><td class="num">36.2 分</td><td class="num">+58.6%</td></tr>
-          <tr><td class="mono">100M_90pct_high_lognormal_SE</td><td class="num">20.9 分</td><td class="num">27.4 分</td><td class="num">+31.1%</td></tr>
+          <tr><td>无 recheck(基线)</td><td class="num">13.6 分</td><td class="num">1.0×</td><td class="num">0.261%</td><td class="num">0.092%</td><td class="num">0.99285</td></tr>
+          <tr><td>旧版(额外删除)</td><td class="num">24.3 分</td><td class="num">1.8×</td><td class="num"><b>0.245%</b></td><td class="num">0.094%</td><td class="num"><b>0.99320</b></td></tr>
+          <tr><td>新版(挽回)</td><td class="num">97.9 分</td><td class="num"><b>7.2×</b></td><td class="num">0.265%</td><td class="num"><b>0.088%</b></td><td class="num">0.99276</td></tr>
         </tbody>
       </table>
     </div>
     <p class="lede">
-      时间增加 13%–67%,内存几乎不变(12.3 → 12.7 GB)。无 recheck 基线臂补测之后,
-      收益也有了数字——但结果不支持把它作为默认开启的特性。
+      <b>新版的方向对了</b>——微生物误删确实下降(0.092% → 0.088%),这正是设计意图。
+      但换算成绝对条数,答案就清楚了:
     </p>
-
     <div class="scroll">
       <table>
-        <thead><tr><th>数据集</th><th class="num">宿主残留 基线</th><th class="num">+ recheck</th><th class="num">微生物误删 基线</th><th class="num">+ recheck</th></tr></thead>
+        <thead><tr><th>数据集</th><th class="num">挽回的微生物序列</th><th class="num">多留下的宿主序列</th><th class="num">净值</th></tr></thead>
         <tbody>
-          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">0.266%</td><td class="num">0.249%</td><td class="num">0.090%</td><td class="num">0.091%</td></tr>
-          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">0.251%</td><td class="num">0.238%</td><td class="num">0.092%</td><td class="num">0.094%</td></tr>
-          <tr><td class="mono">100M_50pct_high_lognormal_SE</td><td class="num">0.230%</td><td class="num">0.216%</td><td class="num">0.093%</td><td class="num">0.095%</td></tr>
-          <tr><td class="mono">100M_90pct_high_lognormal_SE</td><td class="num">0.296%</td><td class="num">0.279%</td><td class="num">0.093%</td><td class="num">0.096%</td></tr>
-          <tr><td><b>平均</b></td><td class="num">0.261%</td><td class="num"><b>0.245%</b></td><td class="num"><b>0.092%</b></td><td class="num">0.094%</td></tr>
+          <tr><td class="mono">30M_50pct_high_skewed_SE</td><td class="num">+669</td><td class="num">+902</td><td class="num">−233</td></tr>
+          <tr><td class="mono">60M_90pct_high_lognormal_SE</td><td class="num">+239</td><td class="num">+1,942</td><td class="num">−1,703</td></tr>
+          <tr><td class="mono">100M_50pct_high_lognormal_SE</td><td class="num">+1,858</td><td class="num">+2,071</td><td class="num">−213</td></tr>
+          <tr><td class="mono">100M_90pct_high_lognormal_SE</td><td class="num">+386</td><td class="num">+4,831</td><td class="num">−4,445</td></tr>
+          <tr><td><b>合计</b></td><td class="num"><b>+3,152</b></td><td class="num"><b>+9,746</b></td><td class="num"><b>−6,594</b></td></tr>
         </tbody>
       </table>
     </div>
     <p class="lede">
-      <b>F1 从 0.99285 升到 0.99320,提升 0.0004</b>,代价是 13%–67% 的额外运行时间。
-      更值得注意的是<b>方向</b>:验证通道的设计目的是挽回被 kraken2 误判为宿主的微生物序列,
-      因而应当<b>降低</b>微生物误删。实测微生物误删反而升了 2%,宿主残留降了 6%——
-      说明它在实现上更像一道<b>额外的删除</b>,而不是纯粹的挽回。
-      这个差异需要在代码层面查清,再决定它是否应当默认开启。
+      <b>每挽回 1 条微生物序列,要多留下 3.09 条宿主序列。</b>F1 因此不升反降
+      (0.99285 → 0.99276),而运行时间是 7.2 倍。旧版方向相反,F1 略升 0.0004,代价 1.8 倍。
+      <b>两个方向都不划算</b>:能做的事都太小,而 Kraken2 与 Bowtie2 在这批数据上的分歧
+      本来就只有千分之几。建议不默认开启,并在论文中如实说明这个特性未能带来可测的收益。
     </p>
+
     <h3 style="margin:20px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">准确性:两类错误的取舍曲线</h3>
     <p class="lede">
       正类为"微生物序列被保留"。<b>横轴是没能清除的宿主序列</b>(污染残留),
@@ -1112,19 +1103,20 @@
 
   <!-- ============ 待决 ============ -->
   <section>
-    <h2><span class="num">07</span>待决事项</h2>
+    <h2><span class="num">07</span>结论与待决</h2>
 
     <div class="flag" data-tone="void">
-      <h4>recheck 应否默认开启,需要重新判断</h4>
+      <h4>recheck 验证通道:建议不默认开启</h4>
       <p>
-        补测之后收益是明确的:F1 从 0.99285 到 0.99320,提升 <b>0.0004</b>,
-        代价是 13%–67% 的额外运行时间。仅凭这个比值就难以支持默认开启。
+        两个方向都实现并测量过。旧版(额外删除)F1 +0.0004,代价 1.8 倍时间;
+        新版(挽回)方向正确、微生物误删确实下降,但<b>每挽回 1 条微生物序列要多留下 3.09 条宿主序列</b>,
+        F1 反降到 0.99276,代价 7.2 倍时间。四个数据集合计净损失 6,594 条序列。
       </p>
       <p>
-        更要紧的是方向不对。验证通道的设计意图是复核 kraken2 判为宿主的序列、
-        把其中的微生物挽回来,因而应当<b>降低微生物误删</b>。实测微生物误删升了 2%,
-        宿主残留降了 6%——它表现得像一道额外的删除,而不是挽回。
-        <b>先查清代码实际做了什么,再决定这个特性的去留</b>,不要只按测得的数字下结论。
+        根本原因是可做的事太小:Kraken2 与 Bowtie2 在这批数据上的分歧本就只有千分之几,
+        任何基于二者不一致的复核都只能在这个量级内腾挪。
+        <b>建议不默认开启,并在论文中如实说明这个特性未能带来可测的收益</b>——
+        这比略去它更有价值,因为它排除了一条看似合理的改进路径。
       </p>
     </div>
 
@@ -1134,22 +1126,7 @@
         对 Hostile 的速度是持平(中位 0.99×),但准确性上 RustyClean <code>--skip-qc</code>
         在两条轴上都更优。对 KneadData 则相反:速度快 4.4–8.6 倍,而 KneadData 的宿主清除
         略胜一筹(0.30% vs 0.42%),代价是误删近十倍的微生物序列。
-        论文的主张应当是"在两类错误之间取得更好的平衡",而不是单纯的速度。
-      </p>
-    </div>
-
-    <div class="flag" data-tone="void">
-      <h4>内存口径未定 — 两套测量相差 3–12 倍</h4>
-      <p>
-        <code>/usr/bin/time</code> 给出 RustyClean 峰值 6.7–15.6 GB,KneadData 1.1 GB、Hostile 3.5 GB;
-        <code>sacct</code> 对同一批作业给出 44.9–85.0 GB。差距系统性地出现在每个作业上,不是离群值。
-        两者测的本就不是同一个东西(进程树 vs 整个 cgroup),但倍数之大需要解释。
-      </p>
-      <p>
-        <b>这直接影响论文的一个主要论点。</b>"RustyClean 用更高内存换取速度与准确性"这句话,
-        取决于用哪套数字、以及它们各自意味着什么。查清之前,内存对比不应写进稿件。
-        排查方向:确认 RustyClean 在单样本作业里实际起了几个并发 worker,
-        以及 <code>/usr/bin/time</code> 的 <code>ru_maxrss</code> 对并发子进程是取最大值而非求和。
+        论文的主张应当是「在两类错误之间取得更好的平衡」,而不是单纯的速度。
       </p>
     </div>
 
@@ -1157,21 +1134,30 @@
       <h4>三次重复只测量了时间波动</h4>
       <p>
         消融与 recheck 的 rep1/rep2/rep3 每个准确性数字都一模一样。这符合预期——
-        确定性工具、同样输入、输出必然相同——但意味着这三次重复在准确性上没有提供任何额外信息,
+        确定性工具、同样输入、输出必然相同——但意味着这三次重复在准确性上没有提供额外信息,
         论文中不应把它们当作独立重复。
       </p>
     </div>
 
-    <div class="flag">
-      <h4>本轮暴露的两类数据缺陷,均已加守卫</h4>
+    <div class="flag" data-tone="run">
+      <h4>索引消融的新版臂未完成,但不影响结论</h4>
       <p>
-        <b>静默的全零结果。</b>准确性脚本在一条都匹配不上时会输出一整张 precision 0、recall 0 的表,
-        与"工具删掉了一切"无法区分。现在命中数为零会直接报错。
+        混合库 + 新版 recheck 的 5 个任务中有 2 个因节点本地磁盘写满而失败:
+        新版把 5400 万条宿主序列的比对结果写成了约 21 GB 的 SAM,与 16 GB 的暂存库挤在同一块
+        <code>/tmp</code> 上。已改为流式读取、不再落盘。
       </p>
       <p>
-        <b>静默的重复累积。</b>三个 benchmark 脚本只在文件不存在时写表头,重跑会追加而非覆盖,
-        失败的那次与重跑结果被一起算了平均。现在每次运行覆盖,汇总也会按时间戳剔除被取代的测量并报数
-        ——本次剔除了 32 条。
+        <b>不必为此重跑消融</b>:消融要回答的是索引问题,而现有的旧版消融结果已经给出了答案
+        (混合库宿主残留低约 3 倍),且 recheck 对 F1 的影响不超过 0.0004,不足以改变那个结论。
+      </p>
+    </div>
+
+    <div class="flag" data-tone="run">
+      <h4>一个未解释的超时</h4>
+      <p>
+        <code>rc_auto_boundary</code> 的一个任务在 6 小时时限处超时,而该臂此前的中位耗时是
+        3 分 40 秒。它不开启 recheck,理论上不受本轮改动影响。可能是节点争用
+        (同期有多个 6–18 小时的作业在压同一文件系统),但尚未确认。
       </p>
     </div>
   </section>
