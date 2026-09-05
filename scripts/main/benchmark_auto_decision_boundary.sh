@@ -7,7 +7,13 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128G
-#SBATCH --time=06:00:00
+# 24 h to match the Kraken2 arms. One task -- 10M_30pct -- hit the old 6 h
+# ceiling while every other 10M dataset in this arm finished in minutes, and this
+# arm does not use the verification pass, so the change that slowed the others
+# does not explain it. The rerun is also the diagnosis: finishing in minutes
+# points at contention on the shared filesystem, taking hours again means the
+# 30% host fraction is genuinely a hard case here and is worth investigating.
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 
