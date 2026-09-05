@@ -1,6 +1,11 @@
 tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
-rustyclean_t2t_only,20M_50pct_med_lognormal_PE,1,1009,3708948,2026-09-03T12:35:38+08:00
-rustyclean_t2t_only,20M_50pct_med_lognormal_PE,2,923,3708732,2026-09-03T12:51:01+08:00
-rustyclean_t2t_only,20M_50pct_med_lognormal_PE,3,923,3710324,2026-09-03T13:06:25+08:00
-hostile,20M_50pct_med_lognormal_PE,1,1066,3828564,2026-09-03T13:24:11+08:00
-kneaddata,20M_50pct_med_lognormal_PE,1,2726,1176484,2026-09-03T14:09:38+08:00
+rustyclean_t2t_only,20M_50pct_med_lognormal_PE,1,1595,3705388,2026-09-04T21:08:38+08:00
+rustyclean_t2t_only,20M_50pct_med_lognormal_PE,1,810,3708252,2026-09-04T21:13:55+08:00
+rustyclean_t2t_only,20M_50pct_med_lognormal_PE,2,700,3707072,2026-09-04T21:25:35+08:00
+rustyclean_t2t_only,20M_50pct_med_lognormal_PE,3,873,3710760,2026-09-04T21:40:20+08:00
+hostile,20M_50pct_med_lognormal_PE,1,916,3827484,2026-09-04T21:55:37+08:00
+rustyclean_t2t_only,20M_50pct_med_lognormal_PE,2,3490,3685184,2026-09-04T22:06:51+08:00
+kneaddata,20M_50pct_med_lognormal_PE,1,1358,1179576,2026-09-04T22:18:16+08:00
+rustyclean_t2t_only,20M_50pct_med_lognormal_PE,3,1638,3705268,2026-09-04T22:34:10+08:00
+hostile,20M_50pct_med_lognormal_PE,1,1172,3821632,2026-09-04T22:53:43+08:00
+kneaddata,20M_50pct_med_lognormal_PE,1,4709,1178444,2026-09-05T00:12:13+08:00

@@ -1,0 +1,5 @@
+tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
+rustyclean_k2_mixed_norecheck,60M_90pct_high_lognormal_SE,3,786.40,16269480,2026-09-04T20:50:36+08:00
+rustyclean_k2_mixed_norecheck,60M_90pct_high_lognormal_SE,1,795.10,16312732,2026-09-04T21:02:56+08:00
+rustyclean_k2_mixed_norecheck,60M_90pct_high_lognormal_SE,2,796.61,16352488,2026-09-04T21:16:13+08:00
+rustyclean_k2_mixed_norecheck,60M_90pct_high_lognormal_SE,3,815.41,16237180,2026-09-04T21:29:49+08:00

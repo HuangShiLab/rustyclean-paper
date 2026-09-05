@@ -1,4 +1,6 @@
 tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
-rustyclean_k2_mixed,30M_50pct_high_skewed_SE,1,641.33,16254608,2026-09-03T11:51:22+08:00
-rustyclean_k2_mixed,30M_50pct_high_skewed_SE,2,439.29,16242852,2026-09-03T11:58:46+08:00
-rustyclean_k2_mixed,30M_50pct_high_skewed_SE,3,439.22,16258876,2026-09-03T12:06:05+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,2,1646.36,16262788,2026-09-04T20:32:38+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,3,1640.41,16282432,2026-09-04T21:00:14+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,1,2201.75,16267308,2026-09-04T21:01:57+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,2,2123.84,16281952,2026-09-04T21:37:22+08:00
+rustyclean_k2_mixed,30M_50pct_high_skewed_SE,3,2184.97,16251220,2026-09-04T22:13:47+08:00

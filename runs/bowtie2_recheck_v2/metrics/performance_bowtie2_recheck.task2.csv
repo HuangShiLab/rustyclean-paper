@@ -1,4 +1,7 @@
 tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
-rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,1,1458.77,7042312,2026-09-03T11:57:44+08:00
-rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,2,1575.18,6983120,2026-09-03T12:23:59+08:00
-rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,3,990.25,7042216,2026-09-03T12:40:30+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,1,0.00,0,2026-09-04T20:53:46+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,1,6629.00,10702932,2026-09-04T22:10:39+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,2,0.00,0,2026-09-04T22:50:26+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,2,7744.00,10699152,2026-09-05T00:19:44+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,3,6492.00,10704716,2026-09-05T02:07:57+08:00
+rustyclean_bt2recheck,60M_99pct_med_lognormal_SE,3,6492.00,10704716,2026-09-05T02:19:13+08:00

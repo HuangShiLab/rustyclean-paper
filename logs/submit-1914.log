@@ -1,0 +1,59 @@
+nohup: ignoring input
+RustyClean full rerun
+  repo      : /lustre1/g/aos_shihuang/rustyclean-paper
+  databases : /lustre1/g/aos_shihuang/databases
+  data      : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/data/enhanced
+  results   : /lustre1/g/aos_shihuang/rustyclean-paper/scratch/results
+
+Stage 1 — references and indexes
+  [stage 1] Kraken2 human-only index — SKIPPED (--from 4)
+  [stage 1] Bowtie2 T2T-only index — SKIPPED (--from 4)
+  [stage 1] minimap2 / sylph / centrifuge — SKIPPED (--from 4)
+
+Stage 2 — simulated datasets
+  [stage 2] generate 18 simulated datasets (ISS, job array) — SKIPPED (--from 4)
+
+Stage 3 — main comparisons
+  [stage 3] RustyClean auto vs KneadData — SKIPPED (--from 4)
+  [stage 3] RustyClean --skip-qc vs Hostile — SKIPPED (--from 4)
+  [stage 3] backend comparison — SKIPPED (--from 4)
+
+Stage 4 — verification pass and index ablation
+  [stage 4] Kraken2 baseline (no recheck) -> job 3989458
+  [stage 4] Kraken2 + Bowtie2 recheck — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 4] Kraken2 + Bowtie2 recheck -> job 3989481
+  [stage 4] index ablation (human-only) — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 4] index ablation (human-only) -> job 3989627
+  [stage 4] mixed library, no recheck — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 4] mixed library, no recheck -> job 3989889
+
+Stage 5 — previously unmeasured
+  [stage 5] auto decision boundary — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 5] auto decision boundary -> job 3990009
+  [stage 5] paired-end panel — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 5] paired-end panel -> job 3990156
+
+Stage 6 — accuracy
+  [stage 6] accuracy, all tools -> job 3990157 (after 3989458:3989481:3989627)
+  [stage 6] accuracy, recheck arms — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 6] accuracy, recheck arms -> job 3990202 (after 3989458:3989481:3989627)
+  [stage 6] accuracy, index ablation — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 6] accuracy, index ablation -> job 3990239 (after 3989458:3989481:3989627)
+  [stage 6] accuracy, no-recheck baseline -> job 3990240 (after 3989458:3989481:3989627)
+  [stage 6] accuracy, mixed no-recheck — queue is at the QOS submit limit;
+      retrying every 300s until there is room
+  [stage 6] accuracy, mixed no-recheck -> job 3990271 (after 3989458:3989481:3989627)
+  [stage 6] runtime and memory summary -> job 3990272 (after 3989458:3989481:3989627:3989889:3990009:3990156)
+
+Submitted. Watch with: squeue -u $USER
+
+Runtime and peak memory land in /lustre1/g/aos_shihuang/rustyclean-paper/runs/summary/resources.csv once the
+last job finishes. To see partial results at any time, run:
+    python3 /lustre1/g/aos_shihuang/rustyclean-paper/scripts/main/collect_resources.py

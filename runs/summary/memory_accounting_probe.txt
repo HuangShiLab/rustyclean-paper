@@ -1,0 +1,33 @@
+Job:  3989455   node: GPA-1-15
+File: /lustre1/g/aos_shihuang/rustyclean-paper/scratch/data/enhanced/100M_50pct_high_lognormal_SE/reads.fastq.gz
+Size: 5.35 GB
+
+cgroup: /sys/fs/cgroup/system.slice/slurmstepd.scope/s9NNM1P214QM00/step_batch/user/task_0
+
+=== before reading ===
+  memory.current     0.00 GB
+  anon               0.00 GB
+  file (cache)       0.00 GB
+
+=== reading the file and discarding it ===
+  Elapsed (wall clock) time (h:mm:ss or m:ss): 1:47.78
+  Maximum resident set size (kbytes): 5816
+
+=== after reading ===
+  memory.current     5.35 GB
+  anon               0.00 GB
+  file (cache)       5.34 GB
+
+=== the comparison that settles it ===
+  file on disk                        5.35 GB
+  cgroup grew by                      5.35 GB
+  of which page cache                 5.34 GB
+  cat peak RSS (/usr/bin/time)        0.01 GB
+
+cat needs a few hundred kB. If the cgroup grew by roughly the size of the
+file, and the growth is in the cache line, then sacct's MaxRSS counts
+reclaimable page cache and is not a memory requirement -- in which case the
+figures to publish are the /usr/bin/time ones already in the report.
+
+  JobAcctGatherType       = jobacct_gather/cgroup
+  JobAcctGatherParams     = (null)
