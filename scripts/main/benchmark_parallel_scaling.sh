@@ -458,6 +458,41 @@ EOF
 export RUSTYCLEAN KNEADDATA_DB HOSTILE_INDEX BOWTIE2_INDEX KRAKEN2_DB
 export SAMPLES_TSV SAMPLES_LIST T
 
+# ---------------------------------------------------------------------------
+# Level the page cache before anything is timed
+# ---------------------------------------------------------------------------
+# Whichever arm runs first reads the input FASTQs cold off the shared filesystem
+# and leaves them cached for the four that follow, so the arm order alone is
+# worth minutes of I/O wait -- a difference that lands squarely inside the
+# numbers this experiment exists to compare. Read the inputs and every arm's
+# index once, untimed, so all five start from the same cache state.
+#
+# This makes the measurement a WARM-CACHE one. That is the reproducible choice
+# and the fair one between tools; it is not what a user sees on a first run
+# against cold storage, and the report should say so.
+warm_cache() {
+    local read_bytes=0 path idx
+    echo "  warming the page cache (inputs + every arm's index)"
+    while read -r _ path; do
+        [ -f "$path" ] && cat "$path" > /dev/null 2>&1
+    done < "$SAMPLES_LIST"
+    for idx in "$KNEADDATA_DB".*.bt2 "$KNEADDATA_DB".*.bt2l \
+               "$HOSTILE_INDEX".*.bt2 "$HOSTILE_INDEX".*.bt2l \
+               "$BOWTIE2_INDEX".*.bt2 "$BOWTIE2_INDEX".*.bt2l; do
+        [ -f "$idx" ] || continue
+        cat "$idx" > /dev/null 2>&1
+        read_bytes=$((read_bytes + $(stat -c %s "$idx" 2>/dev/null || echo 0)))
+    done
+    echo "  warmed $N_SAMPLES inputs and $(awk -v b="$read_bytes" 'BEGIN{printf "%.1f", b/1073741824}') GB of indexes"
+}
+
+if [ "${PARALLEL_WARM_CACHE:-1}" = "1" ]; then
+    warm_cache
+else
+    echo "  PARALLEL_WARM_CACHE=0 — the first arm will pay for cold input; arm order"
+    echo "  is then part of what is being measured."
+fi
+
 # An arm whose tool or reference is missing must be reported as absent, not
 # silently left out of the comparison: a scaling curve with one arm quietly
 # missing reads as a result rather than as a gap.
