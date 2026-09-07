@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --array=0-4
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=200G
+#SBATCH --mem=128G
 #SBATCH --exclusive
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/%x-%A_%a.out
@@ -21,6 +21,18 @@
 # wide enough to hold several of them; packed onto one node they would spend the
 # run measuring each other. Dropping it would schedule sooner and measure
 # nothing. The task is still bound to its 16 cores.
+#
+# It also means the job waits for a whole idle node, which is a poor trade for a
+# PARALLEL_LIMIT smoke run that is checking wiring rather than measuring
+# anything. Override it there, and take less of everything else too:
+#
+#   PARALLEL_LIMIT=6 sbatch --array=2 --oversubscribe \
+#       --cpus-per-task=4 --mem=24G --time=00:40:00 \
+#       scripts/main/benchmark_parallel_scaling.sh
+#
+# W and T follow SLURM_CPUS_PER_TASK, so a 4-core allocation still runs all five
+# arms; task 2 becomes W=4, T=1. The script checks below whether it actually got
+# the node to itself and says so in the log and the CSV.
 #
 # Each array task is one point on the scaling curve. The task is given 16 cores
 # and splits them as W workers x T threads with W*T = 16:
@@ -115,14 +127,31 @@ mkdir -p "$RUN_ROOT" "$METRICS_DIR" "$LOGS_ROOT"
 # Own file per array task: concurrent appends to one CSV interleave under a
 # single header. scripts/main/collect_resources.py merges the parts.
 METRICS="$METRICS_DIR/parallel_scaling.task${IDX}.csv"
-echo "arm,workers,threads,cpus,n_samples,n_failed,wall_seconds,user_seconds,sys_seconds,cgroup_cpu_seconds,cpu_efficiency,cpu_efficiency_gnutime,samples_per_hour,peak_rss_kb,peak_anon_kb,peak_cgroup_kb,baseline_anon_kb,runtime_seconds,max_memory_kb,node,timestamp" > "$METRICS"
+echo "arm,workers,threads,cpus,n_samples,n_failed,wall_seconds,user_seconds,sys_seconds,cgroup_cpu_seconds,cpu_efficiency,cpu_efficiency_gnutime,samples_per_hour,peak_rss_kb,peak_anon_kb,peak_cgroup_kb,baseline_anon_kb,runtime_seconds,max_memory_kb,node,node_state,timestamp" > "$METRICS"
+
+# Whether this task really has the node to itself decides whether its timings
+# mean anything, and an --oversubscribe override leaves no other trace. Record
+# it rather than letting a shared-node run be read as a measurement.
+NODE_SHARED="unknown"
+if command -v squeue >/dev/null 2>&1; then
+    _others=$(squeue -w "$(hostname)" -h -o '%A' 2>/dev/null \
+              | grep -v "^${SLURM_JOB_ID%%_*}$" | grep -c . || true)
+    if [ "${_others:-0}" -gt 0 ]; then NODE_SHARED="shared_with_${_others}"; else NODE_SHARED="exclusive"; fi
+fi
 
 echo "==============================================================="
 echo " parallel scaling — W=$W workers x T=$T threads on $CPUS cores"
-echo " node:  $(hostname)"
+echo " node:  $(hostname)  ($NODE_SHARED)"
 echo " arms:  ${ARMS[*]}"
 echo " start: $(date -Iseconds)"
 echo "==============================================================="
+if [ "${NODE_SHARED#shared}" != "$NODE_SHARED" ] && [ -z "${PARALLEL_LIMIT:-}" ]; then
+    echo
+    echo "  WARNING: $_others other job(s) are running on this node. Wall times"
+    echo "           measured here include whatever they are doing and should not"
+    echo "           be compared with tasks that had a node to themselves."
+    echo
+fi
 
 # ---------------------------------------------------------------------------
 # Sample list
@@ -348,11 +377,11 @@ measure_arm() {
     # runtime_seconds and max_memory_kb repeat wall_seconds and peak_anon under
     # the names collect_resources.py looks for, so this experiment shows up in
     # the panel-wide resource table without teaching that script a new schema.
-    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
         "$arm" "$W" "$T" "$CPUS" "$N_SAMPLES" "$failed" \
         "$wall" "$user" "$sys" "$cgroup_cpu" "$eff" "$eff_gnu" "$sph" \
         "$rss" "$((peak_anon / 1024))" "$((peak_cur / 1024))" "$((baseline_anon / 1024))" \
-        "$wall" "$((peak_anon / 1024))" "$(hostname)" "$(date -Iseconds)" >> "$METRICS"
+        "$wall" "$((peak_anon / 1024))" "$(hostname)" "$NODE_SHARED" "$(date -Iseconds)" >> "$METRICS"
 
     printf '  %-24s wall %8.0fs  cpu-eff %5s  peak-anon %6.1f GB  failed %s\n' \
         "$arm" "$wall" "$eff" "$(awk -v b="$peak_anon" 'BEGIN{printf "%.1f", b/1073741824}')" "$failed"
@@ -549,8 +578,8 @@ arm_ready() {
 for arm in "${ARMS[@]}"; do
     if ! reason=$(arm_ready "$arm"); then
         echo "SKIP $arm: $reason" >&2
-        printf '%s,%s,%s,%s,%s,,,,,,,,,,,,,SKIPPED,,%s,%s\n' \
-            "$arm" "$W" "$T" "$CPUS" "$N_SAMPLES" "$(hostname)" "$(date -Iseconds)" >> "$METRICS"
+        printf '%s,%s,%s,%s,%s,,,,,,,,,,,,,SKIPPED,,%s,%s,%s\n' \
+            "$arm" "$W" "$T" "$CPUS" "$N_SAMPLES" "$(hostname)" "$NODE_SHARED" "$(date -Iseconds)" >> "$METRICS"
         continue
     fi
     export ARM_OUT="$WORK_ROOT/$arm" ARM_LOG="$LOGS_ROOT/$arm"

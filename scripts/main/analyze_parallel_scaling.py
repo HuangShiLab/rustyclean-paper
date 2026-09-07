@@ -104,6 +104,7 @@ def summarise(rows, out_dir):
                                             if r["peak_anon_kb"] else ""),
                 "peak_cgroup_gb": f"{r['peak_cgroup_kb'] / 1048576:.2f}" if r["peak_cgroup_kb"] else "",
                 "node": r.get("node", ""),
+                "node_state": r.get("node_state", ""),
             })
 
     os.makedirs(out_dir, exist_ok=True)
@@ -280,6 +281,16 @@ def main():
 
     # A summary that silently mixes a 6-sample smoke run with a 120-sample
     # measurement would read as a wild scaling result rather than as a mistake.
+    # A row measured on a shared node includes whatever else was running there.
+    shared = sorted({(r["arm"], r["workers"]) for r in rows.values()
+                     if str(r.get("node_state", "")).startswith("shared")})
+    if shared:
+        print("WARNING: these rows were measured on a node shared with other jobs, so "
+              "their\n         wall times include unrelated load:", file=sys.stderr)
+        for arm, w in shared:
+            print(f"           {arm} at W={w}", file=sys.stderr)
+        print("", file=sys.stderr)
+
     sizes = {r.get("n_samples") for r in rows.values() if r.get("n_samples")}
     if len(sizes) > 1:
         print(f"WARNING: rows describe different panel sizes ({', '.join(sorted(sizes))} "

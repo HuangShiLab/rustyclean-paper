@@ -152,8 +152,16 @@ sbatch scripts/main/generate_parallel_data.sh
 **第 3 步 — 6 个样品的实跑冒烟测试(约 10–20 分钟)**
 
 ```bash
-PARALLEL_LIMIT=6 sbatch --array=2 scripts/main/benchmark_parallel_scaling.sh
+PARALLEL_LIMIT=6 sbatch --array=2 --oversubscribe --cpus-per-task=4 --mem=24G --time=00:40:00 scripts/main/benchmark_parallel_scaling.sh
 ```
+
+命令行选项会覆盖脚本里的 `#SBATCH`。这里刻意把 `--exclusive` 也覆盖掉:独占整台节点是
+**正式测量**的前提,但对一个只查接线的冒烟测试就是白等。4 核 / 24 GB / 40 分钟能进
+backfill,通常几分钟内起来。`CPUS` 取自 `SLURM_CPUS_PER_TASK`,所以 task 2 变成
+W=4、T=1,五个臂照跑不误。
+
+脚本会检查自己是否真的独占了节点,并把结果写进日志和 CSV 的 `node_state` 列;
+共享节点上跑出来的行,分析脚本会单独警告,不会被当成测量结果。
 
 这一步真正重要:它用真工具把五个臂全跑一遍,证明每个工具确实把输出写在了指纹步骤
 去找的位置——这一点没有别的办法能验证。输出写在 `${PARALLEL_RUNS_DIR}_smoke`,
