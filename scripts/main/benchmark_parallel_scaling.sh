@@ -32,12 +32,14 @@
 # on the command line either. A PARALLEL_LIMIT run skips the check and can take
 # far less of everything:
 #
-#   PARALLEL_LIMIT=6 sbatch --array=2 \
-#       --cpus-per-task=4 --mem=24G --time=00:40:00 \
+#   PARALLEL_LIMIT=4 sbatch --array=2 \
+#       --cpus-per-task=8 --mem=32G --time=01:30:00 \
 #       scripts/main/benchmark_parallel_scaling.sh
 #
-# W and T follow SLURM_CPUS_PER_TASK, so a 4-core allocation still runs all five
-# arms; task 2 becomes W=4, T=1.
+# W and T follow SLURM_CPUS_PER_TASK, so a smaller allocation still runs all
+# five arms; task 2 on 8 cores becomes W=4, T=2. Do not go below 8 cores: at
+# T=1 a KneadData sample is a single-threaded bowtie2 plus a single-threaded TRF
+# pass over a million reads, and the smoke run stops being minutes long.
 #
 # Each array task is one point on the scaling curve. The task is given 16 cores
 # and splits them as W workers x T threads with W*T = 16:
@@ -544,23 +546,59 @@ export SAMPLES_TSV SAMPLES_LIST T
 # This makes the measurement a WARM-CACHE one. That is the reproducible choice
 # and the fair one between tools; it is not what a user sees on a first run
 # against cold storage, and the report should say so.
-warm_cache() {
-    local read_bytes=0 path idx
-    echo "  warming the page cache (inputs + every arm's index)"
+cgroup_mem_limit() {
+    local f v
+    for f in memory.max memory.limit_in_bytes; do
+        [ -r "$CG/$f" ] || continue
+        v=$(cat "$CG/$f" 2>/dev/null || echo "")
+        case "$v" in ""|max|*[!0-9]*) continue ;; *) echo "$v"; return ;; esac
+    done
+    echo ""
+}
+
+warm_paths() {   # every file the warm-up would read, one per line
+    local path idx
     while read -r _ path; do
-        [ -f "$path" ] && cat "$path" > /dev/null 2>&1
+        [ -f "$path" ] && printf '%s\n' "$path"
     done < "$SAMPLES_LIST"
     for idx in "$KNEADDATA_DB".*.bt2 "$KNEADDATA_DB".*.bt2l \
                "$HOSTILE_INDEX".*.bt2 "$HOSTILE_INDEX".*.bt2l \
                "$BOWTIE2_INDEX".*.bt2 "$BOWTIE2_INDEX".*.bt2l; do
-        [ -f "$idx" ] || continue
-        cat "$idx" > /dev/null 2>&1
-        read_bytes=$((read_bytes + $(stat -c %s "$idx" 2>/dev/null || echo 0)))
+        [ -f "$idx" ] && printf '%s\n' "$idx"
     done
-    echo "  warmed $N_SAMPLES inputs and $(awk -v b="$read_bytes" 'BEGIN{printf "%.1f", b/1073741824}') GB of indexes"
 }
 
-if [ "${PARALLEL_WARM_CACHE:-1}" = "1" ]; then
+warm_cache() {
+    local total=0 path limit gb
+    while read -r path; do
+        total=$((total + $(stat -c %s "$path" 2>/dev/null || echo 0)))
+    done < <(warm_paths)
+    gb=$(awk -v b="$total" 'BEGIN{printf "%.1f", b/1073741824}')
+
+    # Warming more than the job may hold is worse than not warming at all: the
+    # cache evicts itself while it is being filled and the minutes spent reading
+    # are lost. A 24 GB smoke allocation warming 12.4 GB of indexes hit exactly
+    # that, then ran out of time in the first arm.
+    limit=$(cgroup_mem_limit)
+    if [ -n "$limit" ] && [ "$total" -gt $((limit / 2)) ]; then
+        echo "  skipping the cache warm-up: $gb GB would not fit usefully in a"
+        echo "  $(awk -v b="$limit" 'BEGIN{printf "%.1f", b/1073741824}') GB allocation, so it would evict itself while filling."
+        echo "  Arm order is then part of what is measured; give the job more memory."
+        return
+    fi
+
+    echo "  warming the page cache ($gb GB: inputs + every arm's index)"
+    while read -r path; do
+        cat "$path" > /dev/null 2>&1
+    done < <(warm_paths)
+    echo "  warmed $N_SAMPLES inputs and every arm's index"
+}
+
+if [ -n "${PARALLEL_LIMIT:-}" ]; then
+    # A smoke run compares nothing, so it has no fairness to protect, and the
+    # warm-up is pure cost against a short time limit.
+    echo "  no cache warm-up: PARALLEL_LIMIT is set, so nothing here is being timed"
+elif [ "${PARALLEL_WARM_CACHE:-1}" = "1" ]; then
     warm_cache
 else
     echo "  PARALLEL_WARM_CACHE=0 — the first arm will pay for cold input; arm order"

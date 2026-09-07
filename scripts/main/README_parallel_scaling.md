@@ -158,11 +158,18 @@ sbatch scripts/main/generate_parallel_data.sh
 **第 3 步 — 6 个样品的实跑冒烟测试(约 10–20 分钟)**
 
 ```bash
-PARALLEL_LIMIT=6 sbatch --array=2 --cpus-per-task=4 --mem=24G --time=00:40:00 scripts/main/benchmark_parallel_scaling.sh
+PARALLEL_LIMIT=4 sbatch --array=2 --cpus-per-task=8 --mem=32G --time=01:30:00 scripts/main/benchmark_parallel_scaling.sh
 ```
 
-4 核 / 24 GB / 40 分钟能进 backfill,通常几分钟内起来。`CPUS` 取自
-`SLURM_CPUS_PER_TASK`,所以 task 2 变成 W=4、T=1,五个臂照跑不误。
+8 核 / 32 GB / 90 分钟能进 backfill。`CPUS` 取自 `SLURM_CPUS_PER_TASK`,所以 task 2
+变成 W=4、T=2,五个臂照跑不误。
+
+**核数不要低于 8。** T=1 时 KneadData 一个样品是单线程 bowtie2 加单线程 TRF 跑 100 万条,
+冒烟测试就不再是"几分钟"的量级了——4 核那次 40 分钟没跑完第一个臂。
+
+设了 `PARALLEL_LIMIT` 时会自动跳过缓存预热:冒烟测试不比较任何东西,没有公平性要跑,
+预热纯属浪费时限。正式跑时若 cgroup 内存额度装不下要预热的量,也会跳过并说明原因——
+把 12 GB 索引读进 24 GB 额度里只会自己把自己挤掉。
 
 这一步真正重要:它用真工具把五个臂全跑一遍,证明每个工具确实把输出写在了指纹步骤
 去找的位置——这一点没有别的办法能验证。输出写在 `${PARALLEL_RUNS_DIR}_smoke`,
