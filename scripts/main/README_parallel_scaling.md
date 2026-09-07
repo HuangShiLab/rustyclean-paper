@@ -60,9 +60,15 @@ QC 也是配对的:`kneaddata` 和两个 RustyClean batch/xargs 臂都做质控,
 | 3 | 8 | 2 |
 | 4 | 16 | 1 |
 
-测试作业用 `--exclusive` 独占节点。这不是优化,是前提:五个 array task 在同一时刻各自计时,
-而这个分区的节点足够宽,可能把它们塞在一台机器上——那样整轮跑下来测的就是彼此的争用。
-去掉它排队会更快,但测出来的数没有意义。
+测试作业必须用 `--exclusive` 独占节点。这不是优化,是前提:五个 array task 在同一时刻
+各自计时,而这个分区的节点足够宽,可能把它们塞在一台机器上——那样整轮跑下来测的就是彼此
+的争用。
+
+`--exclusive` **不写在 `#SBATCH` 指令里**,而是提交时传:指令没法按条件生效,而且
+sbatch 在脚本声明了 `--exclusive` 时会直接拒绝 `--oversubscribe`,冒烟测试根本没法覆盖它。
+改由脚本在运行时检查——非独占节点上跑正式测量会**直接报错退出**,漏传 `--exclusive`
+会响亮地失败而不是悄悄产出一批没意义的数。冒烟测试(设了 `PARALLEL_LIMIT`)跳过这项检查。
+`PARALLEL_ALLOW_SHARED=1` 可强行继续,`node_state` 列会如实记录。
 
 **同一个 W 下的五个臂跑在同一个节点上**,所以跨工具比较——也就是要回答的问题——不跨硬件。
 W 之间会跨节点,这正是要固定 W × T、并且每个臂的加速比只跟**自己**的 W=1 比、
@@ -152,25 +158,26 @@ sbatch scripts/main/generate_parallel_data.sh
 **第 3 步 — 6 个样品的实跑冒烟测试(约 10–20 分钟)**
 
 ```bash
-PARALLEL_LIMIT=6 sbatch --array=2 --oversubscribe --cpus-per-task=4 --mem=24G --time=00:40:00 scripts/main/benchmark_parallel_scaling.sh
+PARALLEL_LIMIT=6 sbatch --array=2 --cpus-per-task=4 --mem=24G --time=00:40:00 scripts/main/benchmark_parallel_scaling.sh
 ```
 
-命令行选项会覆盖脚本里的 `#SBATCH`。这里刻意把 `--exclusive` 也覆盖掉:独占整台节点是
-**正式测量**的前提,但对一个只查接线的冒烟测试就是白等。4 核 / 24 GB / 40 分钟能进
-backfill,通常几分钟内起来。`CPUS` 取自 `SLURM_CPUS_PER_TASK`,所以 task 2 变成
-W=4、T=1,五个臂照跑不误。
-
-脚本会检查自己是否真的独占了节点,并把结果写进日志和 CSV 的 `node_state` 列;
-共享节点上跑出来的行,分析脚本会单独警告,不会被当成测量结果。
+4 核 / 24 GB / 40 分钟能进 backfill,通常几分钟内起来。`CPUS` 取自
+`SLURM_CPUS_PER_TASK`,所以 task 2 变成 W=4、T=1,五个臂照跑不误。
 
 这一步真正重要:它用真工具把五个臂全跑一遍,证明每个工具确实把输出写在了指纹步骤
 去找的位置——这一点没有别的办法能验证。输出写在 `${PARALLEL_RUNS_DIR}_smoke`,
 不会污染正式结果。看 `metrics/fingerprint_W4_*.tsv`:不该有 `MISSING`。
 
-**第 4 步 — 正式跑**
+**第 4 步 — 正式跑(注意 `--exclusive`)**
 
 ```bash
-sbatch scripts/main/benchmark_parallel_scaling.sh
+sbatch --exclusive scripts/main/benchmark_parallel_scaling.sh
+```
+
+排队久的话可以分批,每个 task 独立写自己的 CSV,分几次交不影响结果——先交最慢的 W=1、W=2:
+
+```bash
+sbatch --exclusive --array=0-1 --time=08:00:00 scripts/main/benchmark_parallel_scaling.sh
 ```
 
 一步到位(生成 + 测试,带依赖)则是 `bash scripts/run_parallel_scaling.sh`,

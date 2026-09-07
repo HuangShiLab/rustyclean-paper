@@ -53,7 +53,7 @@ if [ -n "$AFTER_JOB" ] && [ "$DRY_RUN" -eq 0 ] && command -v sacct >/dev/null 2>
 fi
 
 submit() {
-    local stage="$1" label="$2" script="$3" dep="${4:-}"
+    local stage="$1" label="$2" script="$3" dep="${4:-}" extra="${5:-}"
     if [ "$stage" -lt "$FROM_STAGE" ]; then
         echo "  [stage $stage] $label — SKIPPED (--from $FROM_STAGE)" >&2
         echo ""; return
@@ -71,13 +71,13 @@ submit() {
 
     if [ "$DRY_RUN" -eq 1 ]; then
         echo "  [stage $stage] $label" >&2
-        echo "      sbatch $depflag $logflags $script" >&2
+        echo "      sbatch $extra $depflag $logflags $script" >&2
         echo "DRYRUN$stage"; return
     fi
 
     local jid="" out="" attempt=0
     while :; do
-        if out=$(sbatch --parsable $depflag $logflags "$REPO/$script" 2>&1); then
+        if out=$(sbatch --parsable $extra $depflag $logflags "$REPO/$script" 2>&1); then
             jid="${out%%;*}"; break
         fi
         case "$out" in
@@ -124,8 +124,13 @@ DEP2="${AFTER_JOB:-}"
 [ -n "${J_GEN:-}" ] && DEP2="${DEP2:+$DEP2:}$J_GEN"
 
 echo "Stage 2 — scaling benchmark" >&2
+# --exclusive is passed here rather than written into the script's directives:
+# a directive cannot be conditional, and sbatch refuses --oversubscribe outright
+# when the script asks for exclusivity, so a smoke run could not have overridden
+# it on the command line. The benchmark refuses to record a measurement on a
+# shared node, so forgetting this flag fails loudly instead of quietly.
 J_BENCH=$(submit 2 "parallel scaling, W = 1 2 4 8 16 (5 array tasks)" \
-          scripts/main/benchmark_parallel_scaling.sh "$DEP2")
+          scripts/main/benchmark_parallel_scaling.sh "$DEP2" "--exclusive")
 echo >&2
 
 echo "Submitted." >&2
@@ -137,5 +142,6 @@ if [ "$DRY_RUN" -eq 0 ] && [ -n "${J_BENCH:-}" ]; then
     echo >&2
     echo "Before trusting a 24-hour array, prove the wiring on six samples:" >&2
     echo "  PARALLEL_DRY_RUN=1 bash scripts/main/benchmark_parallel_scaling.sh" >&2
-    echo "  PARALLEL_LIMIT=6 sbatch --array=2 scripts/main/benchmark_parallel_scaling.sh" >&2
+    echo "  PARALLEL_LIMIT=6 sbatch --array=2 --cpus-per-task=4 --mem=24G \\" >&2
+    echo "      --time=00:40:00 scripts/main/benchmark_parallel_scaling.sh" >&2
 fi

@@ -6,7 +6,6 @@
 #SBATCH --array=0-4
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
-#SBATCH --exclusive
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
@@ -16,23 +15,29 @@
 # =============================================================================
 #   sbatch scripts/main/benchmark_parallel_scaling.sh
 #
-# --exclusive is not an optimisation here, it is a precondition. Five array
-# tasks are timing themselves at the same moment, and this partition has nodes
-# wide enough to hold several of them; packed onto one node they would spend the
-# run measuring each other. Dropping it would schedule sooner and measure
-# nothing. The task is still bound to its 16 cores.
+# SUBMIT A REAL RUN WITH --exclusive:
 #
-# It also means the job waits for a whole idle node, which is a poor trade for a
-# PARALLEL_LIMIT smoke run that is checking wiring rather than measuring
-# anything. Override it there, and take less of everything else too:
+#   sbatch --exclusive scripts/main/benchmark_parallel_scaling.sh
 #
-#   PARALLEL_LIMIT=6 sbatch --array=2 --oversubscribe \
+# Having the node to itself is a precondition, not an optimisation: five array
+# tasks are timing themselves at the same moment and this partition has nodes
+# wide enough to hold several of them, so packed together they would spend the
+# run measuring each other. The script REFUSES to produce a measurement on a
+# shared node rather than trusting the caller to remember.
+#
+# It is not an #SBATCH directive because a directive cannot be conditional, and
+# waiting for a whole idle node is a poor trade for a smoke run that is checking
+# wiring rather than measuring anything -- and sbatch rejects --oversubscribe
+# outright when the script asks for --exclusive, so it could not be overridden
+# on the command line either. A PARALLEL_LIMIT run skips the check and can take
+# far less of everything:
+#
+#   PARALLEL_LIMIT=6 sbatch --array=2 \
 #       --cpus-per-task=4 --mem=24G --time=00:40:00 \
 #       scripts/main/benchmark_parallel_scaling.sh
 #
 # W and T follow SLURM_CPUS_PER_TASK, so a 4-core allocation still runs all five
-# arms; task 2 becomes W=4, T=1. The script checks below whether it actually got
-# the node to itself and says so in the log and the CSV.
+# arms; task 2 becomes W=4, T=1.
 #
 # Each array task is one point on the scaling curve. The task is given 16 cores
 # and splits them as W workers x T threads with W*T = 16:
@@ -129,11 +134,17 @@ mkdir -p "$RUN_ROOT" "$METRICS_DIR" "$LOGS_ROOT"
 METRICS="$METRICS_DIR/parallel_scaling.task${IDX}.csv"
 echo "arm,workers,threads,cpus,n_samples,n_failed,wall_seconds,user_seconds,sys_seconds,cgroup_cpu_seconds,cpu_efficiency,cpu_efficiency_gnutime,samples_per_hour,peak_rss_kb,peak_anon_kb,peak_cgroup_kb,baseline_anon_kb,runtime_seconds,max_memory_kb,node,node_state,timestamp" > "$METRICS"
 
-# Whether this task really has the node to itself decides whether its timings
-# mean anything, and an --oversubscribe override leaves no other trace. Record
-# it rather than letting a shared-node run be read as a measurement.
+# Whether this task has the node to itself decides whether its timings mean
+# anything. Ask SLURM what it granted, and fall back to counting the other jobs
+# running here.
 NODE_SHARED="unknown"
-if command -v squeue >/dev/null 2>&1; then
+_others=0
+if [ -n "${SLURM_JOB_ID:-}" ] && command -v scontrol >/dev/null 2>&1; then
+    case "$(scontrol show job "$SLURM_JOB_ID" 2>/dev/null | tr ' ' '\n' | grep '^OverSubscribe=')" in
+        *=NO|*=EXCLUSIVE) NODE_SHARED="exclusive" ;;
+    esac
+fi
+if [ "$NODE_SHARED" = "unknown" ] && command -v squeue >/dev/null 2>&1; then
     _others=$(squeue -w "$(hostname)" -h -o '%A' 2>/dev/null \
               | grep -v "^${SLURM_JOB_ID%%_*}$" | grep -c . || true)
     if [ "${_others:-0}" -gt 0 ]; then NODE_SHARED="shared_with_${_others}"; else NODE_SHARED="exclusive"; fi
@@ -145,12 +156,17 @@ echo " node:  $(hostname)  ($NODE_SHARED)"
 echo " arms:  ${ARMS[*]}"
 echo " start: $(date -Iseconds)"
 echo "==============================================================="
-if [ "${NODE_SHARED#shared}" != "$NODE_SHARED" ] && [ -z "${PARALLEL_LIMIT:-}" ]; then
+# A smoke run is checking wiring, so it may share; a measurement may not.
+if [ -z "${PARALLEL_LIMIT:-}" ] && [ "$NODE_SHARED" != "exclusive" ] \
+   && [ "${PARALLEL_ALLOW_SHARED:-0}" != "1" ]; then
     echo
-    echo "  WARNING: $_others other job(s) are running on this node. Wall times"
-    echo "           measured here include whatever they are doing and should not"
-    echo "           be compared with tasks that had a node to themselves."
-    echo
+    echo "ERROR: this task does not have the node to itself ($NODE_SHARED)." >&2
+    echo "       Five array tasks time themselves at once and this partition has" >&2
+    echo "       nodes wide enough to hold several, so wall times measured here" >&2
+    echo "       would be a measurement of mutual contention. Submit with:" >&2
+    echo "         sbatch --exclusive scripts/main/benchmark_parallel_scaling.sh" >&2
+    echo "       PARALLEL_ALLOW_SHARED=1 proceeds anyway; node_state records it." >&2
+    exit 1
 fi
 
 # ---------------------------------------------------------------------------
