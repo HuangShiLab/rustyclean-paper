@@ -115,7 +115,7 @@ mkdir -p "$RUN_ROOT" "$METRICS_DIR" "$LOGS_ROOT"
 # Own file per array task: concurrent appends to one CSV interleave under a
 # single header. scripts/main/collect_resources.py merges the parts.
 METRICS="$METRICS_DIR/parallel_scaling.task${IDX}.csv"
-echo "arm,workers,threads,cpus,n_samples,n_failed,wall_seconds,user_seconds,sys_seconds,cpu_efficiency,samples_per_hour,peak_rss_kb,peak_anon_kb,peak_cgroup_kb,baseline_anon_kb,runtime_seconds,max_memory_kb,node,timestamp" > "$METRICS"
+echo "arm,workers,threads,cpus,n_samples,n_failed,wall_seconds,user_seconds,sys_seconds,cgroup_cpu_seconds,cpu_efficiency,cpu_efficiency_gnutime,samples_per_hour,peak_rss_kb,peak_anon_kb,peak_cgroup_kb,baseline_anon_kb,runtime_seconds,max_memory_kb,node,timestamp" > "$METRICS"
 
 echo "==============================================================="
 echo " parallel scaling — W=$W workers x T=$T threads on $CPUS cores"
@@ -239,6 +239,19 @@ tree_rss_bytes() {   # sum RSS over a pid and every descendant
 }
 
 read_anon()    { awk '$1=="anon"{print $2; exit}' "$CG/memory.stat" 2>/dev/null || echo 0; }
+
+# CPU consumed by every process in the cgroup, whether or not anything waited
+# for it. GNU time only accumulates the rusage of children it reaped, and on the
+# KneadData arm that missed roughly 16/17ths of the work: the arm's wall time
+# matched a full bowtie2 run per sample while user+sys came to 20 seconds a
+# sample. Same failure mode as the memory figure, same fix -- ask the cgroup.
+read_cpu_usec() {
+    if [ -r "$CG/cpu.stat" ]; then
+        awk '$1=="usage_usec"{print $2; exit}' "$CG/cpu.stat" 2>/dev/null
+    elif [ -r "$CG/cpuacct.usage" ]; then          # cgroup v1, nanoseconds
+        awk '{printf "%d", $1/1000}' "$CG/cpuacct.usage" 2>/dev/null
+    fi
+}
 read_current() { cat "$CG/memory.current" 2>/dev/null || cat "$CG/memory.usage_in_bytes" 2>/dev/null || echo 0; }
 
 sampler_loop() {    # sampler_loop <outfile> <root_pid>
@@ -270,8 +283,9 @@ measure_arm() {
     rm -f "$log_dir/failures.txt"
 
     local timefile="$log_dir/arm.time" memfile="$log_dir/arm.mem"
-    local baseline_anon=0
+    local baseline_anon=0 cpu_before=""
     [ "$HAVE_CGROUP" = "1" ] && baseline_anon=$(read_anon)
+    cpu_before=$(read_cpu_usec)
 
     echo
     echo "--- $arm  (W=$W, T=$T) ---"
@@ -285,6 +299,12 @@ measure_arm() {
     /usr/bin/time -v -o "$timefile" bash "$driver" > "$log_dir/arm.log" 2>&1 || status=FAILED
     kill "$sampler" 2>/dev/null || true
     wait "$sampler" 2>/dev/null || true
+
+    local cpu_after cgroup_cpu=""
+    cpu_after=$(read_cpu_usec)
+    if [ -n "$cpu_before" ] && [ -n "$cpu_after" ]; then
+        cgroup_cpu=$(awk -v a="$cpu_before" -v b="$cpu_after" 'BEGIN{printf "%.2f", (b-a)/1000000}')
+    fi
 
     local wall user sys rss
     wall=$(awk -F': ' '/Elapsed \(wall clock\)/{print $NF}' "$timefile" | awk -F: '
@@ -310,18 +330,27 @@ measure_arm() {
     local failed=0
     [ -f "$log_dir/failures.txt" ] && failed=$(wc -l < "$log_dir/failures.txt")
 
-    local eff sph
-    eff=$(awk -v u="$user" -v s="$sys" -v w="$wall" -v c="$CPUS" \
-              'BEGIN{ if (w>0 && c>0) printf "%.4f", (u+s)/(w*c) }')
+    # Two efficiencies, deliberately both reported: the cgroup one is the number
+    # to trust, the GNU-time one is kept so the size of the disagreement stays
+    # visible instead of being quietly corrected away.
+    local eff eff_gnu sph
+    eff_gnu=$(awk -v u="$user" -v s="$sys" -v w="$wall" -v c="$CPUS" \
+                  'BEGIN{ if (w>0 && c>0) printf "%.4f", (u+s)/(w*c) }')
+    if [ -n "$cgroup_cpu" ]; then
+        eff=$(awk -v k="$cgroup_cpu" -v w="$wall" -v c="$CPUS" \
+                  'BEGIN{ if (w>0 && c>0) printf "%.4f", k/(w*c) }')
+    else
+        eff="$eff_gnu"
+    fi
     sph=$(awk -v n="$N_SAMPLES" -v w="$wall" \
               'BEGIN{ if (w>0) printf "%.2f", n*3600.0/w }')
 
     # runtime_seconds and max_memory_kb repeat wall_seconds and peak_anon under
     # the names collect_resources.py looks for, so this experiment shows up in
     # the panel-wide resource table without teaching that script a new schema.
-    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
         "$arm" "$W" "$T" "$CPUS" "$N_SAMPLES" "$failed" \
-        "$wall" "$user" "$sys" "$eff" "$sph" \
+        "$wall" "$user" "$sys" "$cgroup_cpu" "$eff" "$eff_gnu" "$sph" \
         "$rss" "$((peak_anon / 1024))" "$((peak_cur / 1024))" "$((baseline_anon / 1024))" \
         "$wall" "$((peak_anon / 1024))" "$(hostname)" "$(date -Iseconds)" >> "$METRICS"
 
@@ -520,7 +549,7 @@ arm_ready() {
 for arm in "${ARMS[@]}"; do
     if ! reason=$(arm_ready "$arm"); then
         echo "SKIP $arm: $reason" >&2
-        printf '%s,%s,%s,%s,%s,,,,,,,,,,,SKIPPED,,%s,%s\n' \
+        printf '%s,%s,%s,%s,%s,,,,,,,,,,,,,SKIPPED,,%s,%s\n' \
             "$arm" "$W" "$T" "$CPUS" "$N_SAMPLES" "$(hostname)" "$(date -Iseconds)" >> "$METRICS"
         continue
     fi

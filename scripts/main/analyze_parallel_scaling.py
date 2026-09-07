@@ -39,9 +39,9 @@ COMPARISONS = [
      "same tool, same work: RustyClean's pool vs the same binary under xargs"),
 ]
 
-NUMERIC = ("wall_seconds", "user_seconds", "sys_seconds", "cpu_efficiency",
-           "samples_per_hour", "peak_rss_kb", "peak_anon_kb", "peak_cgroup_kb",
-           "baseline_anon_kb")
+NUMERIC = ("wall_seconds", "user_seconds", "sys_seconds", "cgroup_cpu_seconds",
+           "cpu_efficiency", "cpu_efficiency_gnutime", "samples_per_hour",
+           "peak_rss_kb", "peak_anon_kb", "peak_cgroup_kb", "baseline_anon_kb")
 
 
 def load(runs_dir):
@@ -96,6 +96,9 @@ def summarise(rows, out_dir):
                 "speedup_vs_w1": f"{speedup:.3f}" if speedup else "",
                 "parallel_efficiency": f"{speedup / w:.3f}" if speedup else "",
                 "cpu_efficiency": f"{r['cpu_efficiency']:.3f}" if r["cpu_efficiency"] else "",
+                "cgroup_cpu_seconds": f"{r['cgroup_cpu_seconds']:.0f}" if r["cgroup_cpu_seconds"] else "",
+                "cpu_efficiency_gnutime": (f"{r['cpu_efficiency_gnutime']:.3f}"
+                                           if r["cpu_efficiency_gnutime"] else ""),
                 "peak_anon_gb": f"{r['peak_anon_kb'] / 1048576:.2f}" if r["peak_anon_kb"] else "",
                 "peak_anon_gb_per_worker": (f"{r['peak_anon_kb'] / 1048576 / w:.2f}"
                                             if r["peak_anon_kb"] else ""),
@@ -133,10 +136,31 @@ def render(out, arms, widths, rows):
 
     add("Parallel efficiency is speed-up divided by the worker count: 1.00 means the")
     add("Nth worker was worth as much as the first, and 0.50 means half of it was lost")
-    add("to contention. CPU efficiency is (user+sys)/(wall x cores) measured over the")
-    add("whole process tree -- it says whether the cores were busy at all, and separates")
-    add("'the tool cannot fill them' from 'the tool filled them with wasted work'.")
+    add("to contention. CPU efficiency is cgroup CPU time over (wall x cores) -- it says")
+    add("whether the cores were busy at all, and separates 'the tool cannot fill them'")
+    add("from 'the tool filled them with wasted work'.")
     add("")
+
+    # GNU time only accumulates the rusage of children it reaped. On the
+    # KneadData arm that lost most of the work, which would have read as a tool
+    # that cannot use its cores rather than as a broken measurement. Report the
+    # disagreement wherever it is large instead of presenting one number.
+    disagree = [x for x in out
+                if rows[(x["arm"], x["workers"])].get("cgroup_cpu_seconds")
+                and rows[(x["arm"], x["workers"])].get("user_seconds") is not None
+                and rows[(x["arm"], x["workers"])]["cgroup_cpu_seconds"] >
+                    2 * (rows[(x["arm"], x["workers"])]["user_seconds"]
+                         + (rows[(x["arm"], x["workers"])]["sys_seconds"] or 0) + 1)]
+    if disagree:
+        add("CPU ACCOUNTING: on the rows below, GNU time saw less than half the CPU the")
+        add("cgroup did, because the tool's real work happens in processes it does not")
+        add("wait for. The cgroup figure is the one used above.")
+        for x in disagree:
+            r = rows[(x["arm"], x["workers"])]
+            add(f"    {x['arm']:<26} W={x['workers']:<3} "
+                f"cgroup {r['cgroup_cpu_seconds']:8.0f}s vs GNU time "
+                f"{(r['user_seconds'] or 0) + (r['sys_seconds'] or 0):8.0f}s")
+        add("")
 
     add("=" * 96)
     add("HEAD TO HEAD — ratio of batch wall time, >1 means the first arm finished sooner")

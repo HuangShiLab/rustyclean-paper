@@ -93,6 +93,21 @@ I/O 等待**,而这正落在要比较的数字里面。所以正式计时前会�
 `memory.current` 同时记录,因为那是 `sacct` 报的数;本集群上它还把可回收的 page cache
 算了进去,大致等于读过的 FASTQ 体积,并不是内存需求。这与报告里已有的内存口径结论一致。
 
+## CPU 时间怎么测
+
+和内存同源的问题。`/usr/bin/time` 只累计它 `wait()` 到的进程树的 rusage;冒烟测试里
+KneadData 臂的墙钟完全对得上"每样品跑满一次 bowtie2",而 user+sys 只有每样品 20 秒——
+少了约 16/17。预热缓存后 CPU 数字一秒未变,排除了 I/O 的解释:是这个口径本身漏计。
+
+所以 CPU 时间改为读作业自己 cgroup 的 `cpu.stat` 里的 `usage_usec`(cgroup v1 则读
+`cpuacct.usage`),在每个臂前后各取一次、作差。它统计 cgroup 内**所有**进程,与谁 wait
+了谁无关。
+
+两个口径都写进 CSV(`cpu_efficiency` 用 cgroup,`cpu_efficiency_gnutime` 用 GNU time),
+分析脚本会在两者差一倍以上时把差距单列出来——不是悄悄改正,而是让它可见。
+
+墙钟不受这个问题影响,所以吞吐量对比本身一直是可靠的。
+
 ## 输出是否随并发改变
 
 每个臂、每个 W 跑完后都记录每样品的**保留序列数**。对确定性工具,这个数不应随 worker 数
