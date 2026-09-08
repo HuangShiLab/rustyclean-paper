@@ -64,6 +64,12 @@ QC 也是配对的:`kneaddata` 和两个 RustyClean batch/xargs 臂都做质控,
 各自计时,而这个分区的节点足够宽,可能把它们塞在一台机器上——那样整轮跑下来测的就是彼此
 的争用。
 
+`--exclusive` 只解决"没有别的作业干扰",**不解决核数预算**:它把整台节点交给作业,
+cgroup 的 cpuset 是全部核心,没有任何东西把任务按住在 `CPUS` 个核上。第一次正式跑出现了
+`cpu_efficiency` 高达 1.98——16 核的预算里跑出了约 32 个核的工作量,`W × T = CPUS`
+这个前提直接不成立。所以脚本用 `taskset -c 0-$((CPUS-1))` 自己钉住每个臂;分析脚本在
+任何一行 `cpu_efficiency > 1.05` 时会在表格上方打出醒目警告。
+
 `--exclusive` **不写在 `#SBATCH` 指令里**,而是提交时传:指令没法按条件生效,而且
 sbatch 在脚本声明了 `--exclusive` 时会直接拒绝 `--oversubscribe`,冒烟测试根本没法覆盖它。
 改由脚本在运行时检查——非独占节点上跑正式测量会**直接报错退出**,漏传 `--exclusive`
@@ -195,6 +201,10 @@ sbatch --exclusive --array=0-1 --time=08:00:00 scripts/main/benchmark_parallel_s
 ```bash
 python3 scripts/main/analyze_parallel_scaling.py
 ```
+
+不需要先 `source config.sh`,脚本会自己在子 shell 里问它要路径。**不要**用
+`source scripts/hpc/config.sh && python3 ...`:`config.sh` 带 `set -euo pipefail`,
+source 进交互 shell 后,分析脚本在指纹不一致时返回的退出码 2 会直接把你的登录会话杀掉。
 
 ## 改参数
 

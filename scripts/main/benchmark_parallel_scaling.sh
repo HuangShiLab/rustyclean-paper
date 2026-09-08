@@ -116,6 +116,22 @@ if [ "$W" -gt "$CPUS" ]; then
 fi
 T=$(( CPUS / W ))
 
+# --exclusive hands the job the WHOLE node, so the cgroup's cpuset is every core
+# on it and nothing holds the task to the CPUS it thinks it has. The first full
+# run came back with cpu_efficiency up to 1.98 -- about 32 cores' worth of work
+# inside a "16 core" budget -- which quietly broke the W x T = CPUS premise the
+# scaling curve rests on. Pin the arms to CPUS cores and keep exclusivity for
+# what it is actually for: no other job on the node.
+CPU_PIN=()
+if command -v taskset >/dev/null 2>&1 && [ "$CPUS" -gt 0 ]; then
+    CPU_PIN=(taskset -c "0-$((CPUS - 1))")
+    echo "  cores: pinning every arm to CPUs 0-$((CPUS - 1))"
+else
+    echo "  WARNING: taskset unavailable; nothing holds the arms to $CPUS cores." >&2
+    echo "           Under --exclusive they can use the whole node and the W x T" >&2
+    echo "           budget is not enforced. Check cpu_efficiency stays below 1." >&2
+fi
+
 ARMS_DEFAULT="kneaddata rustyclean_batch rustyclean_xargs hostile rustyclean_batch_skipqc"
 read -r -a ARMS <<< "${PARALLEL_ARMS:-$ARMS_DEFAULT}"
 
@@ -313,7 +329,11 @@ sampler_loop() {    # sampler_loop <outfile> <root_pid>
         [ -n "$c" ] || c=0
         if [ "$a" -gt "$pa" ] 2>/dev/null; then pa="$a"; fi
         if [ "$c" -gt "$pc" ] 2>/dev/null; then pc="$c"; fi
-        printf '%s %s\n' "$pa" "$pc" > "$out"
+        # Append rather than truncate. Rewriting the file each second meant a
+        # read could land between the truncate and the write and see an empty
+        # file, which is how seven of twenty-five rows recorded no memory at
+        # all. Appending also leaves a trace to look at when a number surprises.
+        printf '%s %s\n' "$a" "$c" >> "$out"
         sleep "$PARALLEL_MEM_INTERVAL"
     done
 }
@@ -338,12 +358,13 @@ measure_arm() {
     echo "--- $arm  (W=$W, T=$T) ---"
     printf '  started %s\n' "$(date -Iseconds)"
 
-    printf '0 0\n' > "$memfile"
+    : > "$memfile"
     sampler_loop "$memfile" $$ &
     local sampler=$!
 
     local status=ok
-    /usr/bin/time -v -o "$timefile" bash "$driver" > "$log_dir/arm.log" 2>&1 || status=FAILED
+    /usr/bin/time -v -o "$timefile" ${CPU_PIN[@]+"${CPU_PIN[@]}"} bash "$driver" \
+        > "$log_dir/arm.log" 2>&1 || status=FAILED
     kill "$sampler" 2>/dev/null || true
     wait "$sampler" 2>/dev/null || true
 
@@ -362,8 +383,8 @@ measure_arm() {
     sys=$(awk -F': ' '/System time \(seconds\)/{print $NF}' "$timefile")
     rss=$(awk -F': ' '/Maximum resident set size/{print $NF}' "$timefile")
     local peak_anon peak_cur
-    peak_anon=$(awk '{print $1+0}' "$memfile" | tail -1)
-    peak_cur=$(awk '{print $2+0}' "$memfile" | tail -1)
+    peak_anon=$(awk 'BEGIN{m=0} {if ($1+0 > m) m=$1+0} END{print m}' "$memfile")
+    peak_cur=$(awk 'BEGIN{m=0} {if ($2+0 > m) m=$2+0} END{print m}' "$memfile")
     [ -n "$wall" ] || wall=0
     [ -n "$user" ] || user=0
     [ -n "$sys" ]  || sys=0

@@ -26,6 +26,7 @@ import argparse
 import csv
 import glob
 import os
+import subprocess
 import sys
 from collections import defaultdict
 
@@ -163,6 +164,23 @@ def render(out, arms, widths, rows):
                 f"{(r['user_seconds'] or 0) + (r['sys_seconds'] or 0):8.0f}s")
         add("")
 
+    # cgroup CPU cannot exceed wall x cores unless the job was never held to
+    # those cores. It happened on the first full run: --exclusive hands over the
+    # whole node, so a "16 core" task could use every core on the machine and
+    # the W x T budget the curve rests on was not a budget at all.
+    over = [x for x in out if x["cpu_efficiency"] and float(x["cpu_efficiency"]) > 1.05]
+    if over:
+        add("!" * 96)
+        add("CORE BUDGET NOT ENFORCED — these rows used more CPU than the cores they")
+        add("were given, so W x T was not held constant and the scaling curve below")
+        add("compares points that had different machines. Rerun with the arms pinned")
+        add("(taskset) before reading anything above as a measurement.")
+        for x in over:
+            add(f"    {x['arm']:<26} W={x['workers']:<3} cpu efficiency {x['cpu_efficiency']} "
+                f"= {float(x['cpu_efficiency']) * float(x['cpus']):.1f} cores of {x['cpus']}")
+        add("!" * 96)
+        add("")
+
     add("=" * 96)
     add("HEAD TO HEAD — ratio of batch wall time, >1 means the first arm finished sooner")
     add("=" * 96)
@@ -229,8 +247,26 @@ def check_fingerprints(runs_dir):
             diff = [s for s in ref if s in cur and cur[s][0] != ref[s][0]]
             only = set(ref) ^ set(cur)
             if diff:
-                notes.append(f"W={w}: {len(diff)} sample(s) retained a different number "
-                             f"of reads than at W={ref_w} (e.g. {diff[0]})")
+                # Size the disagreement. Two or three reads out of a million is
+                # multi-threaded aligner nondeterminism; thousands is a tool
+                # behaving differently, and only the second is a defect.
+                deltas = []
+                for sid in diff:
+                    try:
+                        a, b = float(ref[sid][0]), float(cur[sid][0])
+                    except ValueError:
+                        continue
+                    deltas.append((abs(b - a), 100 * abs(b - a) / a if a else 0, sid))
+                deltas.sort(reverse=True)
+                if deltas:
+                    med = deltas[len(deltas) // 2]
+                    worst = deltas[0]
+                    notes.append(
+                        f"W={w}: {len(diff)} sample(s) differ from W={ref_w}; "
+                        f"median {med[0]:.0f} reads ({med[1]:.4f} %), "
+                        f"worst {worst[0]:.0f} ({worst[1]:.4f} %) on {worst[2]}")
+                else:
+                    notes.append(f"W={w}: {len(diff)} sample(s) differ from W={ref_w}")
             if only:
                 notes.append(f"W={w}: {len(only)} sample(s) present at one W and not the other")
         status = "OK" if not notes else "MISMATCH"
@@ -253,8 +289,11 @@ def check_fingerprints(runs_dir):
                          f"same output as one process per sample (e.g. {diff[0]})")
 
     lines.append("")
-    lines.append("A MISMATCH here outranks every timing number in this report: it would mean"
-                 "\nthe faster configuration is not doing the same job.")
+    lines.append("A MISMATCH outranks every timing number in this report ONLY once its size is"
+                 "\nknown. Read the percentages above: a few reads in a million is what a"
+                 "\nmulti-threaded aligner does when the thread count changes the order it"
+                 "\nresolves ties in, and this grid varies the thread count on purpose. Whole"
+                 "\npercent differences are a tool doing a different job at different widths.")
     if not ok:
         lines.append("")
         lines.append("Set PARALLEL_DIGEST=1 and rerun to compare the read-id sets themselves,"
@@ -273,6 +312,19 @@ def main():
     if not runs:
         runs_root = os.environ.get("RUNS_DIR")
         runs = os.path.join(runs_root, "parallel_scaling") if runs_root else None
+    if not runs:
+        # Ask config.sh in a SUBSHELL. Sourcing it into an interactive shell puts
+        # `set -euo pipefail` there, and this script exits 2 on a fingerprint
+        # mismatch, which then closes the user's session.
+        cfg = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "hpc", "config.sh")
+        if os.path.isfile(cfg):
+            try:
+                runs = subprocess.run(
+                    ["bash", "-c", f'source "{cfg}" >/dev/null 2>&1; printf %s "$PARALLEL_RUNS_DIR"'],
+                    capture_output=True, text=True, timeout=30).stdout.strip() or None
+            except (OSError, subprocess.TimeoutExpired):
+                runs = None
     if not runs or not os.path.isdir(runs):
         sys.exit("set PARALLEL_RUNS_DIR (source scripts/hpc/config.sh) or pass --runs")
     out_dir = args.out or os.path.join(runs, "summary")
