@@ -192,6 +192,123 @@ def chart_memory(items):
     return "\n".join(s)
 
 
+
+# ---------------------------------------------------------------------------
+# Parallel-scaling panel
+# ---------------------------------------------------------------------------
+# Five arms but only four colour slots, which turns out to be the right
+# constraint: rustyclean_batch and rustyclean_xargs are the SAME binary over the
+# same reads and differ only in who schedules them, so they share a colour and
+# are told apart by a dashed stroke and a hollow marker. Anything else would
+# imply they are two different tools.
+SCALING_SERIES = [
+    # key,                      label,                     var,  shape,     dashed
+    ("kneaddata",               "KneadData",               "s4", "diamond",  False),
+    ("hostile",                 "Hostile",                 "s3", "triangle", False),
+    ("rustyclean_batch",        "RustyClean auto",         "s1", "circle",   False),
+    ("rustyclean_xargs",        "RustyClean auto · xargs",  "s1", "circle",  True),
+    ("rustyclean_batch_skipqc", "RustyClean --skip-qc",    "s2", "square",   False),
+]
+W_GRID = [1, 2, 4, 8, 16]
+
+
+def load_scaling(runs_dir):
+    """{arm: {workers: row}} from the per-task CSVs the benchmark writes."""
+    import glob
+    out = collections.defaultdict(dict)
+    for path in sorted(glob.glob(f"{runs_dir}/metrics/parallel_scaling*.csv")):
+        for r in csv.DictReader(open(path)):
+            if not r.get("arm") or not r.get("wall_seconds"):
+                continue
+            try:
+                out[r["arm"]][int(r["workers"])] = r
+            except (TypeError, ValueError):
+                continue
+    return out
+
+
+def _scaling_frame(title, aria, ylab, ymax, ticks, fmt):
+    W, H = 720, 360
+    L, R, T, B = 66, 196, 26, 56
+    pw, ph = W - L - R, H - T - B
+    fx = lambda i: L + (i / (len(W_GRID) - 1)) * pw
+    fy = lambda v: T + ph - min(v / ymax, 1.0) * ph
+    s = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="{aria}">',
+         f'<title>{title}</title>']
+    for gv in ticks:
+        s.append(f'<line x1="{L}" y1="{fy(gv):.1f}" x2="{L+pw}" y2="{fy(gv):.1f}" '
+                 f'stroke="var(--chart-grid)" stroke-width="1"/>')
+        s.append(f'<text x="{L-9}" y="{fy(gv)+4:.1f}" text-anchor="end" class="tick">{fmt(gv)}</text>')
+    for i, w in enumerate(W_GRID):
+        s.append(f'<text x="{fx(i):.1f}" y="{T+ph+19}" text-anchor="middle" class="tick">{w}</text>')
+        s.append(f'<text x="{fx(i):.1f}" y="{T+ph+33}" text-anchor="middle" class="tick" '
+                 f'style="opacity:.6">{16 // w}</text>')
+    s.append(f'<line x1="{L}" y1="{T}" x2="{L}" y2="{T+ph}" stroke="var(--chart-axis)" stroke-width="1"/>')
+    s.append(f'<line x1="{L}" y1="{T+ph}" x2="{L+pw}" y2="{T+ph}" stroke="var(--chart-axis)" stroke-width="1"/>')
+    s.append(f'<text x="{L-58}" y="{T+ph+19}" class="tick" style="opacity:.75">并发 W</text>')
+    s.append(f'<text x="{L-58}" y="{T+ph+33}" class="tick" style="opacity:.6">线程 T</text>')
+    s.append(f'<text x="18" y="{T+ph/2:.0f}" text-anchor="middle" class="axis-label" '
+             f'transform="rotate(-90 18 {T+ph/2:.0f})">{ylab}</text>')
+    return s, fx, fy, L, pw, T, ph
+
+
+def _scaling_plot(s, fx, fy, data, value, T, ph):
+    """Draw the five arms and lay their labels out without overlap."""
+    anchors = []
+    for key, label, var, shape, dashed in SCALING_SERIES:
+        if key not in data:
+            continue
+        pts = [(i, value(data[key][w])) for i, w in enumerate(W_GRID) if w in data[key]]
+        if not pts:
+            continue
+        col = f"var(--{var})"
+        dash = ' stroke-dasharray="5 4"' if dashed else ""
+        path = " ".join(("M" if j == 0 else "L") + f"{fx(i):.1f},{fy(v):.1f}"
+                        for j, (i, v) in enumerate(pts))
+        s.append(f'<path d="{path}" fill="none" stroke="{col}" stroke-width="2" '
+                 f'stroke-opacity="{0.45 if dashed else 0.6}"{dash} stroke-linejoin="round"/>')
+        for i, v in pts:
+            fill = "var(--chart-surface)" if dashed else col
+            extra = f'stroke="{col}" stroke-width="2"' if dashed else ""
+            s.append(f'<g><title>{label} · W={W_GRID[i]} · {v:.6g}</title>'
+                     + marker(shape, fx(i), fy(v), 5, fill, extra) + '</g>')
+        li, lv = pts[-1]
+        anchors.append([label, fx(li) + 13, fy(lv) + 4, col, dashed])
+
+    MIN_GAP = 16
+    anchors.sort(key=lambda a: a[2])
+    for i in range(1, len(anchors)):
+        if anchors[i][2] - anchors[i - 1][2] < MIN_GAP:
+            anchors[i][2] = anchors[i - 1][2] + MIN_GAP
+    overflow = anchors[-1][2] - (T + ph) if anchors else 0
+    if overflow > 0:
+        for a in anchors:
+            a[2] -= overflow
+    for label, lx, ly, col, dashed in anchors:
+        style = ' style="opacity:.78"' if dashed else ""
+        s.append(f'<text x="{lx:.1f}" y="{ly:.1f}" class="series-label"{style}>{label}</text>')
+    s.append('</svg>')
+    return "\n".join(s)
+
+
+def chart_scaling(data):
+    s, fx, fy, L, pw, T, ph = _scaling_frame(
+        "吞吐量随并发数的变化", "并行吞吐量随并发数的变化",
+        "吞吐量 — 每小时完成的样品数 →", 900, [0, 200, 400, 600, 800],
+        lambda v: f"{v:g}")
+    return _scaling_plot(s, fx, fy, data,
+                         lambda r: float(r["samples_per_hour"]), T, ph)
+
+
+def chart_scaling_memory(data):
+    s, fx, fy, L, pw, T, ph = _scaling_frame(
+        "峰值并发内存随并发数的变化", "峰值并发内存随并发数的变化",
+        "峰值匿名内存 GB(cgroup)→", 60, [0, 15, 30, 45, 60],
+        lambda v: f"{v:g}")
+    return _scaling_plot(s, fx, fy, data,
+                         lambda r: float(r["peak_anon_kb"]) / 1048576, T, ph)
+
+
 if __name__ == "__main__":
     import sys
     base = sys.argv[1] if len(sys.argv) > 1 else "."
@@ -210,6 +327,15 @@ if __name__ == "__main__":
 
     out = {"tradeoff": chart_tradeoff(data), "speedup": chart_speedup(speed),
            "memory": chart_memory(mem)}
+
+    # The parallel-scaling panel is a separate experiment with its own run tree,
+    # so it may simply not be there yet. Draw it when it is.
+    scaling = load_scaling(f"{base}/runs/parallel_scaling")
+    if scaling:
+        out["scaling"] = chart_scaling(scaling)
+        out["scaling_memory"] = chart_scaling_memory(scaling)
+    else:
+        print("  no parallel-scaling metrics; skipping those two figures")
     out_dir = pathlib.Path(__file__).resolve().parent
     for k, v in out.items():
         dest = out_dir / f"chart_{k}.svg"

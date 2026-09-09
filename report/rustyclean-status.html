@@ -381,15 +381,17 @@
     <p class="standfirst">
       从零重跑全部建库与测试,取代 2026-08 的旧结果。运行时间、内存与准确性均已测得。
       四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,这正是本项目要论证的不对称性。
-      <b>三个原本预期的结论被数据推翻</b>:混合库并不更差、对 Hostile 没有速度优势、
-      验证通道两个方向都不划算。
+      <b>四个原本预期的结论被数据推翻</b>:混合库并不更差、对 Hostile 没有速度优势、
+      验证通道两个方向都不划算,以及——第 04 节新增的并行实验——
+      <b>RustyClean 自带的 <code>--workers</code> 工作池相对一个 shell 循环没有任何优势</b>,
+      而它相对 KneadData 的优势恰恰全部来自样品级并发。
     </p>
     <div class="meta">
       <span><b>集群</b> HPC2021 · amd 分区</span>
       <span><b>项目目录</b> /lustre1/g/aos_shihuang/rustyclean-paper</span>
-      <span><b>作业总数</b> 73</span>
-      <span><b>测量条数</b> 136 + 16 准确性</span>
-      <span><b>更新</b> 2026-09-04</span>
+      <span><b>作业总数</b> 73 + 25 并行</span>
+      <span><b>测量条数</b> 136 + 16 准确性 + 25 并行</span>
+      <span><b>更新</b> 2026-09-09</span>
     </div>
   </header>
 
@@ -398,6 +400,7 @@
     <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
     <div><span class="n done">3×</span><span class="k">混合库的宿主残留更低</span></div>
     <div><span class="n done">3.09</span><span class="k">recheck 每挽回 1 条微生物<br>多留的宿主序列</span></div>
+    <div><span class="n done">46×</span><span class="k">16 路并发时 Hostile 的<br>内存优势</span></div>
   </div>
 
   <!-- ============ 测试目的与设计 ============ -->
@@ -427,6 +430,11 @@
             <td><b>recheck 验证通道</b></td>
             <td>kraken2 判为宿主的序列,再用 bowtie2 复核一次才删</td>
             <td>能挽回多少被误删的微生物序列,代价是多少时间</td>
+          </tr>
+          <tr>
+            <td><b>并行处理</b></td>
+            <td>单进程 <code>--workers W</code> 同时处理 W 个样品,而非每样品一个进程</td>
+            <td>同样的核数下吞吐量是否更高;工作池相对 <code>xargs</code> 是否真有价值(第 04 节)</td>
           </tr>
         </tbody>
       </table>
@@ -589,6 +597,37 @@
         </p>
       </div>
 
+      <div class="stage" data-state="done">
+        <div class="stage-head">
+          <h3>Stage 7 — 并行化对比(独立实验)</h3>
+          <span class="chip done">已完成</span>
+          <span class="tag">25 任务</span>
+        </div>
+        <p class="stage-note">
+          另立的一套数据与流程:120 个等大样品(各 100 万条序列),五个臂 × 五个并发数。
+          与前六个阶段互不依赖,失败原因也不相关,因此没有并进 <code>run_all.sh</code>。
+          结果见第 04 节。
+        </p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>阶段</th><th>脚本</th><th>规模</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>模拟 120 个等大样品</td><td class="mono">generate_parallel_data.sh</td><td>20 任务,约 12 GB</td><td><span class="chip done">120/120</span></td></tr>
+              <tr><td>扩展性测量 W = 1/2/4/8/16</td><td class="mono">benchmark_parallel_scaling.sh</td><td>5 任务 × 5 臂</td><td><span class="chip done">25/25</span></td></tr>
+              <tr><td>输出不变性检查</td><td class="mono">analyze_parallel_scaling.py</td><td>逐样品保留序列数</td><td><span class="chip">待同步指纹文件</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="stage-note">
+          测量口径上有三处必须固定,前两处是这一轮才发现的:
+          <b>(一)</b> <code>--exclusive</code> 只保证节点上没有别的作业,<b>不限制核数</b>——
+          它把整台节点交给作业,首轮出现 <code>cpu_efficiency</code> 高达 1.98,
+          即 16 核预算里跑出 32 核的工作量,已改用 <code>taskset</code> 钉住;
+          <b>(二)</b> CPU 与内存都改从 cgroup 读取,<code>/usr/bin/time</code> 对 KneadData 少计 20–40 倍;
+          <b>(三)</b> 计时前先把输入与全部索引读入 page cache,使五个臂面对相同的缓存状态。
+        </p>
+      </div>
+
     </div>
   </section>
 
@@ -597,7 +636,7 @@
     <h2><span class="num">03</span>已得到的结果</h2>
     <p class="lede">
       运行时间与内存峰值来自 <code>/usr/bin/time -v</code>,每次工具调用一条记录,合计 136 条,
-      汇总于 <code>runs/summary/resources.csv</code>。<b>准确性数字尚不可用</b>,原因见第 06 节。
+      汇总于 <code>runs/summary/resources.csv</code>。<b>准确性数字尚不可用</b>,原因见第 07 节。
     </p>
 
     <h3 style="margin:6px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">对 KneadData:优势随宿主比例与深度增长</h3>
@@ -734,6 +773,8 @@
       <figcaption>
         蓝色为 RustyClean 的各条路径。<b>比 KneadData 快最多 8.6 倍,峰值内存却是它的 6–14 倍</b>——
         Kraken2 哈希表常驻的直接后果,应与速度一并报告。
+        <br><b style="color:var(--run)">注意口径:</b>本图来自 <code>/usr/bin/time</code>,
+        第 04 节的并行实验证明这个口径对两个对照工具都失真,方向相反,详见其下的说明。
       </figcaption>
     </figure>
 
@@ -1000,7 +1041,309 @@
 
   <!-- ============ 软件 ============ -->
   <section>
-    <h2><span class="num">04</span>软件</h2>
+    <h2><span class="num">04</span>并行化对比</h2>
+    <p class="lede">
+      一个独立的实验,回答一个独立的问题:<b>同样给 16 个核,RustyClean 把它们变成吞吐量的效率,
+      是否高于 KneadData 和 Hostile?</b> 前面几节的数据集刻意让深度、复杂度、宿主比例同时变化,
+      那是准确性比较需要的;吞吐量比较恰恰不能这样——每个样品的成本必须大致相等,
+      批处理总时长才反映调度效率,而不是"哪个大样品落到了哪个 worker"。
+      因此另做了 120 个<b>完全等大</b>的样品:各 100 万条 151 bp 单端序列,
+      1/5/10/50/70/90% 六个宿主比例各 20 个重复。
+    </p>
+    <p class="lede">
+      每个作业独占一个节点、拿 16 个核,按 W 个并发样品 × T 个线程划分,固定 <b>W × T = 16</b>,
+      于是曲线上每个点拿到的是同一台机器。五个臂在<b>同一个 W 下跑在同一个节点上</b>,
+      所以跨工具比较不跨硬件。
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>臂</th><th>质控</th><th>并行方式</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">kneaddata</td><td>trimmomatic</td><td><code>xargs -P W</code></td><td>对照工具</td></tr>
+          <tr><td class="mono">rustyclean_batch</td><td>fastp</td><td>单进程 <code>--workers W</code></td><td>与 KneadData 质控配对</td></tr>
+          <tr><td class="mono">rustyclean_xargs</td><td>fastp</td><td><code>xargs -P W</code></td><td><b>关键对照</b>:同一二进制,只换调度者</td></tr>
+          <tr><td class="mono">hostile</td><td>无</td><td><code>xargs -P W</code></td><td>对照工具</td></tr>
+          <tr><td class="mono">rustyclean_batch_skipqc</td><td>无</td><td>单进程 <code>--workers W</code></td><td>与 Hostile 质控配对</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede" style="margin-top:10px">
+      <code>rustyclean_xargs</code> 是让结论站得住的那一臂。少了它,RustyClean 的任何优势都可能只是
+      "它的比对封装更快",而不是"它的调度更好";<code>batch</code> 对 <code>xargs</code>
+      固定了工具、只改变谁来调度。
+    </p>
+
+    <figure class="viz">
+<svg viewBox="0 0 720 360" role="img" aria-label="并行吞吐量随并发数的变化">
+<title>吞吐量随并发数的变化</title>
+<line x1="66" y1="304.0" x2="524" y2="304.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="308.0" text-anchor="end" class="tick">0</text>
+<line x1="66" y1="242.2" x2="524" y2="242.2" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="246.2" text-anchor="end" class="tick">200</text>
+<line x1="66" y1="180.4" x2="524" y2="180.4" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="184.4" text-anchor="end" class="tick">400</text>
+<line x1="66" y1="118.7" x2="524" y2="118.7" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="122.7" text-anchor="end" class="tick">600</text>
+<line x1="66" y1="56.9" x2="524" y2="56.9" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="60.9" text-anchor="end" class="tick">800</text>
+<text x="66.0" y="323" text-anchor="middle" class="tick">1</text>
+<text x="66.0" y="337" text-anchor="middle" class="tick" style="opacity:.6">16</text>
+<text x="180.5" y="323" text-anchor="middle" class="tick">2</text>
+<text x="180.5" y="337" text-anchor="middle" class="tick" style="opacity:.6">8</text>
+<text x="295.0" y="323" text-anchor="middle" class="tick">4</text>
+<text x="295.0" y="337" text-anchor="middle" class="tick" style="opacity:.6">4</text>
+<text x="409.5" y="323" text-anchor="middle" class="tick">8</text>
+<text x="409.5" y="337" text-anchor="middle" class="tick" style="opacity:.6">2</text>
+<text x="524.0" y="323" text-anchor="middle" class="tick">16</text>
+<text x="524.0" y="337" text-anchor="middle" class="tick" style="opacity:.6">1</text>
+<line x1="66" y1="26" x2="66" y2="304" stroke="var(--chart-axis)" stroke-width="1"/>
+<line x1="66" y1="304" x2="524" y2="304" stroke="var(--chart-axis)" stroke-width="1"/>
+<text x="8" y="323" class="tick" style="opacity:.75">并发 W</text>
+<text x="8" y="337" class="tick" style="opacity:.6">线程 T</text>
+<text x="18" y="165" text-anchor="middle" class="axis-label" transform="rotate(-90 18 165)">吞吐量 — 每小时完成的样品数 →</text>
+<path d="M66.0,279.5 L180.5,271.6 L295.0,268.1 L409.5,270.5 L524.0,278.6" fill="none" stroke="var(--s4)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>KneadData · W=1 · 79.18</title><polygon points="66.0,272.8 72.8,279.5 66.0,286.3 59.2,279.5" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=2 · 104.78</title><polygon points="180.5,264.9 187.2,271.6 180.5,278.4 173.8,271.6" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=4 · 116.25</title><polygon points="295.0,261.3 301.8,268.1 295.0,274.8 288.2,268.1" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=8 · 108.38</title><polygon points="409.5,263.8 416.2,270.5 409.5,277.3 402.8,270.5" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=16 · 82.14</title><polygon points="524.0,271.9 530.8,278.6 524.0,285.4 517.2,278.6" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M66.0,205.9 L180.5,91.9 L295.0,151.1 L409.5,141.5 L524.0,190.3" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>Hostile · W=1 · 317.46</title><polygon points="66.0,199.6 60.2,210.4 71.8,210.4" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=2 · 686.5</title><polygon points="180.5,85.6 174.7,96.4 186.3,96.4" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=4 · 494.85</title><polygon points="295.0,144.8 289.2,155.6 300.8,155.6" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=8 · 526.01</title><polygon points="409.5,135.2 403.7,145.9 415.3,145.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=16 · 367.98</title><polygon points="524.0,184.0 518.2,194.7 529.8,194.7" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M66.0,284.3 L180.5,266.7 L295.0,239.7 L409.5,200.7 L524.0,222.6" fill="none" stroke="var(--s1)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>RustyClean auto · W=1 · 63.93</title><circle cx="66.0" cy="284.3" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=2 · 120.69</title><circle cx="180.5" cy="266.7" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=4 · 208.02</title><circle cx="295.0" cy="239.7" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=8 · 334.35</title><circle cx="409.5" cy="200.7" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=16 · 263.41</title><circle cx="524.0" cy="222.6" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M66.0,285.1 L180.5,266.8 L295.0,245.8 L409.5,198.3 L524.0,216.6" fill="none" stroke="var(--s1)" stroke-width="2" stroke-opacity="0.45" stroke-dasharray="5 4" stroke-linejoin="round"/>
+<g><title>RustyClean auto · xargs · W=1 · 61.29</title><circle cx="66.0" cy="285.1" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=2 · 120.35</title><circle cx="180.5" cy="266.8" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=4 · 188.54</title><circle cx="295.0" cy="245.8" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=8 · 342.21</title><circle cx="409.5" cy="198.3" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=16 · 282.99</title><circle cx="524.0" cy="216.6" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<path d="M66.0,224.2 L180.5,175.7 L295.0,155.8 L409.5,155.6 L524.0,245.5" fill="none" stroke="var(--s2)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>RustyClean --skip-qc · W=1 · 258.21</title><rect x="61.5" y="219.7" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=2 · 415.24</title><rect x="176.0" y="171.2" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=4 · 479.91</title><rect x="290.5" y="151.3" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=8 · 480.28</title><rect x="405.0" y="151.1" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=16 · 189.35</title><rect x="519.5" y="241.0" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="537.0" y="194.3" class="series-label">Hostile</text>
+<text x="537.0" y="220.6" class="series-label" style="opacity:.78">RustyClean auto · xargs</text>
+<text x="537.0" y="236.6" class="series-label">RustyClean auto</text>
+<text x="537.0" y="252.6" class="series-label">RustyClean --skip-qc</text>
+<text x="537.0" y="282.6" class="series-label">KneadData</text>
+</svg>
+      <figcaption>
+        <b>每条曲线都在中间某处见顶,然后回落。</b>W=16(每样品 1 线程)对五个臂无一例外都是坏选择——
+        此时 CPU 占用率高达 0.96–0.98,核是忙的,忙在 16 份各自载入的索引上。
+        括号内第二行是对应的每样品线程数 T。
+      </figcaption>
+    </figure>
+
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>臂</th><th class="num">最佳 W</th><th class="num">最佳吞吐量<br>样品/小时</th>
+          <th class="num">W=1 吞吐量</th><th class="num">W=1→最佳<br>加速比</th>
+          <th class="num">W=1 CPU<br>占用率</th><th class="num">总 CPU<br>W=1,秒</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="mono">hostile</td><td class="num">2</td><td class="num"><b>686.5</b></td><td class="num">317.5</td><td class="num">2.16×</td><td class="num">0.61</td><td class="num">13,247</td></tr>
+          <tr><td class="mono">rustyclean_batch_skipqc</td><td class="num">8</td><td class="num">480.3</td><td class="num">258.2</td><td class="num">1.86×</td><td class="num">0.42</td><td class="num">11,357</td></tr>
+          <tr><td class="mono">rustyclean_xargs</td><td class="num">8</td><td class="num">342.2</td><td class="num">61.3</td><td class="num">5.58×</td><td class="num">0.15</td><td class="num">16,592</td></tr>
+          <tr><td class="mono">rustyclean_batch</td><td class="num">8</td><td class="num">334.4</td><td class="num">63.9</td><td class="num"><b>5.23×</b></td><td class="num">0.15</td><td class="num">16,683</td></tr>
+          <tr><td class="mono">kneaddata</td><td class="num">4</td><td class="num">116.2</td><td class="num">79.2</td><td class="num">1.47×</td><td class="num">0.56</td><td class="num">48,719</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="viz" style="margin-top:20px">
+<svg viewBox="0 0 720 360" role="img" aria-label="峰值并发内存随并发数的变化">
+<title>峰值并发内存随并发数的变化</title>
+<line x1="66" y1="304.0" x2="524" y2="304.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="308.0" text-anchor="end" class="tick">0</text>
+<line x1="66" y1="234.5" x2="524" y2="234.5" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="238.5" text-anchor="end" class="tick">15</text>
+<line x1="66" y1="165.0" x2="524" y2="165.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="169.0" text-anchor="end" class="tick">30</text>
+<line x1="66" y1="95.5" x2="524" y2="95.5" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="99.5" text-anchor="end" class="tick">45</text>
+<line x1="66" y1="26.0" x2="524" y2="26.0" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="57" y="30.0" text-anchor="end" class="tick">60</text>
+<text x="66.0" y="323" text-anchor="middle" class="tick">1</text>
+<text x="66.0" y="337" text-anchor="middle" class="tick" style="opacity:.6">16</text>
+<text x="180.5" y="323" text-anchor="middle" class="tick">2</text>
+<text x="180.5" y="337" text-anchor="middle" class="tick" style="opacity:.6">8</text>
+<text x="295.0" y="323" text-anchor="middle" class="tick">4</text>
+<text x="295.0" y="337" text-anchor="middle" class="tick" style="opacity:.6">4</text>
+<text x="409.5" y="323" text-anchor="middle" class="tick">8</text>
+<text x="409.5" y="337" text-anchor="middle" class="tick" style="opacity:.6">2</text>
+<text x="524.0" y="323" text-anchor="middle" class="tick">16</text>
+<text x="524.0" y="337" text-anchor="middle" class="tick" style="opacity:.6">1</text>
+<line x1="66" y1="26" x2="66" y2="304" stroke="var(--chart-axis)" stroke-width="1"/>
+<line x1="66" y1="304" x2="524" y2="304" stroke="var(--chart-axis)" stroke-width="1"/>
+<text x="8" y="323" class="tick" style="opacity:.75">并发 W</text>
+<text x="8" y="337" class="tick" style="opacity:.6">线程 T</text>
+<text x="18" y="165" text-anchor="middle" class="axis-label" transform="rotate(-90 18 165)">峰值匿名内存 GB(cgroup)→</text>
+<path d="M66.0,286.8 L180.5,271.1 L295.0,239.9 L409.5,177.5 L524.0,52.5" fill="none" stroke="var(--s4)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>KneadData · W=1 · 3.70624</title><polygon points="66.0,280.1 72.8,286.8 66.0,293.6 59.2,286.8" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=2 · 7.1089</title><polygon points="180.5,264.3 187.2,271.1 180.5,277.8 173.8,271.1" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=4 · 13.8297</title><polygon points="295.0,233.2 301.8,239.9 295.0,246.7 288.2,239.9" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=8 · 27.3024</title><polygon points="409.5,170.7 416.2,177.5 409.5,184.2 402.8,177.5" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>KneadData · W=16 · 54.2699</title><polygon points="524.0,45.8 530.8,52.5 524.0,59.3 517.2,52.5" fill="var(--s4)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M66.0,303.0 L180.5,302.5 L295.0,301.7 L409.5,301.1 L524.0,298.5" fill="none" stroke="var(--s3)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>Hostile · W=1 · 0.21397</title><polygon points="66.0,296.7 60.2,307.4 71.8,307.4" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=2 · 0.316647</title><polygon points="180.5,296.2 174.7,306.9 186.3,306.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=4 · 0.489716</title><polygon points="295.0,295.4 289.2,306.1 300.8,306.1" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=8 · 0.635292</title><polygon points="409.5,294.8 403.7,305.5 415.3,305.5" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>Hostile · W=16 · 1.19736</title><polygon points="524.0,292.2 518.2,302.9 529.8,302.9" fill="var(--s3)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M66.0,287.8 L180.5,271.8 L295.0,240.0 L409.5,176.5 L524.0,49.2" fill="none" stroke="var(--s1)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>RustyClean auto · W=1 · 3.50249</title><circle cx="66.0" cy="287.8" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=2 · 6.95564</title><circle cx="180.5" cy="271.8" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=4 · 13.8236</title><circle cx="295.0" cy="240.0" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=8 · 27.5193</title><circle cx="409.5" cy="176.5" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean auto · W=16 · 54.9984</title><circle cx="524.0" cy="49.2" r="5" fill="var(--s1)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<path d="M66.0,287.9 L180.5,271.9 L295.0,239.9 L409.5,223.2 L524.0,162.3" fill="none" stroke="var(--s1)" stroke-width="2" stroke-opacity="0.45" stroke-dasharray="5 4" stroke-linejoin="round"/>
+<g><title>RustyClean auto · xargs · W=1 · 3.46468</title><circle cx="66.0" cy="287.9" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=2 · 6.92035</title><circle cx="180.5" cy="271.9" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=4 · 13.8326</title><circle cx="295.0" cy="239.9" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=8 · 17.4442</title><circle cx="409.5" cy="223.2" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<g><title>RustyClean auto · xargs · W=16 · 30.5842</title><circle cx="524.0" cy="162.3" r="5" fill="var(--chart-surface)" stroke="var(--chart-surface)" stroke-width="2" stroke="var(--s1)" stroke-width="2"/></g>
+<path d="M66.0,287.6 L180.5,271.6 L295.0,239.6 L409.5,176.2 L524.0,78.8" fill="none" stroke="var(--s2)" stroke-width="2" stroke-opacity="0.6" stroke-linejoin="round"/>
+<g><title>RustyClean --skip-qc · W=1 · 3.53404</title><rect x="61.5" y="283.1" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=2 · 6.98842</title><rect x="176.0" y="267.1" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=4 · 13.9045</title><rect x="290.5" y="235.1" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=8 · 27.5794</title><rect x="405.0" y="171.7" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<g><title>RustyClean --skip-qc · W=16 · 48.6135</title><rect x="519.5" y="74.3" width="9.0" height="9.0" rx="1.5" fill="var(--s2)" stroke="var(--chart-surface)" stroke-width="2" /></g>
+<text x="537.0" y="53.2" class="series-label">RustyClean auto</text>
+<text x="537.0" y="69.2" class="series-label">KneadData</text>
+<text x="537.0" y="85.2" class="series-label">RustyClean --skip-qc</text>
+<text x="537.0" y="166.3" class="series-label" style="opacity:.78">RustyClean auto · xargs</text>
+<text x="537.0" y="302.5" class="series-label">Hostile</text>
+</svg>
+      <figcaption>
+        <b>差别最大的一根轴在这里,而且对 RustyClean 不利。</b>
+        Hostile 的内存几乎不随并发增长(0.21→1.20 GB,并发翻了 16 倍内存只涨 5.6 倍);
+        RustyClean 和 KneadData 都是<b>线性增长</b>——每个 worker 载入一份自己的索引副本。
+        W=16 时 RustyClean 峰值 55.0 GB,Hostile 1.20 GB,<b>相差 46 倍</b>。
+      </figcaption>
+    </figure>
+
+    <div class="flag">
+      <h4>对 KneadData:优势确实存在,而且优势本身就是并行</h4>
+      <p>
+        各自最佳设置下 RustyClean auto 每小时 334 个样品,KneadData 116 个,<b>快 2.88 倍</b>。
+        但这个优势完全来自并发:W=1 时 RustyClean 反而<b>慢</b>(0.81×),
+        随并发升到 W=8 后领先 3.09 倍。
+      </p>
+      <p>
+        原因在 CPU 占用率:W=1(T=16)时 RustyClean 只填满了 16 个核中的 2.5 个(0.15),
+        KneadData 填了 8.9 个(0.56)。<b>RustyClean 几乎没有样品内并行</b>,它的并行在样品之间。
+        另一面是它便宜得多——同样跑完 120 个样品,KneadData 花 48,719 CPU 秒,RustyClean 只花 16,683,
+        <b>不到三分之一</b>。它有算力优势,但必须靠样品级并发才能兑现成时间。
+      </p>
+    </div>
+
+    <div class="flag" data-tone="void">
+      <h4>对 Hostile:没有并行化优势,内存上差 46 倍</h4>
+      <p>
+        Hostile 在<b>每一个</b>并发数上都更快(0.51–0.97×),各自最佳设置下 686 对 480 样品/小时,
+        <b>Hostile 快 1.43 倍</b>。这与前面 5M–100M 数据集上"中位 0.99× 持平"的结论不矛盾:
+        本节的样品只有 100 万条,固定开销(索引载入)占比更大,而 Hostile 显然把这块处理得更好。
+      </p>
+      <p>
+        内存把原因说穿了:16 路并发时 Hostile 峰值 1.20 GB,RustyClean 55.0 GB。
+        16 个并发比对只用 1.2 GB,只可能是<b>索引被共享而非每进程一份</b>。
+        这既解释了 Hostile 的速度,也决定了它的上限——在一台 128 GB 的节点上,
+        RustyClean 的并发到 W=16 就接近撞墙,Hostile 还远没有。
+        <b>这是本轮实验给出的最可操作的工程结论:让 RustyClean 共享映射索引。</b>
+      </p>
+    </div>
+
+    <div class="flag" data-tone="void">
+      <h4><code>--workers</code> 工作池相对 <code>xargs</code> 没有优势</h4>
+      <p>
+        这是设计中的关键对照,结果是<b>持平</b>:1.04 / 1.00 / 1.10 / 0.98 / 0.93,中位 1.00×。
+        换句话说,RustyClean 相对 KneadData 的优势<b>不来自它自带的调度器</b>——
+        一个 shell 循环能达到同样的效果。
+      </p>
+      <p>
+        唯一的差别在内存,而且是负面的:W=8 时 27.5 对 17.4 GB,W=16 时 55.0 对 30.6 GB,
+        工作池比同样数量的独立进程多用 <b>1.6–1.8 倍</b>内存。
+        一个可能的解释是信号量把并发严格维持在 W,而 xargs 的进程有先后错峰,
+        峰值并发因此低于 W;尚未验证。
+      </p>
+    </div>
+
+    <div class="flag" data-tone="void">
+      <h4>机制:Hostile 的索引是共享文件映射,RustyClean 的是每进程私有副本</h4>
+      <p>
+        把两个内存口径并排看,机制就清楚了。<code>/usr/bin/time</code> 报告单个进程的峰值 RSS
+        (含文件映射页),cgroup 的 <code>anon</code> 报告整个作业的匿名(私有、不可回收)内存:
+      </p>
+      <div class="scroll" style="margin:10px 0">
+        <table>
+          <thead><tr><th>臂</th><th class="num">W</th><th class="num">GNU time 峰值 RSS</th><th class="num">cgroup 匿名内存</th><th>读数</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">hostile</td><td class="num">1</td><td class="num">3.57 GB</td><td class="num">0.21 GB</td><td>索引在 RSS 里、不在匿名内存里 → <b>文件映射</b></td></tr>
+            <tr><td class="mono">hostile</td><td class="num">8</td><td class="num">3.47 GB</td><td class="num">0.64 GB</td><td>8 个进程共享同一份映射</td></tr>
+            <tr><td class="mono">rustyclean_batch</td><td class="num">1</td><td class="num">3.42 GB</td><td class="num">3.50 GB</td><td>两者相等 → <b>私有副本</b></td></tr>
+            <tr><td class="mono">rustyclean_batch</td><td class="num">8</td><td class="num">3.43 GB</td><td class="num">27.52 GB</td><td>8 份副本,线性增长</td></tr>
+            <tr><td class="mono">kneaddata</td><td class="num">1</td><td class="num">1.10 GB</td><td class="num">3.71 GB</td><td>GNU time <b>漏计</b>了子进程</td></tr>
+            <tr><td class="mono">kneaddata</td><td class="num">8</td><td class="num">1.07 GB</td><td class="num">27.30 GB</td><td>漏计 25 倍</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        三者跑的是同一个 bowtie2,差别只能在调用方式:Hostile 几乎可以确定用了
+        <code>bowtie2 --mm</code>(内存映射索引),所以并发的比对进程共享同一份索引页,
+        而 RustyClean 让每个进程各载入一份私有副本。
+        <b>这是一个单个开关的修改,而且是本轮实验最可操作的产出。</b>
+        验证方法:在 Hostile 的运行日志里查它实际下发的 bowtie2 命令行。
+      </p>
+      <p>
+        同一张表也说明<b>第 03 节那张内存图两个方向都失真</b>:
+        KneadData 的 1.1 GB 是漏计(实际匿名内存 3.71 GB),
+        而 Hostile 的 3.5 GB 里绝大部分是可共享的映射页,不是每进程都要付的 RAM。
+        论文里的内存比较应改用 cgroup 口径重新表述。
+      </p>
+    </div>
+
+    <div class="flag">
+      <h4>甜点区在 W=4–8,不是越多越好</h4>
+      <p>
+        五个臂无一例外:吞吐量在 W=2–8 见顶,W=16 全线回落。
+        <code>rustyclean_batch_skipqc</code> 最极端,W=16(2,282 秒)比 W=1(1,673 秒)<b>还慢</b>,
+        总 CPU 从 11,357 涨到 35,852 秒(<b>+216%</b>)。
+        并行在这里不是免费的:同样 120 个样品,并发越高消耗的总 CPU 越多,
+        因为每个 worker 都要重新载入一次索引。
+      </p>
+    </div>
+
+    <div class="flag" data-tone="run">
+      <h4>待补:输出不变性检查</h4>
+      <p>
+        每个臂、每个并发数都记录了逐样品的保留序列数,用于验证<b>并发是否改变了输出</b>——
+        这是并发 bug 唯一会露头的地方,批处理时间会好看得毫无异样而输出已经不同。
+        该检查的指纹文件当时未纳入同步(<code>.gitignore</code> 已修正),需重新同步后运行:
+        <code>python3 scripts/main/analyze_parallel_scaling.py</code>。
+      </p>
+      <p>
+        需要注意本网格<b>刻意变化了比对器的线程数</b>(W=1 时 T=16,W=16 时 T=1),
+        而多线程比对器在线程数变化时打破平局的顺序会变。百万条里差几条是正常的,
+        差到百分比量级才是缺陷。分析脚本现在同时报告中位数与最坏值。
+      </p>
+    </div>
+
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>软件</h2>
     <p class="lede">
       被测工具是 RustyClean;KneadData 与 Hostile 是对照工具,均使用各自官方发布的默认数据库,不做修改。
       其余为 RustyClean 各后端所依赖的比对/分类程序。
@@ -1027,7 +1370,7 @@
 
   <!-- ============ 参考与数据库 ============ -->
   <section>
-    <h2><span class="num">05</span>参考序列与数据库</h2>
+    <h2><span class="num">06</span>参考序列与数据库</h2>
     <p class="lede">
       核心设计:<b>宿主序列从 GRCh38 模拟,去宿主对 T2T 进行</b>。两者是不同的组装版本,
       因此去宿主必须应对真实的组装差异,而不是匹配序列的来源本身。
@@ -1139,7 +1482,7 @@
 
 === 数据集 ============ -->
   <section>
-    <h2><span class="num">06</span>模拟数据集</h2>
+    <h2><span class="num">07</span>模拟数据集</h2>
     <p class="lede">
       18 个数据集,合计 5.4 亿条序列,覆盖测序深度(5M–100M)、宿主比例(0–100%)、群落复杂度(5/30/100 物种)、
       丰度分布(均匀/对数正态/偏斜)与测序模式(单端/双端)。群落按复杂度用固定种子随机抽样,
@@ -1181,7 +1524,36 @@
 
   <!-- ============ 待决 ============ -->
   <section>
-    <h2><span class="num">07</span>结论与待决</h2>
+    <h2><span class="num">08</span>结论与待决</h2>
+
+    <div class="flag" data-tone="void">
+      <h4>把 bowtie2 索引改成内存映射,是眼下最值得做的一件事</h4>
+      <p>
+        16 路并发时 Hostile 峰值 1.20 GB,RustyClean 55.0 GB,<b>相差 46 倍</b>。
+        两者跑的是同一个 bowtie2,差别在调用方式:Hostile 的索引是共享文件映射,
+        RustyClean 每个 worker 载入一份私有副本(第 04 节有两个内存口径的并排证据)。
+      </p>
+      <p>
+        这不只是内存好看的问题——它<b>决定了并发的上限</b>。128 GB 的节点上 RustyClean 到 W=16
+        就接近撞墙,而 Hostile 还远没有。改动很可能只是给 bowtie2 加一个 <code>--mm</code>。
+      </p>
+    </div>
+
+    <div class="flag" data-tone="void">
+      <h4><code>--workers</code> 工作池没有兑现它的卖点</h4>
+      <p>
+        与同一二进制在 <code>xargs -P</code> 下相比,五个并发数上的比值是
+        1.04 / 1.00 / 1.10 / 0.98 / 0.93,<b>中位 1.00×</b>,而内存反而多用 1.6–1.8 倍。
+        RustyClean 相对 KneadData 的 2.88 倍吞吐优势是真的,但它<b>不来自这个调度器</b>——
+        一个 shell 循环能达到同样效果。
+      </p>
+      <p>
+        论文里不应把"内置并行"当作卖点。可以主张的是另一件事,而且更有分量:
+        同样跑完 120 个样品,RustyClean 只花 KneadData <b>三分之一</b>的 CPU(16,683 对 48,719 秒)。
+        它便宜,只是<b>几乎没有样品内并行</b>(W=1 时只填满 16 个核中的 2.5 个),
+        必须靠样品级并发才能把算力优势兑现成时间。
+      </p>
+    </div>
 
     <div class="flag" data-tone="void">
       <h4>recheck 验证通道:建议不默认开启</h4>
@@ -1227,18 +1599,6 @@
       <p>
         <b>不必为此重跑消融</b>:消融要回答的是索引问题,而现有的旧版消融结果已经给出了答案
         (混合库宿主残留低约 3 倍),且 recheck 对 F1 的影响不超过 0.0004,不足以改变那个结论。
-<<<<<<< Updated upstream
-=======
-      </p>
-    </div>
-
-    <div class="flag" data-tone="run">
-      <h4>一个未解释的超时</h4>
-      <p>
-        <code>rc_auto_boundary</code> 的一个任务在 6 小时时限处超时,而该臂此前的中位耗时是
-        3 分 40 秒。它不开启 recheck,理论上不受本轮改动影响。可能是节点争用
-        (同期有多个 6–18 小时的作业在压同一文件系统),但尚未确认。
->>>>>>> Stashed changes
       </p>
     </div>
 

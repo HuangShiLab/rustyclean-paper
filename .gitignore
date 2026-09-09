@@ -78,3 +78,9 @@ data/*
 figures/*
 !figures/.gitkeep
 .conda_envs/
+
+# Fingerprint files are results, the same as the CSVs: 120 lines of sample id
+# and retained-read count, a few kB each. They carry the output-invariance
+# check, which outranks every timing number in the parallel-scaling experiment
+# and could not be run locally because these were never synced.
+!runs/**/*.tsv
