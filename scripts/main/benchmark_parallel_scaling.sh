@@ -272,6 +272,11 @@ trap 'rm -rf "$WORK_ROOT"' EXIT
 # ---------------------------------------------------------------------------
 # Memory sampling
 # ---------------------------------------------------------------------------
+# NOTE: scripts/hpc/cgroup_probe.sh is this logic extracted so the three main
+# benchmarks can share it. This script keeps its own copy for now because it is
+# the one that produced the published figures and refactoring it unverified
+# would risk them. The two must stay in agreement -- change both, or fold this
+# one into the helper the next time this panel is rerun.
 # /usr/bin/time reports the peak RSS of the largest single process in the tree,
 # which is the wrong quantity here: the question is how much memory it takes to
 # run W of them at once. Sample the job's own cgroup instead and keep the peak

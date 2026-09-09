@@ -27,12 +27,29 @@ ARRAY_TAG=""
 # Tool paths
 export PATH="/lustre1/g/aos_shihuang/rustyclean/target/release:/group/aos_shihuang/conda/envs/kneaddata/bin:/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:${PATH}"
 
+# CPU and concurrent memory from the job's own cgroup, recorded alongside
+# /usr/bin/time. GNU time only accounts for children it reaped, which on the
+# KneadData arm missed up to 40x of the CPU, and its peak RSS counts a
+# memory-mapped index that concurrent processes actually share. Both figures are
+# kept so the disagreement stays visible. See scripts/hpc/cgroup_probe.sh.
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/cgroup_probe.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+source "$REPO_DIR/scripts/hpc/cgroup_probe.sh"
+cgroup_probe_init
+
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 OUTDIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/auto_vs_kneaddata"
 mkdir -p "${OUTDIR}"
 
 METRICS="${OUTDIR}/auto_vs_kneaddata_metrics${ARRAY_TAG}.csv"
-echo "dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp" > "${METRICS}"
+echo "dataset,tool,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,output_size_bytes,backend,estimated_host_pct,timestamp" > "${METRICS}"
 
 DATASETS=(
     "5M_1pct_low_even_SE"
@@ -93,7 +110,7 @@ for dataset in "${DATASETS[@]}"; do
     rc_ckpt="${ds_out}/rc_auto_ckpt"
     rm -rf "${rc_out}" "${rc_ckpt}"
     time_log="${ds_out}/rc_auto.time.log"
-    /usr/bin/time -v -o "${time_log}" \
+    cgroup_run "${time_log}" \
         rustyclean \
             --r1 "${r1}" \
             --host-removal-mode auto \
@@ -109,7 +126,7 @@ for dataset in "${DATASETS[@]}"; do
     rc_size=$(stat -c%s "${rc_clean}" 2>/dev/null || echo "unknown")
     rc_backend=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto.log" 2>/dev/null | grep "chosen_backend" | tail -1 | sed -E 's/.*chosen_backend=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
     rc_hostpct=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto.log" 2>/dev/null | grep "estimated_host_pct" | tail -1 | sed -E 's/.*estimated_host_pct=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
-    echo "${dataset},rustyclean_auto,${rc_runtime},${rc_mem},${rc_size},${rc_backend},${rc_hostpct},$(date -Iseconds)" >> "${METRICS}"
+    echo "${dataset},rustyclean_auto,${rc_runtime},${rc_mem},${CG_CPU_SECONDS},${CG_PEAK_ANON_KB},${CG_PEAK_CURRENT_KB},${rc_size},${rc_backend},${rc_hostpct},$(date -Iseconds)" >> "${METRICS}"
     echo "RustyClean AUTO: ${rc_runtime}s, ${rc_mem}KB, backend=${rc_backend}, host_pct=${rc_hostpct}, size=${rc_size}B"
 
     # --- KneadData (QC + host removal) ---
@@ -117,7 +134,7 @@ for dataset in "${DATASETS[@]}"; do
     kd_out="${ds_out}/kneaddata"
     rm -rf "${kd_out}"
     time_log="${ds_out}/kneaddata.time.log"
-    /usr/bin/time -v -o "${time_log}" \
+    cgroup_run "${time_log}" \
         kneaddata \
             -un "${r1}" \
             -db "${HOST_INDEX}" \
@@ -131,7 +148,7 @@ for dataset in "${DATASETS[@]}"; do
         kd_clean=$(find "${kd_out}" -maxdepth 1 -type f -name '*.fastq' ! -name '*contam*' ! -name '*trimmed*' ! -name '*repeats*' -printf '%s %p\n' 2>/dev/null | sort -nr | awk 'NR==1{print $2}')
     fi
     kd_size=$(stat -c%s "${kd_clean}" 2>/dev/null || echo "unknown")
-    echo "${dataset},kneaddata,${kd_runtime},${kd_mem},${kd_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
+    echo "${dataset},kneaddata,${kd_runtime},${kd_mem},${CG_CPU_SECONDS},${CG_PEAK_ANON_KB},${CG_PEAK_CURRENT_KB},${kd_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
     echo "KneadData: ${kd_runtime}s, ${kd_mem}KB, size=${kd_size}B"
 
 done

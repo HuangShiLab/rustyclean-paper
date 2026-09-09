@@ -39,6 +39,11 @@ fi
 if [ -n "${REPO_DIR:-}" ] && [ -f "$REPO_DIR/scripts/hpc/config.sh" ]; then
     source "$REPO_DIR/scripts/hpc/config.sh"
     activate_conda
+    # Memory here is a Kraken2 hash table or a Bowtie2 index, and whether it is
+    # private or shared decides what the number means. Record the cgroup's view
+    # beside /usr/bin/time's. See scripts/hpc/cgroup_probe.sh.
+    source "$REPO_DIR/scripts/hpc/cgroup_probe.sh"
+    cgroup_probe_init
 else
     source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 fi
@@ -96,7 +101,7 @@ echo "Threads: ${THREADS}"
 # absent meant a rerun appended to the previous run's rows, so the first
 # backend comparison (with centrifuge failing and the large Bowtie2 index) and
 # the second sat in one CSV and were averaged together.
-echo "tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp" > "${METRICS_FILE}"
+echo "tool,dataset,rep,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,timestamp" > "${METRICS_FILE}"
 
 parse_time() {
     local timefile="$1"
@@ -146,7 +151,7 @@ for MODE in "${MODES[@]}"; do
         fi
 
         echo "  [${MODE}] Running on ${DATASET}..."
-        /usr/bin/time -v -o "${timefile}" \
+        cgroup_run "${timefile}" \
             "${RUSTYCLEAN}" \
                 --mode "${MODE}" \
                 --skip-qc \
@@ -159,12 +164,12 @@ for MODE in "${MODES[@]}"; do
                 --clean \
                 > "${logfile}" 2>&1 || {
             echo "  [${MODE}] FAILED on ${DATASET}" >&2
-            echo "${MODE},${DATASET},1,FAILED,,$(date -Iseconds)" >> "${METRICS_FILE}"
+            echo "${MODE},${DATASET},1,FAILED,,,,,$(date -Iseconds)" >> "${METRICS_FILE}"
             continue
         }
 
         read runtime_sec max_mem < <(parse_time "${timefile}")
-        echo "${MODE},${DATASET},1,${runtime_sec},${max_mem},$(date -Iseconds)" >> "${METRICS_FILE}"
+        echo "${MODE},${DATASET},1,${runtime_sec},${max_mem},${CG_CPU_SECONDS},${CG_PEAK_ANON_KB},${CG_PEAK_CURRENT_KB},$(date -Iseconds)" >> "${METRICS_FILE}"
         echo "  [${MODE}] Done: runtime=${runtime_sec}s, max_mem=${max_mem}kB"
     done
 done

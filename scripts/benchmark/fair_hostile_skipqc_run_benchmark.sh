@@ -27,12 +27,30 @@ ARRAY_TAG=""
 # Tools: RustyClean, Hostile, fastp, bowtie2, samtools, kraken2, seqtk
 export PATH="/lustre1/g/aos_shihuang/rustyclean/target/release:/lustre1/g/aos_shihuang/tools/samtools/samtools-1.21:$HOME/.conda/envs/hostile-centrifuge/bin:/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/seqtk/bin:${PATH}"
 
+# CPU and concurrent memory from the job's own cgroup, recorded alongside
+# /usr/bin/time. GNU time only accounts for children it reaped, and its peak RSS
+# counts a memory-mapped index that concurrent processes actually share -- which
+# is exactly what Hostile does, so its 3.5 GB reads as private memory when only
+# 0.21 GB of it is. Both figures are kept so the disagreement stays visible.
+# See scripts/hpc/cgroup_probe.sh.
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/cgroup_probe.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+source "$REPO_DIR/scripts/hpc/cgroup_probe.sh"
+cgroup_probe_init
+
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 OUTDIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/rc_auto_skipqc_hostile_v2"
 mkdir -p "${OUTDIR}"
 
 METRICS="${OUTDIR}/rc_auto_skipqc_hostile_metrics${ARRAY_TAG}.csv"
-echo "dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp" > "${METRICS}"
+echo "dataset,tool,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,output_size_bytes,backend,estimated_host_pct,timestamp" > "${METRICS}"
 
 DATASETS=(
     "5M_1pct_low_even_SE"
@@ -93,7 +111,7 @@ for dataset in "${DATASETS[@]}"; do
     rc_ckpt="${ds_out}/rc_auto_skipqc_ckpt"
     rm -rf "${rc_out}" "${rc_ckpt}"
     time_log="${ds_out}/rc_auto_skipqc.time.log"
-    /usr/bin/time -v -o "${time_log}" \
+    cgroup_run "${time_log}" \
         rustyclean \
             --r1 "${r1}" \
             --host-removal-mode auto \
@@ -113,7 +131,7 @@ for dataset in "${DATASETS[@]}"; do
     # and the whole log line is written into the CSV instead of the value.
     rc_backend=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto_skipqc.log" 2>/dev/null | grep "chosen_backend" | tail -1 | sed -E 's/.*chosen_backend=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
     rc_hostpct=$(sed 's/\x1b\[[0-9;]*m//g' "${ds_out}/rc_auto_skipqc.log" 2>/dev/null | grep "estimated_host_pct" | tail -1 | sed -E 's/.*estimated_host_pct=\"?([^\"]+)\"?.*/\1/' || echo "unknown")
-    echo "${dataset},rustyclean_auto_skipqc,${rc_runtime},${rc_mem},${rc_size},${rc_backend},${rc_hostpct},$(date -Iseconds)" >> "${METRICS}"
+    echo "${dataset},rustyclean_auto_skipqc,${rc_runtime},${rc_mem},${CG_CPU_SECONDS},${CG_PEAK_ANON_KB},${CG_PEAK_CURRENT_KB},${rc_size},${rc_backend},${rc_hostpct},$(date -Iseconds)" >> "${METRICS}"
     echo "RustyClean AUTO --skip-qc: ${rc_runtime}s, ${rc_mem}KB, backend=${rc_backend}, host_pct=${rc_hostpct}, size=${rc_size}B"
 
     # --- Hostile on raw reads ---
@@ -121,7 +139,7 @@ for dataset in "${DATASETS[@]}"; do
     hostile_out="${ds_out}/hostile_raw"
     rm -rf "${hostile_out}"
     time_log="${ds_out}/hostile_raw.time.log"
-    /usr/bin/time -v -o "${time_log}" \
+    cgroup_run "${time_log}" \
         hostile clean \
             --fastq1 "${r1}" \
             --aligner bowtie2 \
@@ -133,7 +151,7 @@ for dataset in "${DATASETS[@]}"; do
     read -r hs_runtime hs_mem <<< "$(parse_time_log "${time_log}")"
     hs_clean=$(find "${hostile_out}" -name '*.fastq.gz' -print -quit)
     hs_size=$(stat -c%s "${hs_clean}" 2>/dev/null || echo "unknown")
-    echo "${dataset},hostile_raw,${hs_runtime},${hs_mem},${hs_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
+    echo "${dataset},hostile_raw,${hs_runtime},${hs_mem},${CG_CPU_SECONDS},${CG_PEAK_ANON_KB},${CG_PEAK_CURRENT_KB},${hs_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
     echo "Hostile raw: ${hs_runtime}s, ${hs_mem}KB, size=${hs_size}B"
 
 done

@@ -309,6 +309,60 @@ def chart_scaling_memory(data):
                          lambda r: float(r["peak_anon_kb"]) / 1048576, T, ph)
 
 
+
+# ---------------------------------------------------------------------------
+# Peak memory, measured with the right caliper when it is available
+# ---------------------------------------------------------------------------
+# The hardcoded list below came from /usr/bin/time, which reports one process's
+# peak RSS INCLUDING file-backed pages. That misreports both comparators, in
+# opposite directions: KneadData's real work happens in processes GNU time never
+# accounts for (1.1 GB reported against 3.71 GB of anonymous memory), and most
+# of Hostile's 3.5 GB is a shared index mapping that every concurrent process
+# reuses (0.21 GB anonymous). RustyClean's own Kraken2 rows are a genuinely
+# resident anonymous hash table, which GNU time does measure correctly.
+#
+# Once the benchmarks have been rerun with scripts/hpc/cgroup_probe.sh the CSVs
+# carry cgroup_anon_kb, and this chart switches to it on its own.
+MEM_LABELS = {
+    "rustyclean_auto":        ("RustyClean auto", True),
+    "rustyclean_auto_skipqc": ("RustyClean --skip-qc", True),
+    "kneaddata":              ("KneadData", False),
+    "hostile_raw":            ("Hostile", False),
+    "minimap2":               ("minimap2 后端", False),
+    "kraken2":                ("RustyClean k2 基线", True),
+    "bowtie2":                ("RustyClean bowtie2 后端", True),
+    "centrifuge":             ("centrifuge 后端", False),
+}
+
+
+def load_memory_cgroup(base):
+    """(label, GB, is_rustyclean) per tool, from cgroup_anon_kb. [] if absent."""
+    import glob
+    best = {}
+    patterns = ("auto_vs_kneaddata_metrics*.csv", "rc_auto_skipqc_hostile_metrics*.csv",
+                "performance_backend_runtime*.csv")
+    for pat in patterns:
+        for path in glob.glob(f"{base}/**/{pat}", recursive=True):
+            try:
+                rows = list(csv.DictReader(open(path)))
+            except OSError:
+                continue
+            if not rows or "cgroup_anon_kb" not in rows[0]:
+                continue
+            for r in rows:
+                tool = r.get("tool") or r.get("mode") or ""
+                kb = r.get("cgroup_anon_kb", "")
+                if tool not in MEM_LABELS or not kb.strip().isdigit():
+                    continue
+                gb = int(kb) / 1048576
+                if gb > best.get(tool, 0):
+                    best[tool] = gb
+    if not best:
+        return []
+    items = [(MEM_LABELS[t][0], gb, MEM_LABELS[t][1]) for t, gb in best.items()]
+    return sorted(items, key=lambda x: -x[1])
+
+
 if __name__ == "__main__":
     import sys
     base = sys.argv[1] if len(sys.argv) > 1 else "."
@@ -321,9 +375,15 @@ if __name__ == "__main__":
              (50, 4.42, 1.32, "30M"), (70, 3.27, 1.14, "30M"), (90, 5.78, 0.62, "30M"),
              (90, 6.60, 0.99, "60M"), (99, 8.60, 1.08, "60M")]
 
-    mem = [("RustyClean k2 混合库", 15.6, True), ("minimap2 后端", 13.4, False),
-           ("RustyClean + recheck", 12.7, True), ("RustyClean k2 基线", 12.3, True),
-           ("RustyClean auto", 6.7, True), ("Hostile", 3.5, False), ("KneadData", 1.1, False)]
+    mem = load_memory_cgroup(base)
+    if mem:
+        print(f"  memory chart: cgroup anonymous memory, {len(mem)} tools")
+    else:
+        print("  memory chart: no cgroup_anon_kb in the CSVs yet; using the "
+              "/usr/bin/time figures, which misreport both comparators")
+        mem = [("RustyClean k2 混合库", 15.6, True), ("minimap2 后端", 13.4, False),
+               ("RustyClean + recheck", 12.7, True), ("RustyClean k2 基线", 12.3, True),
+               ("RustyClean auto", 6.7, True), ("Hostile", 3.5, False), ("KneadData", 1.1, False)]
 
     out = {"tradeoff": chart_tradeoff(data), "speedup": chart_speedup(speed),
            "memory": chart_memory(mem)}
