@@ -1,3 +1,3 @@
 mode,dataset,rep,runtime_seconds,max_memory_kb,timestamp
-bowtie2,10M_100pct_med_lognormal_SE,1,573,3239540,2026-09-04T21:07:58+08:00
-kraken2,10M_100pct_med_lognormal_SE,1,176,5042848,2026-09-04T21:10:55+08:00
+bowtie2,10M_100pct_med_lognormal_SE,1,3681,3241648,2026-09-05T19:17:28+08:00
+kraken2,10M_100pct_med_lognormal_SE,1,163,4964624,2026-09-05T19:20:12+08:00
