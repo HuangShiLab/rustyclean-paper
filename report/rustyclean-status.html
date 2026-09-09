@@ -1300,17 +1300,23 @@
         </table>
       </div>
       <p>
-        三者跑的是同一个 bowtie2,差别只能在调用方式:Hostile 几乎可以确定用了
-        <code>bowtie2 --mm</code>(内存映射索引),所以并发的比对进程共享同一份索引页,
-        而 RustyClean 让每个进程各载入一份私有副本。
-        <b>这是一个单个开关的修改,而且是本轮实验最可操作的产出。</b>
-        验证方法:在 Hostile 的运行日志里查它实际下发的 bowtie2 命令行。
+        差别在调用方式,而查过代码后可以说得更准:<b>RustyClean 的去宿主一直在用
+        <code>--mm</code></b>(<code>pipeline.rs:1232 / 1243</code>),没用的是另外两处——
+        <b>survey</b>(<code>pipeline.rs:504</code>)和 <b>recheck</b>(<code>pipeline.rs:1009</code>)。
+        数字正好对上:W=1 时匿名内存 3.50 GB ≈ <b>一份</b> bowtie2 T2T 索引,
+        W=8 时 27.5 GB ≈ 8 份。<b>线性增长的是 survey 的私有索引副本,不是去宿主。</b>
+        修法是给这两处各加一个 <code>--mm</code>——比原先设想的更小、更定点。
       </p>
       <p>
-        同一张表也说明<b>第 03 节那张内存图两个方向都失真</b>:
+        同一张表也说明<b>第 03 节那张内存图的两个对照工具都失真,方向相反</b>:
         KneadData 的 1.1 GB 是漏计(实际匿名内存 3.71 GB),
         而 Hostile 的 3.5 GB 里绝大部分是可共享的映射页,不是每进程都要付的 RAM。
-        论文里的内存比较应改用 cgroup 口径重新表述。
+        RustyClean 自己的几条 kraken2 路径不受影响——那是一张真正常驻的匿名哈希表,
+        <code>/usr/bin/time</code> 计得对。<b>需要改口径的是两个对照工具的条目。</b>
+        本项目目前<b>没有</b>主 panel 的 cgroup 匿名内存数据:主 panel 只记了
+        <code>/usr/bin/time</code>,而 <code>sacct</code> 的 MaxRSS 既含可回收页缓存、
+        又是按作业而非按工具调用统计的。要补齐需要给
+        <code>benchmark_backend_runtime.sh</code> 装上第 04 节那套 cgroup 采样并重测一轮。
       </p>
     </div>
 
@@ -1527,15 +1533,18 @@
     <h2><span class="num">08</span>结论与待决</h2>
 
     <div class="flag" data-tone="void">
-      <h4>把 bowtie2 索引改成内存映射,是眼下最值得做的一件事</h4>
+      <h4>给 survey 和 recheck 的 bowtie2 加上 <code>--mm</code></h4>
       <p>
         16 路并发时 Hostile 峰值 1.20 GB,RustyClean 55.0 GB,<b>相差 46 倍</b>。
-        两者跑的是同一个 bowtie2,差别在调用方式:Hostile 的索引是共享文件映射,
-        RustyClean 每个 worker 载入一份私有副本(第 04 节有两个内存口径的并排证据)。
+        去宿主本身<b>已经</b>用了内存映射索引(<code>pipeline.rs:1232 / 1243</code>);
+        漏掉的是 survey(<code>:504</code>)和 recheck(<code>:1009</code>),
+        它们各自载入一份私有副本。W=1 时 3.50 GB ≈ 一份索引、W=8 时 27.5 GB ≈ 八份,
+        与"每 worker 一份 survey 索引"完全吻合。
       </p>
       <p>
         这不只是内存好看的问题——它<b>决定了并发的上限</b>。128 GB 的节点上 RustyClean 到 W=16
-        就接近撞墙,而 Hostile 还远没有。改动很可能只是给 bowtie2 加一个 <code>--mm</code>。
+        就接近撞墙,Hostile 还远没有。而 <code>auto</code> 对低宿主样品恰恰<b>总是</b>要跑 survey,
+        所以这个开关影响的正是最常见的那条路径。
       </p>
     </div>
 
