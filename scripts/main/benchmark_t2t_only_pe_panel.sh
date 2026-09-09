@@ -25,6 +25,25 @@ ARRAY_TAG=""
 source /group/aos_shihuang/conda/etc/profile.d/conda.sh
 export PATH="/group/aos_shihuang/conda/envs/fastp/bin:/group/aos_shihuang/conda/envs/kraken2/bin:/group/aos_shihuang/conda/envs/bowtie2/bin:/group/aos_shihuang/conda/envs/kneaddata/bin:$HOME/.local/bin:${PATH}"
 
+# Resolve the repository and load the shared paths. These scripts used to take
+# their index and data paths from the environment run_all.sh exports, so
+# submitting one on its own died at the first ${BOWTIE2_INDEX:?...} with nothing
+# to say but "source config.sh". PATH is left to the explicit export above:
+# these arms pin specific conda environments, and activate_conda would prepend
+# the project environment over them.
+if [ -z "${REPO_DIR:-}" ]; then
+    for _cand in "${SLURM_SUBMIT_DIR:-}" \
+                 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
+                 /lustre1/g/aos_shihuang/rustyclean-paper; do
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/config.sh" ]; then
+            REPO_DIR="$_cand"; break
+        fi
+    done
+fi
+[ -n "${REPO_DIR:-}" ] && [ -f "$REPO_DIR/scripts/hpc/config.sh" ] || {
+    echo "ERROR: cannot locate the repository. Set REPO_DIR to its path." >&2; exit 1; }
+source "$REPO_DIR/scripts/hpc/config.sh"
+
 DATA_DIR="${SCRATCH_DIR:-/scr/u/$USER/rustyclean-paper}/data/enhanced"
 RESULTS_DIR="${RUNS_DIR:-/lustre1/g/aos_shihuang/rustyclean-paper/runs}/t2t_only_pe_panel"
 METRICS_DIR="${RESULTS_DIR}/metrics"

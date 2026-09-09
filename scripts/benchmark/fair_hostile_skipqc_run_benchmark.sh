@@ -37,11 +37,20 @@ if [ -z "${REPO_DIR:-}" ]; then
     for _cand in "${SLURM_SUBMIT_DIR:-}" \
                  "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)" \
                  /lustre1/g/aos_shihuang/rustyclean-paper; do
-        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/cgroup_probe.sh" ]; then
+        if [ -n "$_cand" ] && [ -f "$_cand/scripts/hpc/config.sh" ]; then
             REPO_DIR="$_cand"; break
         fi
     done
 fi
+[ -n "${REPO_DIR:-}" ] && [ -f "$REPO_DIR/scripts/hpc/config.sh" ] || {
+    echo "ERROR: cannot locate the repository. Set REPO_DIR to its path." >&2; exit 1; }
+# This script used to take its index and data paths from the environment that
+# run_all.sh exports, so submitting it on its own died at the first
+# ${BOWTIE2_INDEX:?...} with nothing to say but "source config.sh". Source it
+# here instead, so the script stands alone. PATH is deliberately left to the
+# explicit export above: these arms pin specific conda environments and
+# activate_conda would prepend the project environment over them.
+source "$REPO_DIR/scripts/hpc/config.sh"
 source "$REPO_DIR/scripts/hpc/cgroup_probe.sh"
 cgroup_probe_init
 
