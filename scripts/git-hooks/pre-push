@@ -1,0 +1,55 @@
+#!/bin/bash
+# Refuse to push a file GitHub will reject anyway.
+#
+# GitHub's hard limit is 100 MB per file, enforced by a pre-receive hook -- so
+# without this the whole pack uploads first and is rejected at the end. That
+# cost one 1 GB upload over a slow link: a .gitignore exception written as
+# "*.tsv under runs" had let centrifuge's per-read classifications through,
+# 3.6 GB for a 60 M-read sample.
+#
+# Install:  bash scripts/git-hooks/install.sh
+
+LIMIT_MB="${GIT_PUSH_SIZE_LIMIT_MB:-90}"
+remote_ref="$2"
+fail=0
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        range="$local_sha"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+    # Every blob this push would add, with its size.
+    while read -r size path; do
+        [ -z "$size" ] && continue
+        if [ "$size" -gt $((LIMIT_MB * 1024 * 1024)) ]; then
+            printf 'pre-push: %6.1f MB  %s\n' "$(awk -v s="$size" 'BEGIN{print s/1048576}')" "$path" >&2
+            fail=1
+        fi
+    done < <(git rev-list --objects "$range" 2>/dev/null \
+             | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' 2>/dev/null \
+             | awk '$1=="blob" && $4!="" { $1=""; $2=""; sub(/^  /,""); print }')
+done
+
+if [ "$fail" -eq 1 ]; then
+    cat >&2 <<EOF
+
+pre-push: refusing — the files above exceed ${LIMIT_MB} MB and GitHub will
+          reject the push after uploading the whole pack.
+
+          These are almost always intermediate outputs that should not be in
+          the repository at all. Check .gitignore, then remove them from the
+          pending commits, keeping the files on disk:
+
+            git fetch origin
+            git reset --soft origin/main
+            git restore --staged .
+            git add -A
+            git status --short
+
+          To push anyway (a genuinely large asset):
+            GIT_PUSH_SIZE_LIMIT_MB=500 git push
+EOF
+    exit 1
+fi

@@ -81,6 +81,17 @@ figures/*
 
 # Fingerprint files are results, the same as the CSVs: 120 lines of sample id
 # and retained-read count, a few kB each. They carry the output-invariance
-# check, which outranks every timing number in the parallel-scaling experiment
-# and could not be run locally because these were never synced.
-!runs/**/*.tsv
+# check, which outranks every timing number in the parallel-scaling experiment.
+#
+# Matched by name, NOT as "*.tsv under runs". The broad form let a centrifuge
+# per-read classification through -- 3.6 GB for a 60 M-read sample -- and the
+# push was rejected by GitHub's 100 MB limit with 1 GB already uploaded.
+!runs/**/metrics/fingerprint_*.tsv
+
+# Checkpoint and work trees hold whole intermediate files and nothing in them is
+# a result. Re-ignored AFTER the exceptions above, so no later rule can pull
+# them back in: in .gitignore the last matching rule wins.
+runs/**/.checkpoints/**
+scratch/**/.checkpoints/**
+runs/**/work/**
+scratch/**/work/**
