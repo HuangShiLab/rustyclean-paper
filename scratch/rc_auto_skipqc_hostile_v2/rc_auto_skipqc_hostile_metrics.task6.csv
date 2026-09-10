@@ -1,3 +1,3 @@
 dataset,tool,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,output_size_bytes,backend,estimated_host_pct,timestamp
-60M_90pct_high_lognormal_SE,rustyclean_auto_skipqc,893.81,7060844,,1250.50,7060012,14028560,598146742,kraken2,88.48,2026-09-09T17:52:32+08:00
-60M_90pct_high_lognormal_SE,hostile_raw,26868,3638108,,5692.07,190212,9121552,405618503,bowtie2,NA,2026-09-10T01:20:22+08:00
+60M_90pct_high_lognormal_SE,rustyclean_auto_skipqc,893.81,7060844,1250.50,7060012,14028560,598146742,kraken2,88.48,2026-09-09T17:52:32+08:00
+60M_90pct_high_lognormal_SE,hostile_raw,26868,3638108,5692.07,190212,9121552,405618503,bowtie2,NA,2026-09-10T01:20:22+08:00

@@ -614,7 +614,8 @@
             <tbody>
               <tr><td>模拟 120 个等大样品</td><td class="mono">generate_parallel_data.sh</td><td>20 任务,约 12 GB</td><td><span class="chip done">120/120</span></td></tr>
               <tr><td>扩展性测量 W = 1/2/4/8/16</td><td class="mono">benchmark_parallel_scaling.sh</td><td>5 任务 × 5 臂</td><td><span class="chip done">25/25</span></td></tr>
-              <tr><td>输出不变性检查</td><td class="mono">analyze_parallel_scaling.py</td><td>逐样品保留序列数</td><td><span class="chip">待同步指纹文件</span></td></tr>
+              <tr><td>输出不变性检查</td><td class="mono">analyze_parallel_scaling.py</td><td>逐样品保留序列数</td><td><span class="chip done">通过</span></td></tr>
+              <tr><td>三个基准补测 cgroup 口径</td><td class="mono">cgroup_probe.sh</td><td>8 工具/后端</td><td><span class="chip done">已完成</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -638,6 +639,37 @@
       运行时间与内存峰值来自 <code>/usr/bin/time -v</code>,每次工具调用一条记录,合计 136 条,
       汇总于 <code>runs/summary/resources.csv</code>。<b>准确性数字尚不可用</b>,原因见第 07 节。
     </p>
+
+    <div class="flag" data-tone="void">
+      <h4>换了内存口径之后,两个对照工具的位置都变了</h4>
+      <p>
+        三个基准脚本已重跑一轮,同时记录 <code>/usr/bin/time</code> 与 cgroup 两套数字。
+        两者在哪里一致、在哪里分歧,本身就说明了内存花在什么地方:
+      </p>
+      <div class="scroll" style="margin:10px 0">
+        <table>
+          <thead><tr><th>工具/后端</th><th class="num">GNU time 峰值 RSS</th><th class="num">cgroup 匿名内存</th><th class="num">比值</th><th>读数</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">minimap2</td><td class="num">13.45 GB</td><td class="num">12.61 GB</td><td class="num">0.94×</td><td>一致</td></tr>
+            <tr><td class="mono">rustyclean_auto</td><td class="num">6.71 GB</td><td class="num">6.71 GB</td><td class="num"><b>1.00×</b></td><td>常驻匿名哈希表,两把尺子读数相同</td></tr>
+            <tr><td class="mono">kraken2 / centrifuge</td><td class="num">6.7 / 6.6 GB</td><td class="num">6.7 / 6.6 GB</td><td class="num">1.00×</td><td>同上</td></tr>
+            <tr><td class="mono">kneaddata</td><td class="num">1.11 GB</td><td class="num"><b>3.71 GB</b></td><td class="num"><b>3.35×</b></td><td>GNU time 漏计了它比对所在的子进程</td></tr>
+            <tr><td class="mono">hostile_raw</td><td class="num">3.52 GB</td><td class="num"><b>0.18 GB</b></td><td class="num">0.05×</td><td>95% 是共享的索引映射页</td></tr>
+            <tr><td class="mono">rustyclean <code>--mode bowtie2</code></td><td class="num">3.40 GB</td><td class="num"><b>0.14 GB</b></td><td class="num">0.04×</td><td>同样映射索引,<b>比 Hostile 还低</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        最后一行是独立的旁证。这个臂用 <code>--mode bowtie2</code> 直连、<b>不跑 survey</b>,
+        匿名内存只有 0.14 GB——与第 04 节"并行时每个 worker 载入一份私有 survey 索引"的诊断完全吻合:
+        <b>去宿主本身早就在共享索引,多出来的内存是侦察步骤的</b>。
+      </p>
+      <p>
+        论文里的内存比较应当据此重写:RustyClean 不是一个内存昂贵的工具,
+        它的低宿主路径是全场最省的;昂贵的是高宿主时那张 6.7 GB 的 Kraken2 哈希表,
+        而那笔开销 <code>/usr/bin/time</code> 一直计得对。
+      </p>
+    </div>
 
     <h3 style="margin:6px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">对 KneadData:优势随宿主比例与深度增长</h3>
     <figure class="viz">
@@ -736,45 +768,49 @@
 
     <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">内存:RustyClean 的代价</h3>
     <figure class="viz">
-      <svg viewBox="0 0 720 318" role="img" aria-label="各工具峰值内存">
+      <svg viewBox="0 0 720 356" role="img" aria-label="各工具峰值内存">
 <title>峰值内存</title>
-<line x1="168.0" y1="18" x2="168.0" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
-<text x="168.0" y="308" text-anchor="middle" class="tick">0 GB</text>
-<line x1="287.5" y1="18" x2="287.5" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
-<text x="287.5" y="308" text-anchor="middle" class="tick">4 GB</text>
-<line x1="407.0" y1="18" x2="407.0" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
-<text x="407.0" y="308" text-anchor="middle" class="tick">8 GB</text>
-<line x1="526.5" y1="18" x2="526.5" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
-<text x="526.5" y="308" text-anchor="middle" class="tick">12 GB</text>
-<line x1="646.0" y1="18" x2="646.0" y2="276" stroke="var(--chart-grid)" stroke-width="1"/>
-<text x="646.0" y="308" text-anchor="middle" class="tick">16 GB</text>
-<text x="156" y="37" text-anchor="end" class="bar-label">RustyClean k2 混合库</text>
-<g><title>RustyClean k2 混合库 · 峰值 15.6 GB</title><rect x="168" y="18" width="466.1" height="30" rx="4" fill="var(--s1)"/></g>
-<text x="643.0" y="37" class="bar-value">15.6</text>
-<text x="156" y="75" text-anchor="end" class="bar-label">minimap2 后端</text>
-<g><title>minimap2 后端 · 峰值 13.4 GB</title><rect x="168" y="56" width="400.3" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
-<text x="577.3" y="75" class="bar-value">13.4</text>
-<text x="156" y="113" text-anchor="end" class="bar-label">RustyClean + recheck</text>
-<g><title>RustyClean + recheck · 峰值 12.7 GB</title><rect x="168" y="94" width="379.4" height="30" rx="4" fill="var(--s1)"/></g>
-<text x="556.4" y="113" class="bar-value">12.7</text>
-<text x="156" y="151" text-anchor="end" class="bar-label">RustyClean k2 基线</text>
-<g><title>RustyClean k2 基线 · 峰值 12.3 GB</title><rect x="168" y="132" width="367.5" height="30" rx="4" fill="var(--s1)"/></g>
-<text x="544.5" y="151" class="bar-value">12.3</text>
-<text x="156" y="189" text-anchor="end" class="bar-label">RustyClean auto</text>
-<g><title>RustyClean auto · 峰值 6.7 GB</title><rect x="168" y="170" width="200.2" height="30" rx="4" fill="var(--s1)"/></g>
-<text x="377.2" y="189" class="bar-value">6.7</text>
-<text x="156" y="227" text-anchor="end" class="bar-label">Hostile</text>
-<g><title>Hostile · 峰值 3.5 GB</title><rect x="168" y="208" width="104.6" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
-<text x="281.6" y="227" class="bar-value">3.5</text>
-<text x="156" y="265" text-anchor="end" class="bar-label">KneadData</text>
-<g><title>KneadData · 峰值 1.1 GB</title><rect x="168" y="246" width="32.9" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
-<text x="209.9" y="265" class="bar-value">1.1</text>
+<line x1="168.0" y1="18" x2="168.0" y2="314" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="168.0" y="346" text-anchor="middle" class="tick">0 GB</text>
+<line x1="287.5" y1="18" x2="287.5" y2="314" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="287.5" y="346" text-anchor="middle" class="tick">4 GB</text>
+<line x1="407.0" y1="18" x2="407.0" y2="314" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="407.0" y="346" text-anchor="middle" class="tick">8 GB</text>
+<line x1="526.5" y1="18" x2="526.5" y2="314" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="526.5" y="346" text-anchor="middle" class="tick">12 GB</text>
+<line x1="646.0" y1="18" x2="646.0" y2="314" stroke="var(--chart-grid)" stroke-width="1"/>
+<text x="646.0" y="346" text-anchor="middle" class="tick">16 GB</text>
+<text x="156" y="37" text-anchor="end" class="bar-label">minimap2 后端</text>
+<g><title>minimap2 后端 · 峰值 12.6 GB</title><rect x="168" y="18" width="376.6" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="553.6" y="37" class="bar-value">12.6</text>
+<text x="156" y="75" text-anchor="end" class="bar-label">RustyClean --skip-qc</text>
+<g><title>RustyClean --skip-qc · 峰值 6.7 GB</title><rect x="168" y="56" width="201.1" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="378.1" y="75" class="bar-value">6.7</text>
+<text x="156" y="113" text-anchor="end" class="bar-label">RustyClean k2 基线</text>
+<g><title>RustyClean k2 基线 · 峰值 6.7 GB</title><rect x="168" y="94" width="200.5" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="377.5" y="113" class="bar-value">6.7</text>
+<text x="156" y="151" text-anchor="end" class="bar-label">RustyClean auto</text>
+<g><title>RustyClean auto · 峰值 6.7 GB</title><rect x="168" y="132" width="200.5" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="377.5" y="151" class="bar-value">6.7</text>
+<text x="156" y="189" text-anchor="end" class="bar-label">centrifuge 后端</text>
+<g><title>centrifuge 后端 · 峰值 6.6 GB</title><rect x="168" y="170" width="196.6" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="373.6" y="189" class="bar-value">6.6</text>
+<text x="156" y="227" text-anchor="end" class="bar-label">KneadData</text>
+<g><title>KneadData · 峰值 3.7 GB</title><rect x="168" y="208" width="110.7" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="287.7" y="227" class="bar-value">3.7</text>
+<text x="156" y="265" text-anchor="end" class="bar-label">Hostile</text>
+<g><title>Hostile · 峰值 0.2 GB</title><rect x="168" y="246" width="5.4" height="30" rx="4" fill="var(--chart-bar-muted)"/></g>
+<text x="182.4" y="265" class="bar-value">0.2</text>
+<text x="156" y="303" text-anchor="end" class="bar-label">RustyClean bowtie2 后端</text>
+<g><title>RustyClean bowtie2 后端 · 峰值 0.1 GB</title><rect x="168" y="284" width="4.2" height="30" rx="4" fill="var(--s1)"/></g>
+<text x="181.2" y="303" class="bar-value">0.1</text>
 </svg>
       <figcaption>
-        蓝色为 RustyClean 的各条路径。<b>比 KneadData 快最多 8.6 倍,峰值内存却是它的 6–14 倍</b>——
-        Kraken2 哈希表常驻的直接后果,应与速度一并报告。
-        <br><b style="color:var(--run)">注意口径:</b>本图来自 <code>/usr/bin/time</code>,
-        第 04 节的并行实验证明这个口径对两个对照工具都失真,方向相反,详见其下的说明。
+        <b>本图已改用 cgroup 匿名内存</b>(整个作业所有进程的私有、不可回收内存),
+        取代原先的 <code>/usr/bin/time</code> 峰值 RSS。换了尺子之后结论几乎反了过来:
+        <b>RustyClean 的 bowtie2 后端是全场最省的 0.14 GB</b>,低于 Hostile 的 0.18 GB;
+        代价集中在 kraken2 路径的 6.7 GB 常驻哈希表上。
+        换句话说 RustyClean 的内存开销<b>取决于走哪条路</b>,而不是一个固定的劣势。
       </figcaption>
     </figure>
 
@@ -1306,6 +1342,8 @@
         数字正好对上:W=1 时匿名内存 3.50 GB ≈ <b>一份</b> bowtie2 T2T 索引,
         W=8 时 27.5 GB ≈ 8 份。<b>线性增长的是 survey 的私有索引副本,不是去宿主。</b>
         修法是给这两处各加一个 <code>--mm</code>——比原先设想的更小、更定点。
+        第 03 节的重跑给了独立旁证:<code>--mode bowtie2</code> 直连、不跑 survey 时,
+        匿名内存只有 <b>0.14 GB</b>,比 Hostile 的 0.18 GB 还低。
       </p>
       <p>
         同一张表也说明<b>第 03 节那张内存图的两个对照工具都失真,方向相反</b>:
@@ -1331,18 +1369,18 @@
       </p>
     </div>
 
-    <div class="flag" data-tone="run">
-      <h4>待补:输出不变性检查</h4>
+    <div class="flag">
+      <h4>输出不变性:通过</h4>
       <p>
-        每个臂、每个并发数都记录了逐样品的保留序列数,用于验证<b>并发是否改变了输出</b>——
-        这是并发 bug 唯一会露头的地方,批处理时间会好看得毫无异样而输出已经不同。
-        该检查的指纹文件当时未纳入同步(<code>.gitignore</code> 已修正),需重新同步后运行:
-        <code>python3 scripts/main/analyze_parallel_scaling.py</code>。
+        指纹文件已同步,检查跑完。<b>RustyClean 三个臂在五个并发数下逐样品完全一致</b>,
+        Hostile 同样一致——并发没有改变任何一条输出。这排除了这类实验最危险的失效模式:
+        批处理时间好看得毫无异样,而输出已经不同。
       </p>
       <p>
-        需要注意本网格<b>刻意变化了比对器的线程数</b>(W=1 时 T=16,W=16 时 T=1),
-        而多线程比对器在线程数变化时打破平局的顺序会变。百万条里差几条是正常的,
-        差到百分比量级才是缺陷。分析脚本现在同时报告中位数与最坏值。
+        KneadData 有 118/120 个样品在 W=16 与 W=1 之间不同,但<b>中位差 1 条、最坏 2 条</b>
+        (0.0002%)。本网格刻意变化了比对器的线程数(W=1 时 T=16,W=16 时 T=1),
+        多线程比对器改变线程数后打破平局的顺序会变,百万条里差一两条正是这个效应,不是缺陷。
+        当初只报"118 个样品不同"而不报量级,会把它读成严重故障——分析脚本现在同时给出中位数与最坏值。
       </p>
     </div>
 

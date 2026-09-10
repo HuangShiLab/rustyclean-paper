@@ -85,6 +85,10 @@ KRAKEN2_DB="${KRAKEN2_DB:-/lustre1/g/aos_shihuang/databases/rustyclean_human_t2t
 HOST_INDEX="${BOWTIE2_INDEX:?BOWTIE2_INDEX is not set; source scripts/hpc/config.sh}"
 THREADS=8
 
+# Returns "<seconds>,<max_rss_kb>". Callers MUST split on the comma with
+# IFS=, -- a bare `read` puts the whole string in the first variable and leaves
+# the second empty, which emitted one extra CSV field and shifted every column
+# after max_memory_kb by one.
 parse_time_log() {
     local time_log=$1
     local elapsed
@@ -132,7 +136,7 @@ for dataset in "${DATASETS[@]}"; do
             -t "${THREADS}" \
             --checkpoint-dir "${rc_ckpt}" \
             > "${ds_out}/rc_auto_skipqc.log" 2>&1
-    read -r rc_runtime rc_mem <<< "$(parse_time_log "${time_log}")"
+    IFS=, read -r rc_runtime rc_mem <<< "$(parse_time_log "${time_log}")"
     rc_clean=$(find "${rc_out}" -name '*_clean_R1.fastq.gz' -print -quit)
     rc_size=$(stat -c%s "${rc_clean}" 2>/dev/null || echo "unknown")
     # Strip the ANSI colour codes first. Without that the quotes around the
@@ -157,7 +161,7 @@ for dataset in "${DATASETS[@]}"; do
             -t "${THREADS}" \
             --airplane \
             > "${ds_out}/hostile_raw.log" 2>&1
-    read -r hs_runtime hs_mem <<< "$(parse_time_log "${time_log}")"
+    IFS=, read -r hs_runtime hs_mem <<< "$(parse_time_log "${time_log}")"
     hs_clean=$(find "${hostile_out}" -name '*.fastq.gz' -print -quit)
     hs_size=$(stat -c%s "${hs_clean}" 2>/dev/null || echo "unknown")
     echo "${dataset},hostile_raw,${hs_runtime},${hs_mem},${CG_CPU_SECONDS},${CG_PEAK_ANON_KB},${CG_PEAK_CURRENT_KB},${hs_size},bowtie2,NA,$(date -Iseconds)" >> "${METRICS}"
