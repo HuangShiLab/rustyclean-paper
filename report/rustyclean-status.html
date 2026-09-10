@@ -381,10 +381,11 @@
     <p class="standfirst">
       从零重跑全部建库与测试,取代 2026-08 的旧结果。运行时间、内存与准确性均已测得。
       四个工具在"宿主残留"与"微生物误删"两条轴上排成一条清晰的取舍曲线,这正是本项目要论证的不对称性。
-      <b>四个原本预期的结论被数据推翻</b>:混合库并不更差、对 Hostile 没有速度优势、
-      验证通道两个方向都不划算,以及——第 04 节新增的并行实验——
-      <b>RustyClean 自带的 <code>--workers</code> 工作池相对一个 shell 循环没有任何优势</b>,
-      而它相对 KneadData 的优势恰恰全部来自样品级并发。
+      <b>五个原本预期的结论被数据推翻</b>:混合库并不更差、对 Hostile 没有速度优势、
+      验证通道两个方向都不划算、<code>--workers</code> 工作池相对一个 shell 循环没有任何优势
+      (它对 KneadData 的优势恰恰全部来自样品级并发),
+      以及——最后一个也最出人意料——<b>「RustyClean 用时间换内存」根本不成立</b>:
+      换成 cgroup 口径后,它的低宿主路径是全场最省的,而 KneadData 的"最低内存"是漏计出来的。
     </p>
     <div class="meta">
       <span><b>集群</b> HPC2021 · amd 分区</span>
@@ -400,7 +401,7 @@
     <div><span class="n done">0.9992</span><span class="k">RustyClean auto 中位 F1(最高)</span></div>
     <div><span class="n done">3×</span><span class="k">混合库的宿主残留更低</span></div>
     <div><span class="n done">3.09</span><span class="k">recheck 每挽回 1 条微生物<br>多留的宿主序列</span></div>
-    <div><span class="n done">46×</span><span class="k">16 路并发时 Hostile 的<br>内存优势</span></div>
+    <div><span class="n done">0.14</span><span class="k">GB — RustyClean 比对路径<br>全场最省的匿名内存</span></div>
   </div>
 
   <!-- ============ 测试目的与设计 ============ -->
@@ -766,7 +767,7 @@
       对 Hostile 不存在速度优势,论文里若要主张,只能主张持平——这也让准确性成为唯一能区分二者的维度。
     </p>
 
-    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">内存:RustyClean 的代价</h3>
+    <h3 style="margin:14px 0 0;font-family:'Noto Serif SC',Georgia,serif;font-size:15.5px;">内存:取决于走哪条路,不是一个固定劣势</h3>
     <figure class="viz">
       <svg viewBox="0 0 720 356" role="img" aria-label="各工具峰值内存">
 <title>峰值内存</title>
@@ -816,21 +817,35 @@
 
     <div class="scroll">
       <table>
-        <thead><tr><th>工具 / 后端</th><th class="num">峰值内存</th><th class="num">样本数</th><th>说明</th></tr></thead>
+        <thead><tr>
+          <th>工具 / 后端</th>
+          <th class="num">cgroup 匿名内存<br><span class="dim" style="font-weight:400">该发表的口径</span></th>
+          <th class="num">GNU time 峰值 RSS<br><span class="dim" style="font-weight:400">旧口径</span></th>
+          <th>说明</th>
+        </tr></thead>
         <tbody>
-          <tr><td>RustyClean k2 混合库</td><td class="num">15.6 GB</td><td class="num">15</td><td>仅消融实验使用</td></tr>
-          <tr><td>minimap2 后端</td><td class="num">13.4 GB</td><td class="num">8</td><td>后端中最耗内存也最慢</td></tr>
-          <tr><td>RustyClean + recheck</td><td class="num">12.7 GB</td><td class="num">15</td><td>相对基线仅增 0.4 GB</td></tr>
-          <tr><td>RustyClean k2 基线</td><td class="num">12.3 GB</td><td class="num">15</td><td>常驻 Kraken2 哈希表</td></tr>
-          <tr><td>RustyClean auto</td><td class="num">6.7 GB</td><td class="num">8</td><td>主对比实验</td></tr>
-          <tr><td>Hostile</td><td class="num">3.5 GB</td><td class="num">8</td><td></td></tr>
-          <tr><td>KneadData</td><td class="num">1.1 GB</td><td class="num">11</td><td><b>内存占用最低</b></td></tr>
+          <tr><td>minimap2 后端</td><td class="num">12.61 GB</td><td class="num">13.45 GB</td><td>后端中最耗内存也最慢;两口径一致</td></tr>
+          <tr><td>RustyClean k2 混合库</td><td class="num" title="未补测">—</td><td class="num">15.6 GB</td><td>仅消融实验使用,未补测 cgroup</td></tr>
+          <tr><td>RustyClean auto</td><td class="num">6.71 GB</td><td class="num">6.71 GB</td><td>常驻 Kraken2 哈希表,<b>两口径完全一致</b></td></tr>
+          <tr><td>RustyClean <code>--skip-qc</code></td><td class="num">6.73 GB</td><td class="num">6.73 GB</td><td>同上</td></tr>
+          <tr><td>centrifuge 后端</td><td class="num">6.58 GB</td><td class="num">6.58 GB</td><td>同上</td></tr>
+          <tr><td>KneadData</td><td class="num"><b>3.71 GB</b></td><td class="num">1.11 GB</td><td>旧口径<b>漏计 3.35 倍</b>,不是"最低"</td></tr>
+          <tr><td>Hostile</td><td class="num"><b>0.18 GB</b></td><td class="num">3.52 GB</td><td>旧口径的 95% 是共享索引映射页</td></tr>
+          <tr><td>RustyClean <code>--mode bowtie2</code></td><td class="num"><b>0.14 GB</b></td><td class="num">3.40 GB</td><td><b>全场最省</b>,不跑 survey</td></tr>
         </tbody>
       </table>
     </div>
     <p class="lede">
-      RustyClean 用时间换内存:比 KneadData 快最多 8.6 倍,峰值内存是它的 6–14 倍。
-      这是 Kraken2 哈希表常驻的直接后果,应当如实报告,而不是只讲速度。
+      <b>换口径之后这张表的排序几乎倒过来了。</b>RustyClean 的低宿主路径
+      (<code>--mode bowtie2</code>,0.14 GB)是全场最省的,比 Hostile 还低;
+      昂贵的是高宿主时那张 6.7 GB 的 Kraken2 哈希表——而那笔开销两把尺子读数相同,
+      旧口径一直计得对。真正被旧口径误导的是两个对照工具:KneadData 不是"内存占用最低",
+      Hostile 也没有 3.5 GB 的私有开销。
+    </p>
+    <p class="lede">
+      因此「RustyClean 用时间换内存」这个说法不成立。准确的说法是:
+      <b>内存开销取决于 auto 选了哪条路</b>——走比对时它最省,走分类时它付一张常驻哈希表的钱,
+      而这正是它在高宿主样品上换来速度的东西。
     </p>
 
     <div class="flag">
@@ -1569,6 +1584,22 @@
   <!-- ============ 待决 ============ -->
   <section>
     <h2><span class="num">08</span>结论与待决</h2>
+
+    <div class="flag" data-tone="void">
+      <h4>内存口径必须换掉,否则论文里的对比是错的</h4>
+      <p>
+        <code>/usr/bin/time</code> 报的是单进程峰值 RSS(含文件映射页),cgroup 报的是
+        整个作业的匿名内存。RustyClean 自己的 Kraken2 路径两者读数<b>完全一致</b>(6.71 对 6.71),
+        因为那是一张真正常驻的私有哈希表;失真的是两个对照工具,而且方向相反——
+        <b>KneadData 漏计 3.35 倍(1.11 → 3.71 GB),Hostile 多算约 20 倍(3.52 → 0.18 GB)</b>。
+      </p>
+      <p>
+        改用正确口径后结论几乎倒转:RustyClean 的 <code>--mode bowtie2</code> 路径只要
+        <b>0.14 GB,是全场最省的</b>,比 Hostile 还低。论文不能再写"用时间换内存",
+        应当写<b>内存取决于 auto 选了哪条路</b>:走比对时最省,走分类时付一张 6.7 GB 的哈希表,
+        而那正是高宿主样品上速度的来源。
+      </p>
+    </div>
 
     <div class="flag" data-tone="void">
       <h4>给 survey 和 recheck 的 bowtie2 加上 <code>--mm</code></h4>
