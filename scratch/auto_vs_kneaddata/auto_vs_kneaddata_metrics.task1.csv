@@ -1,3 +1,3 @@
-dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
-5M_5pct_low_even_SE,rustyclean_auto,190.42,3586704,310770069,bowtie2,4.98,2026-09-03T11:36:21+08:00
-5M_5pct_low_even_SE,kneaddata,206.89,1149704,1573162488,bowtie2,NA,2026-09-03T11:39:48+08:00
+dataset,tool,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+5M_5pct_low_even_SE,rustyclean_auto,505.11,3586616,770.09,3589952,7458856,310783853,bowtie2,4.98,2026-09-09T16:50:58+08:00
+5M_5pct_low_even_SE,kneaddata,245.25,1149540,932.35,3787172,14883292,1573162488,bowtie2,NA,2026-09-09T16:55:13+08:00

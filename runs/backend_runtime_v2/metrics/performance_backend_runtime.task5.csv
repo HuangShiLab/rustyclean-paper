@@ -1,9 +1,5 @@
-tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
-bowtie2,30M_90pct_med_lognormal_SE,1,4667,3248708,2026-09-03T13:13:59+08:00
-kraken2,30M_90pct_med_lognormal_SE,1,274,5020912,2026-09-03T13:18:34+08:00
-minimap2,30M_90pct_med_lognormal_SE,1,2380,12735384,2026-09-03T13:58:25+08:00
-centrifuge,30M_90pct_med_lognormal_SE,1,FAILED,,2026-09-03T13:58:27+08:00
-bowtie2,30M_90pct_med_lognormal_SE,1,988,3452768,2026-09-04T01:04:16+08:00
-kraken2,30M_90pct_med_lognormal_SE,1,234,5019768,2026-09-04T01:08:10+08:00
-minimap2,30M_90pct_med_lognormal_SE,1,1879,12692340,2026-09-04T01:39:30+08:00
-centrifuge,30M_90pct_med_lognormal_SE,1,468,3480232,2026-09-04T01:47:19+08:00
+tool,dataset,rep,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,timestamp
+bowtie2,30M_90pct_med_lognormal_SE,1,644,3444116,2913.41,116996,1545908,2026-09-09T18:01:27+08:00
+kraken2,30M_90pct_med_lognormal_SE,1,325,5028272,396.88,5015496,12363904,2026-09-09T18:06:53+08:00
+minimap2,30M_90pct_med_lognormal_SE,1,3885,12669520,3718.41,12670204,29302620,2026-09-09T19:11:50+08:00
+centrifuge,30M_90pct_med_lognormal_SE,1,681,3673976,2000.39,3682372,18097532,2026-09-09T19:23:14+08:00

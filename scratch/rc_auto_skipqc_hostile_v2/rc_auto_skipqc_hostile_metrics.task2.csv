@@ -1,3 +1,3 @@
-dataset,tool,runtime_seconds,max_memory_kb,output_size_bytes,backend,estimated_host_pct,timestamp
-10M_10pct_med_even_SE,rustyclean_auto_skipqc,207.99,3587200,,598886720,[2m2026-09-03T03:48:57.052424Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: selected backend [3msample[0m[2m=[0m10M_10pct_med_even_SE [3mhost_pct[0m[2m=[0m"9.88" [3minput_reads[0m[2m=[0m10000000 [3mchosen_backend[0m[2m=[0m"bowtie2",[2m2026-09-03T03:48:57.052346Z[0m [32m INFO[0m [2mrustyclean::pipeline[0m[2m:[0m auto mode: completed survey [3msample[0m[2m=[0m10M_10pct_med_even_SE [3msurveyed_reads[0m[2m=[0m100000 [3mmapped_reads[0m[2m=[0m9877 [3mestimated_host_pct[0m[2m=[0m"9.88",2026-09-03T11:51:39+08:00
-10M_10pct_med_even_SE,hostile_raw,189.59,3249828,,598823728,bowtie2,NA,2026-09-03T11:54:49+08:00
+dataset,tool,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,output_size_bytes,backend,estimated_host_pct,timestamp
+10M_10pct_med_even_SE,rustyclean_auto_skipqc,200.83,3588388,,1228.01,3591388,3780076,598881819,bowtie2,9.88,2026-09-09T17:12:00+08:00
+10M_10pct_med_even_SE,hostile_raw,2232.27,3254692,,994.63,173420,3220296,599638309,bowtie2,NA,2026-09-09T17:49:13+08:00

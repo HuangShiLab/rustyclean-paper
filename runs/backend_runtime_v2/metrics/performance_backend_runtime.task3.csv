@@ -1,9 +1,5 @@
-tool,dataset,rep,runtime_seconds,max_memory_kb,timestamp
-bowtie2,30M_50pct_high_skewed_SE,1,1155,3356268,2026-09-03T11:52:26+08:00
-kraken2,30M_50pct_high_skewed_SE,1,280,5037784,2026-09-03T11:57:07+08:00
-minimap2,30M_50pct_high_skewed_SE,1,2277,12865360,2026-09-03T12:35:04+08:00
-centrifuge,30M_50pct_high_skewed_SE,1,FAILED,,2026-09-03T12:35:05+08:00
-bowtie2,30M_50pct_high_skewed_SE,1,1620,3349512,2026-09-04T01:12:50+08:00
-kraken2,30M_50pct_high_skewed_SE,1,277,5057176,2026-09-04T01:17:28+08:00
-minimap2,30M_50pct_high_skewed_SE,1,616,12940020,2026-09-04T01:27:44+08:00
-centrifuge,30M_50pct_high_skewed_SE,1,470,4586980,2026-09-04T01:35:35+08:00
+tool,dataset,rep,runtime_seconds,max_memory_kb,cgroup_cpu_seconds,cgroup_anon_kb,cgroup_current_kb,timestamp
+bowtie2,30M_50pct_high_skewed_SE,1,2465,3384768,3913.01,148876,4824372,2026-09-09T17:56:42+08:00
+kraken2,30M_50pct_high_skewed_SE,1,366,5008044,469.51,4999116,15809696,2026-09-09T18:02:54+08:00
+minimap2,30M_50pct_high_skewed_SE,1,3695,12919956,2613.63,12922456,37572476,2026-09-09T19:04:30+08:00
+centrifuge,30M_50pct_high_skewed_SE,1,449,4778896,2247.20,4785108,27592480,2026-09-09T19:12:00+08:00
