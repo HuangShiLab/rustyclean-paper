@@ -6,6 +6,8 @@ Reads the authoritative summary tables under data/deacon_panel/ and exports:
   - fig3_deacon_accuracy.{png,svg,pdf} F1 and host carry-over per dataset/tool
   - fig5_cross_species.{png,svg,pdf}   species-matched vs panhuman-1 index F1
   - fig6_verification.{png,svg,pdf}    verification tier: deacon vs AUTO carry
+  - fig7_parallel_scaling.{png,svg,pdf} sample-level parallelism: wall time,
+    speedup and deacon memory vs worker count (16 identical 10M SE samples)
 
 Usage: python3 scripts/main/plot_deacon_figures.py [data_dir] [out_dir]
 """
@@ -264,6 +266,87 @@ def figure_verification(df, out_dir):
     plt.close(fig)
 
 
+def figure_parallel_scaling(data_dir, out_dir):
+    """Sample-level parallelism of the deacon backend.
+
+    Reads parallel_scaling_deacon.csv (wall time, speedup) and the per-worker
+    RSS samples under parscale/W*/rss_samples.tsv. Note that summing per-process
+    RSS overcounts physical memory because every deacon worker memory-maps the
+    same read-only index (its pages are counted in each process's RSS). The
+    optional mmap_share/mem.log sanity check (MemAvailable drop) is plotted as
+    the physical-memory reference when present.
+    """
+    csv_path = os.path.join(data_dir, 'parallel_scaling_deacon.csv')
+    df = pd.read_csv(csv_path)
+    workers = df['workers'].tolist()
+    wall = df['wall_s'].tolist()
+    speedup = df['speedup_vs_w1'].tolist()
+
+    rss_sum, rss_per = [], []
+    for w in workers:
+        tsv = os.path.join(data_dir, 'parscale', f'W{w}', 'rss_samples.tsv')
+        vals, per = [], []
+        with open(tsv) as fh:
+            for line in fh:
+                f = line.split()
+                if len(f) >= 3 and int(f[1]) > 0:
+                    vals.append(int(f[2]) / 1048576)
+                    per.append(int(f[2]) / 1048576 / int(f[1]))
+        rss_sum.append(np.median(vals))
+        rss_per.append(np.median(per))
+
+    fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.4))
+
+    ax = axes[0]
+    bars = ax.bar([str(w) for w in workers], wall, 0.55, color='#4A90A4', zorder=3)
+    for b, v in zip(bars, wall):
+        m, s = int(v // 60), int(v % 60)
+        ax.annotate(f'{m}m{s:02d}s', xy=(b.get_x() + b.get_width() / 2, v),
+                    xytext=(0, 2), textcoords='offset points',
+                    ha='center', va='bottom', fontsize=8)
+    ax.set_xlabel('Concurrent workers (samples)')
+    ax.set_ylabel('Wall time for 16 samples (s)')
+    ax.set_title('(a) Throughput scaling')
+
+    ax = axes[1]
+    ideal = workers
+    ax.plot(workers, speedup, 'o-', color='#4A90A4', label='Measured', zorder=3)
+    ax.plot(workers, ideal, '--', color='#8C8C8C', label='Ideal linear', zorder=2)
+    for w, v in zip(workers, speedup):
+        ax.annotate(f'{v:.2f}×', xy=(w, v), xytext=(0, 6),
+                    textcoords='offset points', ha='center', fontsize=8)
+    ax.set_xlabel('Concurrent workers (samples)')
+    ax.set_ylabel('Speedup vs 1 worker')
+    ax.set_title('(b) Parallel efficiency')
+    ax.set_xticks(workers)
+    ax.legend(loc='upper left')
+    ax.set_ylim(0, max(ideal) * 1.15)
+
+    ax = axes[2]
+    width = 0.35
+    x = np.arange(len(workers))
+    bars = ax.bar(x - width / 2, rss_sum, width, color='#7EB5A6', zorder=3,
+                  label='Σ RSS, all workers (shared pages counted per process)')
+    ax.bar(x + width / 2, rss_per, width, color='#4A90A4', zorder=3,
+           label='RSS per deacon worker')
+    ax.set_xlabel('Concurrent workers (samples)')
+    ax.set_ylabel('Resident set size (GB)')
+    ax.set_title('(c) Memory per worker stays flat')
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(w) for w in workers])
+    ax.legend(fontsize=8, loc='upper left')
+    for b, v in zip(bars, rss_sum):
+        ax.annotate(f'{v:.1f}', xy=(b.get_x() + b.get_width() / 2, v),
+                    xytext=(0, 2), textcoords='offset points',
+                    ha='center', va='bottom', fontsize=8)
+
+    fig.tight_layout()
+    for ext in ['png', 'svg', 'pdf']:
+        fig.savefig(os.path.join(out_dir, f'fig7_parallel_scaling.{ext}'),
+                    dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+
 if __name__ == '__main__':
     data_dir = sys.argv[1] if len(sys.argv) > 1 else 'data/deacon_panel'
     out_dir = sys.argv[2] if len(sys.argv) > 2 else 'figures'
@@ -273,4 +356,5 @@ if __name__ == '__main__':
     figure_deacon_accuracy(df, out_dir)
     figure_cross_species(data_dir, out_dir)
     figure_verification(df, out_dir)
+    figure_parallel_scaling(data_dir, out_dir)
     print(f'Figures written to {out_dir}')

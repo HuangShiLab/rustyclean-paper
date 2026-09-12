@@ -990,6 +990,49 @@ clock for the 11-sample cohort was 3.4 h. These numbers are consistent
 with the simulated-panel throughput and demonstrate that the pipeline is
 ready for production cohorts.
 
+### 3.11 Sample-level parallelism scales near-linearly at flat per-worker memory
+
+Cohort processing is sample-parallel (§2.8): a counting semaphore admits *W*
+samples concurrently, each passing *T* threads to its external tools. To
+measure how the deacon backend scales under this model we ran sixteen
+identical 10M-read single-end samples (10% host fraction, below the
+verification threshold, so each sample executes fastp plus deacon only)
+with *T* = 4 and *W* ∈ {1, 2, 4, 8} on a single 64-core AMD node.
+
+Throughput scaled near-linearly (Figure 8): wall clock for the 16-sample
+cohort dropped from 2,364 s (39m24s) at *W* = 1 to 1,153 s at *W* = 2
+(2.05×), 620 s at *W* = 4 (3.81×), and 302 s at *W* = 8 (7.84×; 98%
+parallel efficiency). Per-worker cost stayed constant throughout: the
+resident set of each deacon process was ~3.1--3.7 GB at every worker count
+--- the memory-mapped 3.3 GB panhuman-1 index plus a small private
+workspace. Because all workers map the same read-only index file, the
+kernel retains a single physical copy of its pages and each additional
+worker costs only its private workspace (the per-process RSS sum in
+Figure 8c therefore overcounts physical memory; it is shown to make the
+accounting explicit). No alignment- or classification-based competitor in
+our comparison offers this combination: their per-sample memory footprint
+is either CPU-scaled private copies (Kraken2, ~16 GB per sample) or a
+per-sample alignment index (Bowtie2, ~3--5 GB per sample), so the same
+8-sample concurrency would require roughly an order of magnitude more RAM
+for the same throughput gain.
+
+Together with the memory-aware worker cap described in §2.8, this makes
+the default backend suitable for queue-free cohort processing on
+shared-nothing nodes: 16 samples complete in 5 minutes at under 40 GB
+aggregate per-process RSS.
+
+![](figures/fig7_parallel_scaling.png)
+
+**Figure 8.** Sample-level parallelism of the deacon backend. Sixteen
+identical 10M-read single-end samples (10% host) processed with four
+threads per sample and *W* concurrent workers. (a) Cohort wall time.
+(b) Speedup relative to *W* = 1; the dashed line is ideal linear
+scaling. (c) Resident set size: per deacon worker (steel blue, flat at
+~3.1--3.7 GB) and the sum over all workers (green). Because every worker
+memory-maps the same read-only 3.3 GB index, the kernel shares its
+physical pages across processes and the green sum overcounts true
+physical usage.
+
 ## 4. Discussion
 
 Neither error direction is universally preferable, which is why the
