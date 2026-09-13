@@ -11,14 +11,10 @@ deacon_skipqc,30M_50pct_high_skewed_SE,28.6,4.76,0.99997,0.0,0.0037,skip-qc
 hostile_fastp,30M_50pct_high_skewed_SE,840.3,3.7589,0.99501,0.0,0.6758,fastp+hostile
 kneaddata,30M_50pct_high_skewed_SE,2317.5,1.16,0.99098,1.425,0.25,full pipeline
 rc_auto_deacon,30M_50pct_high_skewed_SE,622.3,4.76,1.0,0.0,0.0,full pipeline
-rc_kraken2_recheck,30M_50pct_high_skewed_SE,596.2,16.19,0.99743,0.408,0.0717,full pipeline
 deacon_skipqc,60M_90pct_high_lognormal_SE,52.4,4.76,0.99921,0.12,0.0036,skip-qc
 hostile_fastp,60M_90pct_high_lognormal_SE,1456.4,3.7776,0.96522,0.039,0.6745,fastp+hostile
 kneaddata,60M_90pct_high_lognormal_SE,6822.0,1.16,0.97603,2.154,0.2496,full pipeline
 rc_auto_deacon,60M_90pct_high_lognormal_SE,669.5,4.76,0.99845,0.309,0.0,full pipeline
-rc_kraken2_recheck,60M_90pct_high_lognormal_SE,1221.1,16.24,0.99423,0.396,0.0715,full pipeline
 deacon_skipqc,100M_50pct_high_lognormal_SE,153.4,4.76,0.99937,0.121,0.0035,skip-qc
 rc_auto_deacon,100M_50pct_high_lognormal_SE,1684.9,4.76,0.99845,0.31,0.0,full pipeline
-rc_kraken2_recheck,100M_50pct_high_lognormal_SE,1792.0,16.28,0.99758,0.398,0.0716,full pipeline
 deacon_skipqc,100M_90pct_high_lognormal_SE,202.4,4.76,0.9992,0.12,0.0037,skip-qc
-rc_kraken2_recheck,100M_90pct_high_lognormal_SE,1753.9,16.25,0.99425,0.395,0.0712,full pipeline

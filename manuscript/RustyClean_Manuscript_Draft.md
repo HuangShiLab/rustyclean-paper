@@ -23,7 +23,7 @@ decision becomes verification-budget allocation. On simulated
 metagenomes spanning 1--90% host content with per-read ground truth,
 the deacon depletion step alone was 44--130× faster than the complete
 KneadData pipeline, and the full RustyClean AUTO pipeline was
-3.7--10× faster than KneadData and 1.3--2.2× faster than
+3.7--10× faster than KneadData and 1.3--2.3× faster than
 fastp + Hostile while matching or exceeding their accuracy (F1 ≥ 0.998
 on high-host samples), reducing host carry-over to 0.0000% of retained
 output on every high-host dataset tested --- against ~0.67% for
@@ -156,8 +156,8 @@ from being promoted into a results directory.
     output validation, with measured near-linear sample-level
     parallelism (7.84× on 8 workers at 98% efficiency) and flat
     per-worker memory through a shared memory-mapped index.
-4.  An evaluation across 18 simulated datasets with per-read ground
-    truth spanning ten host fractions and six sequencing depths, a
+4.  An evaluation on simulated metagenomes with per-read ground
+    truth spanning 1--90% host content and 5--100 M reads, a
     four-way comparison against KneadData and Hostile, a six-host
     cross-species panel, and a real-data cohort.
 
@@ -321,10 +321,13 @@ deacon, Kraken2, and Bowtie2 executables. Source is available at
 
 ### 2.8 Benchmark design
 
-**Table 1.** Selected simulated datasets used for the main accuracy
+**Table 1.** The simulated datasets used for the main accuracy
 comparison. Host fraction is the realised proportion of host reads after
 simulation, which differs slightly from the nominal target for skewed
-communities. The full evaluation panel comprises 18 datasets.
+communities. The panel varies host fraction (0.9--91.4%), sequencing
+depth (5--100 M reads), community complexity (low, medium, high) and
+abundance distribution (even, skewed, lognormal); all datasets are
+single-end.
 
 | **Dataset** | **Reads (M)** | **Host (%)** | **Complexity** | **Abundance** | **Layout** |
 |-------------|---------------|--------------|----------------|---------------|------------|
@@ -335,21 +338,13 @@ communities. The full evaluation panel comprises 18 datasets.
 | 100M / 50%  | 87.8          | 54.1         | high           | lognormal     | single-end |
 | 100M / 90%  | 93.6          | 91.4         | high           | lognormal     | single-end |
 
-We evaluated RustyClean against KneadData v0.12.3 on 18 simulated
-metagenomes with per-read ground truth, generated with InSilicoSeq
-v2.0.0 (Gourlé et al., 2019). The design varied four factors:
-
-| Factor | Levels |
-|---------------------|--------------------------------|
-| Host fraction | 0, 1, 5, 10, 30, 50, 70, 90, 99, 100 % |
-| Sequencing depth | 5, 10, 20, 30, 60, 100 M reads |
-| Community composition | even, lognormal, skewed |
-| Read layout | single-end, paired-end |
+We evaluated RustyClean against KneadData v0.12.3 on the simulated
+panel of Table 1 with per-read ground truth, generated with InSilicoSeq
+v2.0.0 (Gourlé et al., 2019).
 
 Because reads are simulated, the true origin of every read is known and
 depletion can be scored exactly as a binary classification task. Results
-are reported stratified by host fraction and read layout; no grand mean
-is reported across the full panel.
+are reported per dataset; no grand mean is reported across the panel.
 
 Reference databases: the deacon panhuman-1 pangenome index (k31w15) for
 Tier-1 depletion, and a Bowtie2 index of T2T-CHM13v2.0 plus HLA
@@ -411,7 +406,7 @@ relative abundance, not per-read labels, so it cannot remove individual
 host reads. We therefore tested it as a binary sensor: a sample declared
 host-positive by `sylph query` was passed to the Bowtie2 alignment
 pipeline, while host-negative samples were retained without alignment.
-On the 100 M matched panel this sensor-based approach did not improve
+On the 100 M-read datasets this sensor-based approach did not improve
 runtime over direct Bowtie2 removal for host-positive samples, and the
 added survey overhead erased any potential speed advantage. We also
 confirmed that sylph cannot provide read-level classifications and
@@ -494,14 +489,14 @@ triggered); deacon is the depletion step alone (`--skip-qc`).
 
 On speed, the deacon depletion step alone (9.6--202.4 s) was 44--130×
 faster than the complete KneadData pipeline, and the full AUTO pipeline
-(90.4--1684.9 s) was 3.7--10.2× faster than KneadData and 1.3--2.2×
+(90.4--1684.9 s) was 3.7--10.2× faster than KneadData and 1.3--2.3×
 faster than fastp + Hostile on the datasets where all three were run.
 On accuracy, AUTO matched or exceeded every comparator: F1 was
 0.99845--1.00000 (Figure 2a), against 0.96522--0.99997 for fastp + Hostile and
 0.97603--0.99098 for KneadData. Microbial loss stayed at or below
 0.31% --- up to 13-fold below KneadData (1.4--4.0%), whose Trimmomatic
-stage over-trims genuine microbial reads --- and was zero on three of
-the four AUTO datasets.
+stage over-trims genuine microbial reads --- and was essentially zero
+(<0.001%) on the 5M/1% and 30M/50% datasets.
 
 The verification tier's contribution is isolated by comparing the deacon
 and AUTO rows. deacon alone left a small structural residue of host
@@ -676,10 +671,10 @@ physical usage.
 Because the pipeline treats the depletion step as a replaceable
 component, alternative backends can be substituted without changing the
 surrounding orchestration. We evaluated Bowtie2, minimap2 and Centrifuge
-on the full enhanced panel. Bowtie2 and minimap2 were closely matched on
-accuracy, while Centrifuge showed substantially higher host carry-over
-at high host fractions (F1 0.745 at 99% host) and was not retained as a
-recommended backend (Figure S1). Peak memory differed substantially
+on the four simulated datasets of Figure S1. Bowtie2 and minimap2 were
+closely matched on accuracy, while Centrifuge showed substantially
+higher host carry-over at every host fraction (Figure S1b) and was not
+retained as a recommended backend. Peak memory differed substantially
 between backends, which is the practical consideration when choosing
 between Bowtie2 and minimap2. The default Tier-1 backend is deacon
 (Section 3.1), and the same interchangeability applies to it;
@@ -715,7 +710,7 @@ of the runtime advantage over KneadData therefore reflects work not done
 rather than work done faster, and the closer like-for-like comparison is
 against KneadData with repeat masking disabled. Second, Hostile is the
 more demanding baseline, and the deacon-based default meets it on both
-axes: the full AUTO pipeline is 1.3--2.2× faster than fastp + Hostile
+axes: the full AUTO pipeline is 1.3--2.3× faster than fastp + Hostile
 with equal-or-better F1 and zero host carry-over on high-host samples,
 where fastp + Hostile retains ~0.67% (Table 2). KneadData, meanwhile,
 retains the lowest memory footprint of any tool tested (1.16 GB); the
@@ -831,12 +826,12 @@ converted to a cover letter before submission.]
 | # | Reviewer concern | Our response / evidence |
 |---|------------------|-------------------------|
 | 1 | *KneadData includes Trimmomatic and repeat masking; the comparison is not like-for-like.* | Acknowledged. We report KneadData as the de facto standard and note that part of the speed advantage reflects scope differences (Discussion). A `--bypass-trf` comparison would further clarify this. |
-| 2 | *Why not compare with Hostile on all 18 datasets?* | Matched panel was run for all four conditions; the full 18-dataset panel is RustyClean-only for computational cost. Cross-species and real-data validation extend generalisability. |
+| 2 | *Why is the comparator panel limited to six datasets?* | KneadData runs at 100 M reads cost ~4 h each, so the panel concentrates on the host-fraction and depth range that spans the practical use cases (1--90% host, 5--100 M reads). The cross-species panel and the real-data cohort extend generalisability beyond it. |
 | 3 | *Is the accuracy evaluation deterministic?* | Yes; depletion is deterministic, so accuracy is reported once per condition and replication applies only to timing (to be stated explicitly in Methods). |
 | 4 | *What about real sequencing artefacts and host genetic variation?* | Limitations section acknowledges this. The 11-sample real cohort validates throughput and robustness, but matched-host-genotype validation remains future work. |
 | 5 | *Does the pipeline handle very large cohorts?* | Cohort-level throughput scales near-linearly with concurrent workers at flat per-worker memory (7.84× on 8 workers; Section 3.4); the memory-aware worker cap protects RAM on shared nodes (Section 2.7). |
 | 6 | *How does the user choose the reference database?* | Default is the deacon panhuman-1 index for human data, with a validated species-matched index set for human (T2T), monkey, mouse, pig, rat and rice; the human panhuman-1 index must not be used for non-human hosts (Section 3.2). |
-| 7 | *What is the practical advantage over running Hostile + fastp, or deacon directly?* | RustyClean integrates QC, adaptive verification (0.0035--0.0042% → 0.0000% host carry on high-host samples), pan-host index support, checkpointing, validation, and bounded concurrency in one binary; on the panel the full pipeline is 1.3--2.2× faster than fastp + Hostile with equal-or-better F1 and zero carry-over (Section 3.1). deacon alone lacks the verification tier, QC and orchestration (Discussion). |
+| 7 | *What is the practical advantage over running Hostile + fastp, or deacon directly?* | RustyClean integrates QC, adaptive verification (0.0035--0.0042% → 0.0000% host carry on high-host samples), pan-host index support, checkpointing, validation, and bounded concurrency in one binary; on the panel the full pipeline is 1.3--2.3× faster than fastp + Hostile with equal-or-better F1 and zero carry-over (Section 3.1). deacon alone lacks the verification tier, QC and orchestration (Discussion). |
 | 8 | *Why rely on deacon, which is not yet peer-reviewed?* | It is the fastest available engine by an order of magnitude and we replicate its reported behaviour on an independent panel with pinned v0.17.0. Alternative peer-reviewed backends (Bowtie2, minimap2, Kraken2) remain selectable via `--host-removal-mode`, so the pipeline does not hard-depend on deacon (Sections 2.1 and 3.5). |
 
 ## References
@@ -872,27 +867,30 @@ converted to a cover letter before submission.]
 
 **Figure S1.** Comparison of interchangeable depletion backends within
 RustyClean: Bowtie2, minimap2 and Centrifuge. (a) F1 score, (b) host
-reads retained (%), (c) microbial reads lost (%), (d) peak memory (GB).
-Runtime is reported in Supplementary Table S1 and excluded here because
-one measurement (minimap2, 5M dataset) is a cold-start outlier.
+carry-over (% of retained output), (c) microbial reads lost (%), (d)
+peak memory (GB). Runtime is excluded because one measurement (minimap2,
+5M dataset) is a cold-start outlier.
 
 | **Backend** | **Dataset** | **F1** | **Host carry-over (%)** | **Microbial loss (%)** | **Peak mem (GB)** |
 |-------------|-------------|--------|-------------------------|------------------------|-------------------|
-| Bowtie2 | 5M / 1% | 0.9996 | 0.055 | 0.000 | 3.6 |
-| Bowtie2 | 10M / 10% | 0.9749 | 0.053 | 0.568 | 3.6 |
-| Bowtie2 | 30M / 50% | 0.9984 | 0.049 | 0.402 | 3.6 |
-| Bowtie2 | 60M / 90% | 0.9996 | 0.049 | 0.388 | 6.2 |
-| minimap2 | 5M / 1% | 0.9986 | 0.021 | 0.002 | 11.5 |
-| minimap2 | 10M / 10% | 0.9742 | 0.026 | 0.587 | 11.7 |
-| minimap2 | 30M / 50% | 0.9984 | 0.030 | 0.431 | 11.8 |
-| minimap2 | 60M / 90% | 0.9997 | 0.029 | 0.416 | 11.9 |
-| Centrifuge | 5M / 1% | 0.9940 | 1.090 | 0.001 | 7.0 |
-| Centrifuge | 10M / 10% | 0.9500 | 1.179 | 1.027 | 7.2 |
-| Centrifuge | 30M / 50% | 0.9920 | 1.173 | 0.632 | 7.9 |
-| Centrifuge | 60M / 90% | 0.9938 | 1.171 | 0.760 | 8.6 |
+| Bowtie2 | 5M / 1% | 0.9996 | 0.001 | 0.000 | 3.6 |
+| Bowtie2 | 10M / 10% | 0.9749 | 0.006 | 0.568 | 3.6 |
+| Bowtie2 | 30M / 50% | 0.9984 | 0.073 | 0.402 | 3.6 |
+| Bowtie2 | 60M / 90% | 0.9996 | 0.521 | 0.388 | 6.2 |
+| minimap2 | 5M / 1% | 0.9986 | 0.000 | 0.002 | 11.5 |
+| minimap2 | 10M / 10% | 0.9742 | 0.003 | 0.587 | 11.7 |
+| minimap2 | 30M / 50% | 0.9984 | 0.044 | 0.431 | 11.8 |
+| minimap2 | 60M / 90% | 0.9997 | 0.313 | 0.416 | 11.9 |
+| Centrifuge | 5M / 1% | 0.9940 | 0.010 | 0.001 | 7.0 |
+| Centrifuge | 10M / 10% | 0.9500 | 0.132 | 1.027 | 7.2 |
+| Centrifuge | 30M / 50% | 0.9920 | 1.721 | 0.632 | 7.9 |
+| Centrifuge | 60M / 90% | 0.9938 | 11.140 | 0.760 | 8.6 |
 
-**Supplementary Table S1.** Backend comparison of Figure S1 (accuracy
-and memory). Runtime is described in the text of Section 3.5.
+**Supplementary Table S1.** Backend comparison of Figure S1. Host
+carry-over is the percentage of retained output that is host (Section
+2.9); accuracy values are per-run counts from the backend-comparison
+experiments (per-read counts in `archive/v1/data/accuracy_rc_mm_bt_cf_v4.csv`,
+peak memory in `archive/v1/data/performance_rc_mm_bt_cf_v4_corrected.csv`).
 
 **Supplementary data (Section S1).** The machine-readable tables behind
 the deacon-based evaluation are available under `data/deacon_panel/`:
