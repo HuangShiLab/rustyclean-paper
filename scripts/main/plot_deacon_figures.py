@@ -46,7 +46,7 @@ mpl.rcParams.update({
 
 # Tool display order, colours and legend labels (consistent with the legacy
 # figure script: RustyClean steel blue, Hostile muted red, KneadData tan).
-TOOLS = ['kneaddata', 'hostile_fastp', 'rc_kraken2_recheck', 'deacon_skipqc', 'rc_auto_deacon']
+TOOLS = ['kneaddata', 'hostile_fastp', 'deacon_skipqc', 'rc_auto_deacon']
 TOOL_LABELS = {
     'kneaddata': 'KneadData',
     'hostile_fastp': 'Hostile + fastp',

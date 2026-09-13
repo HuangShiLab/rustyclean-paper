@@ -29,18 +29,18 @@ on high-host samples), reducing host carry-over to 0.0000% of retained
 output on every high-host dataset tested --- against ~0.67% for
 Hostile and ~0.25% for KneadData --- and discarding at most 0.31% of
 microbial reads, against 1.4--4.0% for KneadData. Peak memory was
-4.8 GB, 3.4-fold below the legacy Kraken2-based path, though
-above KneadData's 1.2 GB. Sample-level parallelism scaled
-near-linearly (7.84× on 8 workers, 98% parallel efficiency) with a
-flat per-worker memory footprint, because all workers share a single
-memory-mapped copy of the index. Because deacon's published prebuilt indexes
-cover human and mouse only, we built and validated species-matched
-indexes for human (T2T), monkey, mouse, pig, rat and rice (build time
-4--52 s each): each species' own index achieved F1 0.99986--0.99998,
-whereas the human panhuman-1 index wrongly depleted 46.8% of the
-microbial reads in monkey-host samples and 97--99.8% in mouse, pig,
-rat and rice samples, showing that species-matched or pan-host indexes
-are mandatory outside human. RustyClean is a single Rust binary with
+4.8 GB, above KneadData's 1.2 GB but bounded by index size rather
+than sample size. Sample-level parallelism scaled near-linearly (7.84×
+on 8 workers, 98% parallel efficiency) with a flat per-worker memory
+footprint, because all workers share a single memory-mapped copy of the
+index. Because deacon's published prebuilt indexes cover human and
+mouse only, we built and validated species-matched indexes for human
+(T2T), monkey, mouse, pig, rat and rice (build time 4--52 s each):
+each species' own index achieved F1 0.99986--0.99998, whereas the
+human panhuman-1 index wrongly depleted 46.8% of the microbial reads
+in monkey-host samples and 97--99.8% in mouse, pig, rat and rice
+samples, showing that species-matched or pan-host indexes are
+mandatory outside human. RustyClean is a single Rust binary with
 per-stage checkpointing, bounded concurrency and an automated output
 validation gate, available at
 https://github.com/HuangShiLab/rustyclean under the MIT licence.
@@ -77,24 +77,8 @@ KneadData) exhibited higher false positive rates, while k-mer
 classification methods (Kraken2, KrakenUniq, KMCP) exhibited higher
 false negative rates \[Gao et al. 2025\]. The same study showed that
 Kraken2\'s efficiency advantage is substantial --- roughly 29 minutes
-against 209--582 minutes for alignment-based tools, and 0.3 GB against
-\~18 GB to index the human genome --- and that its advantage is most
-pronounced under high contamination (90%).
-
-That benchmark motivated a natural engineering question: if Kraken2 is
-both accurate enough and dramatically faster for host depletion, can it
-replace the alignment step in production pipelines? Our initial answer
-was a straightforward substitution. KneadData (McIver et al., 2018),
-the de facto standard, chains Trimmomatic for quality control, Tandem
-Repeat Finder for repeat masking, and Bowtie2 for host alignment,
-orchestrated by a Python wrapper. We replaced this with a two-stage
-pipeline --- fastp for quality control and Kraken2 for host depletion
---- implemented as a single Rust binary. That Kraken2-based design is
-retained in RustyClean as a documented legacy fallback (Section 2.10)
-and its evaluation is summarised in Section 3.5, but it is no longer
-the default: its memory footprint (~16 GB resident database) and its
-host-fraction-dependent failure modes motivated the redesign described
-below.
+against 209--582 minutes for alignment-based tools --- and that its
+advantage is most pronounced under high contamination (90%).
 
 Most recently, deacon --- a minimizer-based sequence filter evaluated
 against a pangenome index (Constantinides, Lees and Crook, bioRxiv
@@ -114,41 +98,27 @@ deciding when an expensive verification pass is worth its cost.
 Resolving those gaps, rather than re-implementing the filter, is the
 subject of this paper.
 
-Two findings from the initial Kraken2-based design carry over, and a
-third is added by the minimizer-based redesign; together they define
-the contribution of this paper.
+Two findings define the contribution of this paper.
 
-**First, the efficiency advantage of any single classical backend is
-conditional on host fraction.** Kraken2\'s cost is essentially fixed
-per read, whereas Bowtie2\'s cost depends on how many reads must be
-fully aligned rather than rejected early. At low host fractions,
-alignment rejects most microbial reads quickly and its index is smaller
-than a Kraken2 database, so the alignment route is competitive or
-faster. The advantage inverts as host fraction rises. A pipeline that
-commits to either method unconditionally is therefore slower than
-necessary on some fraction of any real cohort.
+**First, the false negative rate is not uniformly acceptable.** At high
+host fractions, the residual host retained by k-mer classification ---
+and, at a much smaller level, by minimizer depletion --- becomes large
+in absolute terms even when its rate is modest, because the pool of
+host reads is large. In this regime, Tier-1 depletion alone does not
+deliver a sufficiently clean library.
 
-**Second, the false negative rate is not uniformly acceptable.** At
-high host fractions, the residual host retained by k-mer classification
---- and, at a much smaller level, by minimizer depletion --- becomes
-large in absolute terms even when its rate is modest, because the pool
-of host reads is large. In this regime, Tier-1 classification or
-depletion alone does not deliver a sufficiently clean library.
-
-**Third, minimizer-based depletion dissolves the routing problem but
+**Second, minimizer-based depletion dissolves the routing problem but
 not the verification problem.** Because deacon's per-read cost is
-host-fraction-independent, a single Tier-1 backend now suffices across
-the whole host-fraction spectrum, and the per-sample routing scheme of
-the original design is needed only as a fallback. What remains is
-verification-budget allocation: deacon alone leaves a structural
-residue of host reads (~0.004% of retained output on our panel), and
-deciding when a Bowtie2 verification pass over the retained reads is
-worth its cost requires a decision rule that the bare tool does not
-provide.
+host-fraction-independent, a single Tier-1 backend suffices across the
+whole host-fraction spectrum. What remains is verification-budget
+allocation: deacon alone leaves a structural residue of host reads
+(~0.004% of retained output on our panel), and deciding when a Bowtie2
+verification pass over the retained reads is worth its cost requires a
+decision rule that the bare tool does not provide.
 
 RustyClean addresses these points directly. It integrates deacon as the
-default Tier-1 depletion backend behind the existing quality-control
-and orchestration layers, and it adds an adaptive verification tier:
+default Tier-1 depletion backend behind a quality-control and
+orchestration layer, and it adds an adaptive verification tier:
 RustyClean parses deacon's own summary JSON, and whenever the reported
 removed proportion (`seqs_removed_proportion`) reaches
 `--recheck-threshold` (default 0.3) the retained reads are re-screened
@@ -157,9 +127,6 @@ final. The per-sample decision is thereby recast from "which backend"
 to "how much verification": the pass is expensive exactly when the
 retained set is large, and the threshold restricts it to samples whose
 host content makes both the residue and the pass cost proportionate.
-The legacy host-fraction routing between Kraken2 and Bowtie2 is
-retained as a documented fallback for deployments without a deacon
-index (Section 2.10).
 
 We additionally treat the orchestration layer as a first-class concern.
 Analysis of a KneadData run log showed that 16% of wall-clock time on a
@@ -191,12 +158,8 @@ from being promoted into a results directory.
     per-worker memory through a shared memory-mapped index.
 4.  An evaluation across 18 simulated datasets with per-read ground
     truth spanning ten host fractions and six sequencing depths, a
-    five-way comparison against KneadData, Hostile and the legacy
-    backend, a six-host cross-species panel, and a real-data cohort.
-5.  The legacy per-sample routing scheme, retained as a documented
-    fallback when no deacon index is configured, together with the
-    targeted alignment verification pass that corrects the false
-    negative bias of the legacy Kraken2 classification path.
+    four-way comparison against KneadData and Hostile, a six-host
+    cross-species panel, and a real-data cohort.
 
 ## 2. Methods
 
@@ -217,17 +180,12 @@ RustyClean processes each sample through four stages:
 4.  **Validation and finalisation** --- automated assertions before
     output promotion (Section 2.6).
 
-When no deacon index is configured, AUTO mode falls back to the legacy
-scheme: a rapid alignment survey estimates each sample's host fraction
-and routes the sample to the alignment path or the Kraken2
-classification path, optionally followed by the Bowtie2 recheck
-(Sections 2.10 and 2.5). Kraken2, Bowtie2, sylph and Centrifuge
-remain available as explicit backends (`--host-removal-mode`) for users
-who do not wish to use deacon.
-
 Samples may be supplied individually or as a tab-separated sample
 manifest; single-end and paired-end layouts are detected automatically
-and handled throughout.
+and handled throughout. Alternative depletion backends (Bowtie2,
+minimap2, Kraken2, sylph, Centrifuge) remain available as explicit
+options (`--host-removal-mode`) but are not used by the default
+AUTO configuration (Sections 2.10 and 3.5).
 
 ### 2.2 Quality control
 
@@ -280,15 +238,12 @@ eliminating, and the retained set after depletion is small, so the
 alignment pass is cheap. A low removed proportion implies the opposite
 on both counts: the residue is absolutely tiny and the retained set is
 large. Both the threshold and the pass itself are user-configurable.
-The legacy survey-based routing rule used when no deacon index is
-configured is described in Section 2.10.
 
 ### 2.5 Bowtie2 verification pass
 
 No Tier-1 backend removes every host read: minimizer-based depletion
 leaves a small structural residue (~0.0035--0.0042% of retained output
-on our panel), and k-mer classification under-detects host reads far
-more severely. RustyClean therefore implements a verification pass
+on our panel). RustyClean therefore implements a verification pass
 (`--bowtie2-recheck`) in which the reads retained by the Tier-1 backend
 are aligned against the host Bowtie2 index and those that align are
 removed. Only the retained set is re-screened, so reads already
@@ -296,20 +251,17 @@ identified as host are never realigned.
 
 In the default AUTO configuration the pass is triggered adaptively by
 deacon's removed-proportion summary (Section 2.4; default threshold
-0.3); on the legacy Kraken2 classification path it is enabled by
-default whenever that path is selected. It can be disabled with
-`--no-bowtie2-recheck` for users who prefer raw Tier-1 output.
+0.3). It can be disabled with `--no-bowtie2-recheck` for users who
+prefer raw Tier-1 output.
 
 The cost of this pass is proportional to the size of the retained set,
 which is small precisely when it is needed: at a host fraction of 0.9,
 Tier-1 depletion removes the majority of reads and the verification pass
 processes roughly a tenth of the library. At low host fractions the
 retained set is large and verification would be expensive --- but those
-samples fall below the recheck threshold in the default configuration
-and are routed to the alignment path in the legacy configuration
-(Section 2.10), so they never reach this stage. The two mechanisms are
-therefore complementary rather than merely additive, and the worst-case
-cost of verification is bounded by the size of the retained set.
+samples fall below the recheck threshold in the default configuration,
+so they never reach this stage. The worst-case cost of verification is
+therefore bounded by the size of the retained set.
 
 ### 2.6 Validation gate
 
@@ -372,8 +324,7 @@ deacon, Kraken2, and Bowtie2 executables. Source is available at
 **Table 1.** Selected simulated datasets used for the main accuracy
 comparison. Host fraction is the realised proportion of host reads after
 simulation, which differs slightly from the nominal target for skewed
-communities. The full evaluation panel comprises 18 datasets
-(Supplementary Table S2).
+communities. The full evaluation panel comprises 18 datasets.
 
 | **Dataset** | **Reads (M)** | **Host (%)** | **Complexity** | **Abundance** | **Layout** |
 |-------------|---------------|--------------|----------------|---------------|------------|
@@ -400,14 +351,15 @@ depletion can be scored exactly as a binary classification task. Results
 are reported stratified by host fraction and read layout; no grand mean
 is reported across the full panel.
 
-Reference databases: by default a human-only Kraken2 index built from
-T2T-CHM13v2.0, and a Bowtie2 index of T2T-CHM13v2.0 plus HLA sequences
-(the Hostile human-t2t-hla index). A mixed Kraken2 index (kraken16:
-GRCh38 + T2T + ~73,000 microbial genomes) was additionally evaluated
-as an optional taxonomy-aware mode. The legacy comparisons used 8
-threads per tool on the HKU HPC2021 cluster, with three replicates per
-condition for RustyClean timing. Wall-clock time and peak resident set
-size were recorded with GNU `time`.
+Reference databases: the deacon panhuman-1 pangenome index (k31w15) for
+Tier-1 depletion, and a Bowtie2 index of T2T-CHM13v2.0 plus HLA
+sequences (the Hostile human-t2t-hla index) for the verification pass.
+KneadData and Hostile + fastp comparators used their own default
+references (KneadData hg39 Bowtie2 index; Hostile human-t2t-hla index).
+KneadData and Hostile + fastp runs used 8 threads per tool on the HKU
+HPC2021 cluster; deacon and AUTO runs used 16 threads, with three
+replicates per condition for RustyClean timing. Wall-clock time and peak
+resident set size were recorded with GNU `time`.
 
 **Minimizer-based panel.** We benchmarked deacon v0.17.0
 standalone and the deacon-based AUTO pipeline on the simulated panel.
@@ -416,10 +368,8 @@ options `-d -a 2 -r 0.01`; panhuman-1 index, k31w15) on 16 threads;
 the AUTO runs chained fastp, deacon and the conditional Bowtie2
 verification tier (Section 2.4) with the same index and thread count.
 Three replicates per condition were run, and the same timing and memory
-recording was used. KneadData and Hostile+fastp figures in the five-way
-comparison are the full-pipeline runs described above (8 threads);
-runtime bases (full pipeline versus depletion-only) are stated wherever
-the numbers are compared.
+recording was used. Runtime bases (full pipeline versus depletion-only)
+are stated wherever the numbers are compared.
 
 **Cross-species panel and index builds.** For the cross-species
 evaluation we built species-specific deacon indexes (k31w15) for human
@@ -453,67 +403,7 @@ systematically benchmarked in this study; the real-data evaluation
 focused on throughput, memory use, and successful completion on a cohort
 of human oral microbiome samples.
 
-### 2.10 Legacy fallback: routing, alignment and Kraken2 classification
-
-Without a deacon index, RustyClean selects one depletion strategy per
-sample rather than globally; this is the configuration evaluated in our
-earlier Kraken2-based design and is retained as a documented fallback.
-
-**Host-fraction survey and routing.** A random subsample of n reads
-(default n = 100,000, drawn with seqtk using a fixed seed for
-reproducibility) is taken from the quality-controlled library and
-aligned against the host Bowtie2 index in a fast, low-sensitivity mode
-(\--very-fast-local). The host fraction is estimated as the proportion
-of surveyed reads that align. Because the subsample is small and the
-alignment is deliberately insensitive, the survey completes in seconds
-and its cost is negligible relative to either depletion path. A
-user-supplied estimate (\--host-pct) bypasses the survey entirely.
-
-The estimated host fraction ĥ is combined with the library size N in a
-two-part rule:
-
-- ĥ \< ĥ_low (default 10%) → alignment path. At low host
-  fractions alignment rejects the microbial majority quickly and retains
-  its lower false negative rate.
-- ĥ \> ĥ_high (default 30%) and N is large (default > 20 M reads) →
-  Kraken2 classification path with Bowtie2 recheck (Section 2.5).
-  Kraken2 removes the host majority rapidly, and the recheck pass
-  re-screens the smaller retained set to recover missed host reads.
-- Otherwise → alignment path. The rule is deliberately conservative:
-  any sample that does not clearly exceed the high-host threshold is
-  routed to alignment, whose error profile is the safer default.
-
-The classification path can also be selected explicitly with
-`--host-removal-mode kraken2`; `--bowtie2-recheck` toggles the
-verification pass. Legacy defaults were set from the measured runtime
-behaviour of the two backends. Users may force either path
-(\--host-removal-mode kraken2\|bowtie2) or override any threshold.
-Routing tolerates considerable estimation error, since the decision
-requires only that ĥ fall on the correct side of a threshold rather than
-that it be accurate (Section 3.5).
-
-**Alignment path.** The alignment path aligns quality-controlled reads
-against a Bowtie2 \[Ref\] index of the host reference genome
-(T2T-CHM13v2.0 by default), retaining unaligned reads. Paired-end reads
-are handled with concordant-pair semantics so that a pair is retained
-only if neither mate aligns. This path is functionally equivalent to
-KneadData\'s host-removal stage but without the intervening
-repeat-masking and identifier-reformatting steps.
-
-**Kraken2 classification path.** The classification path uses Kraken2
-\[Ref\] against a **human-only** index. By default this index is built
-from the T2T-CHM13v2.0 human reference; reads that Kraken2 does not
-assign are retained as the provisional decontaminated library. Mixed
-Kraken2 databases that also contain microbial genomes can be supplied
-for users who additionally want taxonomic profiling, but they are not
-used by default because they increase memory use without improving
-host-depletion accuracy. Kraken2 is invoked with a confidence threshold
-(default 0.0) and a minimum hit-group requirement (default 2), both
-configurable; the Kraken2 report is parsed into a typed metrics record
-capturing classified and unclassified read counts, host read counts,
-and the implied contamination rate.
-
-### 2.11 Alternative backends evaluated and not retained
+### 2.10 Alternative backends evaluated and not retained
 
 We evaluated sylph, a k-mer-sketching metagenome profiler, as a possible
 sample-level prefilter for host depletion. sylph produces sample-level
@@ -525,10 +415,9 @@ On the 100 M matched panel this sensor-based approach did not improve
 runtime over direct Bowtie2 removal for host-positive samples, and the
 added survey overhead erased any potential speed advantage. We also
 confirmed that sylph cannot provide read-level classifications and
-therefore cannot be used as a direct substitute for Kraken2 or Bowtie2
-in a host-depletion pipeline. Consequently, sylph is retained only as an
-optional explicit backend and is not used by the default auto-mode
-router.
+therefore cannot be used as a direct substitute for a per-read depletion
+backend. Consequently, sylph is retained only as an optional explicit
+backend and is not used by the default auto-mode router.
 
 We also evaluated a FracMinHash (FMH) sketching backend, in which each
 read is sketched and queried against a FracMinHash sketch of the host
@@ -545,36 +434,40 @@ non-trivial (~46 min and 816 MB for a T2T-CHM13 sketch at scale factor
 retained as a backend; the partial results are archived in the
 supplementary data (Section S1).
 
+Alternative per-read backends were also compared directly: Bowtie2,
+minimap2 and Centrifuge (Section 3.5 and Figure S1). Bowtie2 and
+minimap2 were closely matched on accuracy, while Centrifuge showed
+substantially higher host carry-over at high host fractions and was not
+retained as a recommended backend.
+
 ## 3. Results
 
 ### 3.1 Minimizer-based depletion as the default Tier-1 backend
 
 Because deacon's per-read cost is independent of host fraction, the
-five-way comparison in Table 2 required no per-sample routing: every
+four-way comparison in Table 2 required no per-sample routing: every
 sample passed through the same fastp → deacon → conditional-Bowtie2
 verification chain, with only the verification decision varying. The
 table reports, per dataset, KneadData (full pipeline), fastp + Hostile
-(full pipeline), the legacy RustyClean Kraken2 + recheck configuration
 (full pipeline), deacon alone (depletion only, quality control skipped)
 and the RustyClean AUTO pipeline with deacon as the Tier-1 backend
 (full pipeline).
 
 ![](figures/fig2_deacon_panel.png)
 
-**Figure 1.** Five-way comparison on the simulated panel.
+**Figure 1.** Four-way comparison on the simulated panel.
 (a) Runtime (log scale; basis as stated in Table 2 --- full pipeline
-for KneadData, Hostile + fastp and both RustyClean configurations;
+for KneadData, Hostile + fastp and the AUTO configuration;
 depletion only for deacon). (b) Peak resident set size of the largest
 single process.
 
-**Table 2.** Five-way comparison on the simulated panel. Runtime and
+**Table 2.** Four-way comparison on the simulated panel. Runtime and
 peak memory are means over three replicates; F1, microbial loss and
 host carry-over are single evaluations (depletion is deterministic).
-Basis: KneadData, Hostile + fastp and both RustyClean configurations
+Basis: KneadData, Hostile + fastp and the AUTO configuration
 are full-pipeline runs (QC plus depletion, plus verification where
-triggered); deacon is the depletion step alone (`--skip-qc`). "---"
-marks conditions that were not run (KneadData and Hostile were not run
-on the 100 M datasets in this comparison).
+triggered); deacon is the depletion step alone (`--skip-qc`).
+"---" marks conditions that were not run.
 
 | **Dataset** | **Tool** | **Runtime (s)** | **Memory (GB)** | **F1** | **Microbial loss (%)** | **Host carry (%)** |
 |-------------|----------|-----------------|-----------------|--------|------------------------|--------------------|
@@ -588,18 +481,14 @@ on the 100 M datasets in this comparison).
 | 10M / 10% | RustyClean AUTO (deacon) | 142.0 | 4.76 | 0.99881 | 0.238 | 0.0037 |
 | 30M / 50% | KneadData | 2317.5 | 1.16 | 0.99098 | 1.425 | 0.2500 |
 | 30M / 50% | Hostile + fastp | 840.3 | 3.76 | 0.99501 | 0.000 | 0.6758 |
-| 30M / 50% | RustyClean (legacy Kraken2 + recheck) | 596.2 | 16.19 | 0.99743 | 0.408 | 0.0717 |
 | 30M / 50% | deacon (depletion only) | 28.6 | 4.76 | 0.99997 | 0.000 | 0.0037 |
 | 30M / 50% | RustyClean AUTO (deacon) | 622.3 | 4.76 | 1.00000 | 0.000 | 0.0000 |
 | 60M / 90% | KneadData | 6822.0 | 1.16 | 0.97603 | 2.154 | 0.2496 |
 | 60M / 90% | Hostile + fastp | 1456.4 | 3.78 | 0.96522 | 0.039 | 0.6745 |
-| 60M / 90% | RustyClean (legacy Kraken2 + recheck) | 1221.1 | 16.24 | 0.99423 | 0.396 | 0.0715 |
 | 60M / 90% | deacon (depletion only) | 52.4 | 4.76 | 0.99921 | 0.120 | 0.0036 |
 | 60M / 90% | RustyClean AUTO (deacon) | 669.5 | 4.76 | 0.99845 | 0.309 | 0.0000 |
-| 100M / 50% | RustyClean (legacy Kraken2 + recheck) | 1792.0 | 16.28 | 0.99758 | 0.398 | 0.0716 |
 | 100M / 50% | deacon (depletion only) | 153.4 | 4.76 | 0.99937 | 0.121 | 0.0035 |
 | 100M / 50% | RustyClean AUTO (deacon) | 1684.9 | 4.76 | 0.99845 | 0.310 | 0.0000 |
-| 100M / 90% | RustyClean (legacy Kraken2 + recheck) | 1753.9 | 16.25 | 0.99425 | 0.395 | 0.0712 |
 | 100M / 90% | deacon (depletion only) | 202.4 | 4.76 | 0.99920 | 0.120 | 0.0037 |
 | 100M / 90% | RustyClean AUTO (deacon) | --- | --- | --- | --- | --- |
 
@@ -633,7 +522,7 @@ burden justifies it.
 
 ![](figures/fig3_deacon_accuracy.png)
 
-**Figure 2.** Accuracy of the five-way comparison. (a) F1 score per
+**Figure 2.** Accuracy of the four-way comparison. (a) F1 score per
 dataset and tool. (b) Host carry-over as a percentage of retained
 output (log scale); the dashed line marks 0.01%. Values of exactly
 0.0000% (AUTO on all high-host datasets) cannot be drawn on a log
@@ -647,9 +536,8 @@ reads. Host carry-over of deacon alone versus the full AUTO pipeline
 whose removed proportion crossed the 0.3 recheck threshold.
 
 Peak memory of the AUTO runs was 4.76 GB --- the resident panhuman-1
-index plus working set --- 3.4-fold below the legacy Kraken2 path
-(16.2--16.3 GB) and close to fastp + Hostile (3.5--3.8 GB), though
-above KneadData's 1.16 GB, which remains the lowest-memory option
+index plus working set --- close to fastp + Hostile (3.5--3.8 GB),
+though above KneadData's 1.16 GB, which remains the lowest-memory option
 (Figure 1b). AUTO's advantage is therefore not raw memory but the
 combination of accuracy, verification and carry-over at a modest,
 index-bounded footprint. As with any index-based backend, memory is
@@ -731,9 +619,9 @@ cross-species comparison and requires a species-specific Bowtie2 index.
 We applied RustyClean to 11 human oral microbiome samples from the LU
 cohort (paired-end, 5--45 million reads per sample) to confirm that the
 simulated-panel performance translates to real data. This cohort was
-processed with the legacy routing-based auto mode; current releases
-default to the deacon Tier-1 backend whenever an index is configured.
-All samples completed successfully. Runtime ranged from
+processed with the routing-based auto mode of an earlier release;
+current releases default to the deacon Tier-1 backend whenever an index
+is configured. All samples completed successfully. Runtime ranged from
 9 to 46 min per sample (mean 18.6 min, median 13.6 min) and peak memory
 ranged from 3.4 to 6.5 GB (mean 4.1 GB, median 3.6 GB). The total wall
 clock for the 11-sample cohort was 3.4 h. These numbers are consistent
@@ -760,12 +648,11 @@ workspace. Because all workers map the same read-only index file, the
 kernel retains a single physical copy of its pages and each additional
 worker costs only its private workspace (the per-process RSS sum in
 Figure 5c therefore overcounts physical memory; it is shown to make the
-accounting explicit). No alignment- or classification-based competitor in
-our comparison offers this combination: their per-sample memory footprint
-is either CPU-scaled private copies (Kraken2, ~16 GB per sample) or a
-per-sample alignment index (Bowtie2, ~3--5 GB per sample), so the same
-8-sample concurrency would require roughly an order of magnitude more RAM
-for the same throughput gain.
+accounting explicit). No alignment-based competitor in our comparison
+offers this combination: the per-sample memory footprint of an alignment
+index (Bowtie2, ~3--5 GB per sample) means the same 8-sample concurrency
+would require roughly an order of magnitude more RAM for the same
+throughput gain.
 
 Together with the memory-aware worker cap described in Section 2.7, this
 makes the default backend suitable for queue-free cohort processing on
@@ -784,171 +671,19 @@ memory-maps the same read-only 3.3 GB index, the kernel shares its
 physical pages across processes and the green sum overcounts true
 physical usage.
 
-### 3.5 The legacy Kraken2 fallback
-
-The Kraken2-based design that preceded the deacon integration is
-retained as a documented fallback for deployments without a deacon
-index, and its evaluation is summarised here; it is not the recommended
-configuration.
-
-**Error profiles of the two classical strategies.** Across the four
-evaluation datasets the error profiles of the two strategy families
-separated exactly as reported by Gao et al. (Figure 6, Table 4).
-KneadData, which depletes by alignment, discarded a mean 2.58% of
-genuine microbial reads, rising to 3.96% on the lowest-host dataset.
-RustyClean with the legacy auto configuration, which depleted by k-mer
-classification on its high-host path, discarded a mean 0.20% --- 13-fold
-less microbial signal --- but retained a mean 0.90% of host reads
-against 0.26% for KneadData. Because the two error types are unequal in
-their downstream consequences, the balanced F1 score obscures this
-structure (0.9790 versus 0.9831), so we report the two error rates
-separately throughout.
-
-![](figures/fig1_error_profile.png)
-
-**Figure 6.** Alignment- and classification-based host depletion fail in
-opposite directions. (a) Microbial reads incorrectly discarded, an
-irreversible loss of signal. (b) Host reads incorrectly retained, a
-recoverable contamination. Depletion is deterministic, so accuracy does
-not vary between technical replicates; bars show a single evaluation per
-dataset.
-
-**Table 4.** Host-depletion accuracy, legacy Kraken2-based auto
-configuration. Microbial loss is the proportion of true microbial reads
-discarded; host carry-over is the percentage of the retained output that
-is host (Section 2.9).
-
-| **Dataset** | **Tool** | **Precision** | **Recall** | **F1** | **Microbial loss (%)** | **Host carry-over (%)** |
-|-------------|-------------------|---------------|------------|--------|------------------------|-------------------------|
-| 5M / 1% | RustyClean (legacy auto) | 1.0000 | 1.0000 | 1.0000 | 0.000 | 0.387 |
-| 5M / 1% | Hostile | 0.9999 | 1.0000 | 1.0000 | 0.000 | 0.686 |
-| 5M / 1% | KneadData | 1.0000 | 0.9604 | 0.9798 | 3.956 | 0.269 |
-| 10M / 10% | RustyClean (legacy auto) | 0.9995 | 0.9943 | 0.9969 | 0.568 | 0.404 |
-| 10M / 10% | Hostile | 0.9992 | 0.9992 | 0.9992 | 0.079 | 0.674 |
-| 10M / 10% | KneadData | 0.9997 | 0.9721 | 0.9857 | 2.791 | 0.255 |
-| 30M / 50% | RustyClean (legacy auto) | 0.9795 | 0.9987 | 0.9890 | 0.130 | 1.411 |
-| 30M / 50% | Hostile | 0.9901 | 1.0000 | 0.9950 | 0.000 | 0.676 |
-| 30M / 50% | KneadData | 0.9963 | 0.9858 | 0.9910 | 1.425 | 0.250 |
-| 60M / 90% | RustyClean (legacy auto) | 0.8698 | 0.9989 | 0.9299 | 0.110 | 1.407 |
-| 60M / 90% | Hostile | 0.9331 | 0.9996 | 0.9652 | 0.039 | 0.674 |
-| 60M / 90% | KneadData | 0.9736 | 0.9785 | 0.9760 | 2.154 | 0.250 |
-| Mean | RustyClean (legacy auto) | --- | --- | 0.9790 | 0.202 | 0.902 |
-| Mean | Hostile | --- | --- | 0.9899 | 0.029 | 0.678 |
-| Mean | KneadData | --- | --- | 0.9831 | 2.582 | 0.256 |
-
-**Routing.** Host fraction estimated from a 100,000-read subsample
-tracked the realised fraction closely on three of four datasets (0.93%
-against 0.95% realised; 10.13% against 10.02%). On the skewed 30M
-dataset the estimator underestimated by 10.8 percentage points (48.95%
-against 59.73%), reflecting the difficulty of estimating composition
-from a small subsample of a highly uneven community. Routing was
-nevertheless correct in all four cases, because the decision requires
-only that the estimate fall on the correct side of a threshold rather
-than that it be accurate --- a deliberate property of the design. Routing
-sent the two low-host datasets to the alignment backend and the two
-high-host datasets to the classification backend; against KneadData, the
-legacy auto mode was faster on every dataset, by 2.5× to 4.6× (Table 5),
-with the largest margin at the highest host fraction.
-
-**Table 5.** Runtime and peak memory, legacy auto configuration. RC,
-RustyClean in auto mode; KD, KneadData. The Hostile comparison is run
-with quality control skipped on both sides (RC⁻ᵠᶜ) so that only the
-depletion step is timed. Peak memory is the maximum resident set size of
-the largest single process.
-
-| **Dataset** | **Backend** | **Est. host (%)** | **RC (s)** | **KD (s)** | **vs KD** | **RC⁻ᵠᶜ (s)** | **Hostile (s)** | **vs Hostile** | **RC mem (GB)** | **KD mem (GB)** |
-|-------------|-------------|-------------------|------------|------------|-----------|---------------|-----------------|----------------|-----------------|-----------------|
-| 5M / 1% | bowtie2 | 0.93 | 170 | 420 | 2.47× | 106 | 110 | 1.04× | 3.3 | 1.1 |
-| 10M / 10% | bowtie2 | 10.13 | 189 | 694 | 3.68× | 116 | 212 | 1.83× | 3.3 | 1.1 |
-| 30M / 50% | kraken2 | 48.95 | 815 | 2317 | 2.84× | 552 | 2385 | 4.32× | 15.4 | 1.1 |
-| 60M / 90% | kraken2 | 89.43 | 1470 | 6822 | 4.64× | 858 | 4241 | 4.94× | 15.4 | 1.1 |
-
-**Verification pass.** On the legacy Kraken2 classification path the
-verification pass is enabled by default, isolating its contribution
-against a classification-only baseline. Aligning the reads retained by
-Kraken2 against the host index and removing those that align reduced
-host carry-over from a mean 1.409% to 0.0715% --- a 19.7-fold reduction,
-remarkably consistent across datasets. Microbial loss rose from 0.115%
-to 0.399%, which remains 6.5-fold below KneadData. The pass removes
-roughly twenty times more residual host than the microbial signal it
-costs, and its effect is largest exactly where the baseline was weakest:
-on the two 90%-host datasets F1 rose from 0.9299 to 0.9942--0.9943. Mean
-runtime cost was 6.7%, consistent with the design expectation that the
-verification set is small precisely when host content is high.
-
-**Matched panel against Hostile.** On a matched panel of four
-single-end datasets (30 M and 60 M reads at 50--90% host; 100 M reads at
-50% and 90% host), with RustyClean run in the legacy auto mode with
-`--skip-qc` for a head-to-head depletion-step comparison and the Kraken2
-database copied to node-local storage (Supplementary Figures S2 and
-S3), the legacy configuration placed RustyClean between Hostile and
-KneadData on accuracy but closer to Hostile (Table 6). Hostile achieved
-the highest F1 on the 100 M subset (0.9989--0.9991), followed by
-RustyClean (0.9970--0.9950) and KneadData (0.9872--0.9778); the gap
-versus Hostile (ΔF1 ≈ 0.0019 at 50% host; ΔF1 ≈ 0.0041 at 90% host)
-reflects the expected cost of k-mer classification, which the recheck
-pass largely recovers. On throughput the legacy depletion-only step was
-faster than Hostile on all four datasets (1.3--1.9×) and an order of
-magnitude faster than KneadData (10--13×); with QC included, RustyClean
-remained 5.7--6.1× faster than KneadData. With the deacon-based default
-backend this residual accuracy gap closes entirely (Section 3.1).
-
-**Table 6.** Matched-panel comparison on four single-end simulated
-datasets. RC = RustyClean in the legacy auto mode with Kraken2 + Bowtie2
-recheck for high-host samples and Bowtie2 for low-host samples
-(`--skip-qc`, depletion only, Kraken2 database on node-local storage);
-Hostile = default T2T+HLA Bowtie2 index; KD = KneadData with T2T Bowtie2
-index. F1 is shown for the 100 M subset where Hostile accuracy was
-measured; for the 30 M and 60 M datasets only RustyClean F1 is reported.
-Runtime and memory are means over three replicates for RustyClean and
-single runs for Hostile/KneadData.
-
-| **Dataset** | **Tool** | **F1** | **Runtime (min)** | **Memory (GB)** | **vs Hostile runtime** |
-|-------------|----------|--------|-------------------|-----------------|------------------------|
-| 30M / 50% | RC | 0.9970 | 4.5 | 15.5 | 1.30× faster |
-| 30M / 50% | Hostile | --- | 5.8 | 3.6 | --- |
-| 30M / 50% | KD | --- | 38.0 | 1.1 | 6.55× slower |
-| 60M / 90% | RC | 0.9951 | 8.2 | 15.5 | 1.45× faster |
-| 60M / 90% | Hostile | --- | 11.9 | 3.6 | --- |
-| 60M / 90% | KD | --- | 104.3 | 1.1 | 12.72× slower |
-| 100M / 50% | RC | 0.9970 | 14.9 | 15.6 | 1.86× faster |
-| 100M / 50% | Hostile | 0.9989 | 27.8 | 3.6 | --- |
-| 100M / 50% | KD | 0.9872 | 224.9 | 1.1 | 8.09× slower |
-| 100M / 90% | RC | 0.9950 | 13.4 | 15.5 | 1.68× faster |
-| 100M / 90% | Hostile | 0.9991 | 22.5 | 3.6 | --- |
-| 100M / 90% | KD | 0.9778 | 241.6 | 1.1 | 10.74× slower |
-
-**Full enhanced panel.** The full enhanced panel of 18 simulated
-datasets (0--99% host fraction, 5--100 M reads, three abundance
-distributions, SE and PE layouts; three replicates per dataset) was
-evaluated with the legacy auto backend (Supplementary Figure S4;
-per-dataset values in Supplementary Table S2). Across 0--90% host
-content RustyClean maintained F1 ≥ 0.995; at 99% host F1 dropped to
-0.980 as the absolute number of retained host reads increased. Runtime
-scaled primarily with sample size and, for high-host samples, with the
-Kraken2 classification step; peak memory was 3.4--4.8 GB on the low-host
-Bowtie2 path and ~15.5 GB on the high-host Kraken2 path --- the resident
-human-only Kraken2 database rather than the read count. That database
-resident size is the practical weakness of the legacy path: it is
-bounded and predictable, but roughly an order of magnitude larger than
-the deacon index (4.76 GB) and the Bowtie2 path (3--5 GB), and on
-network filesystems such as Lustre the database must be copied to
-node-local storage before each job for acceptable runtime.
-
-### 3.6 The depletion backend is interchangeable
+### 3.5 The depletion backend is interchangeable
 
 Because the pipeline treats the depletion step as a replaceable
 component, alternative backends can be substituted without changing the
 surrounding orchestration. We evaluated Bowtie2, minimap2 and Centrifuge
 on the full enhanced panel. Bowtie2 and minimap2 were closely matched on
 accuracy, while Centrifuge showed substantially higher host carry-over
-at high host fractions (F1 0.745 at 99% host versus 0.980 for the legacy
-auto backend) and was not retained as a recommended backend (Figure S1).
-Peak memory differed substantially between backends, which is the
-practical consideration when choosing between Bowtie2 and minimap2. The
-default Tier-1 backend is deacon (Section 3.1), and the same
-interchangeability applies to it; FracMinHash sketching was evaluated
-and rejected (Section 2.11).
+at high host fractions (F1 0.745 at 99% host) and was not retained as a
+recommended backend (Figure S1). Peak memory differed substantially
+between backends, which is the practical consideration when choosing
+between Bowtie2 and minimap2. The default Tier-1 backend is deacon
+(Section 3.1), and the same interchangeability applies to it;
+FracMinHash sketching was evaluated and rejected (Section 2.10).
 
 ## 4. Discussion
 
@@ -963,37 +698,24 @@ privacy matter rather than a technical one --- the calculus reverses.
 RustyClean exposes the verification threshold and the verification pass
 itself as user-facing settings for this reason.
 
-The central result is that, once minimizer-based depletion is available,
-the per-sample backend choice largely disappears: deacon's per-read cost
-is host-fraction-independent, so a single Tier-1 backend suffices across
+The central result is that minimizer-based depletion removes the
+per-sample backend choice: deacon's per-read cost is
+host-fraction-independent, so a single Tier-1 backend suffices across
 the whole host-fraction spectrum, and the live decision becomes
 verification-budget allocation. Minimizer depletion leaves a small
 structural residue of host reads (0.0035--0.0042% of retained output on
 our panel); the adaptive Bowtie2 verification tier removes it entirely
 (0.0000% on every high-host dataset tested) whenever deacon's removed
 proportion crosses the threshold --- precisely the samples in which the
-residue is largest in absolute terms. The legacy per-sample routing
-scheme remains useful for deployments without a deacon index: it
-addresses the runtime half of the asymmetry characterised by Gao et al.
-(k-mer classification is fastest when most reads are host and can be
-discarded in bulk, whereas direct alignment is competitive when most
-reads are microbial and can be rejected early), and it retains the
-conservative property that borderline samples are sent to the safer
-alignment path. Its weakness is memory: the resident Kraken2 database
-(~16 GB) is an order of magnitude larger than the deacon index, which is
-why it is a fallback rather than the default.
+residue is largest in absolute terms.
 
 Two comparisons deserve to be read carefully. First, RustyClean performs
 no tandem-repeat or low-complexity masking, whereas KneadData does; part
 of the runtime advantage over KneadData therefore reflects work not done
 rather than work done faster, and the closer like-for-like comparison is
 against KneadData with repeat masking disabled. Second, Hostile is the
-more demanding baseline. On the matched panel, the legacy Kraken2-based
-configuration's depletion-only step (`--skip-qc`) was 1.30--1.86× faster
-than Hostile and an order of magnitude faster than KneadData, while the
-accuracy gap versus Hostile remained small (ΔF1 ≈ 0.0019 at 50% host;
-ΔF1 ≈ 0.0041 at 90% host). With the deacon-based default this gap
-closes: the full AUTO pipeline is 1.3--2.2× faster than fastp + Hostile
+more demanding baseline, and the deacon-based default meets it on both
+axes: the full AUTO pipeline is 1.3--2.2× faster than fastp + Hostile
 with equal-or-better F1 and zero host carry-over on high-host samples,
 where fastp + Hostile retains ~0.67% (Table 2). KneadData, meanwhile,
 retains the lowest memory footprint of any tool tested (1.16 GB); the
@@ -1020,9 +742,8 @@ sample-level parallelism (7.84× on 8 workers at 98% efficiency) and a
 flat per-worker memory footprint through the shared memory-mapped index;
 and (iv) an independent replication on a Gao-style simulated panel with
 per-read ground truth, spanning 1--90% host content and 5--100 M reads,
-against KneadData, Hostile and the legacy backend. RustyClean
-additionally pins deacon v0.17.0 so that the benchmarked behaviour is
-reproducible.
+against KneadData and Hostile. RustyClean additionally pins deacon
+v0.17.0 so that the benchmarked behaviour is reproducible.
 
 RustyClean\'s contribution is therefore not that minimizer classification
 is inherently more accurate than alignment --- per-read accuracy derives
@@ -1037,20 +758,12 @@ per-read ground truth possible, but it does not reproduce real
 sequencing artefacts, host genome variation, or the divergence between
 an individual\'s genome and the reference, and validation on a real
 cohort with matched host genotypes remains necessary. The primary
-accuracy evaluation covers a matched 100 M-read panel and a broader 18
-simulated-dataset panel; neither includes real sequencing artefacts. The
+accuracy evaluation covers the simulated panel at 1--90% host content and
+5--100 M reads; it does not include real sequencing artefacts, and the
 real-data cohort validates throughput and robustness but not per-read
-accuracy, and downstream impact on taxonomic profiles and assemblies was
-not systematically benchmarked. Paired-end libraries and intermediate
-host fractions near the legacy routing threshold are represented in the
-full panel, but behaviour very close to the threshold remains the regime
-most likely to be mis-routed; the default deacon-based mode does not
-route at all and is not subject to this failure mode. Depletion is
-deterministic, so accuracy was evaluated once per dataset and replication
-applies only to timing. Finally, host-fraction estimation from a small
-subsample was substantially less accurate on a skewed community, and
-while legacy routing tolerated that error, the margin is not guaranteed
-for samples whose true host fraction lies near the threshold.
+accuracy. Downstream impact on taxonomic profiles and assemblies was not
+systematically benchmarked. Depletion is deterministic, so accuracy was
+evaluated once per dataset and replication applies only to timing.
 
 The deacon-based default carries its own limitations. Its accuracy
 depends on index representativeness: a T2T-only human index carries 46×
@@ -1067,14 +780,12 @@ which dominates on small samples (on 5M/1%, deacon itself took 9.6 s of
 the pipeline's 90 s). And deacon remains a preprint at the time of
 writing: although we replicate its reported speed and accuracy on an
 independent panel and pin v0.17.0, its long-term maintenance and
-peer-reviewed validation are not yet established. For this reason the
-peer-reviewed Kraken2-based path is retained as a fallback (Sections
-2.10 and 3.5). Finally, the five-way panel mixes thread counts: the
-deacon and AUTO runs used 16 threads, while the KneadData and Hostile
-figures are the legacy 8-thread runs. A same-thread comparison would
-narrow the speed ratios by at most the thread-count factor (~2×), far
-smaller than the observed 44--130× gap for the deacon depletion step,
-but we note the asymmetry for completeness.
+peer-reviewed validation are not yet established. Finally, the panel
+mixes thread counts: the deacon and AUTO runs used 16 threads, while the
+KneadData and Hostile figures are the 8-thread runs. A same-thread
+comparison would narrow the speed ratios by at most the thread-count
+factor (~2×), far smaller than the observed 44--130× gap for the deacon
+depletion step, but we note the asymmetry for completeness.
 
 ## 5. Software and data availability
 
@@ -1119,19 +830,14 @@ converted to a cover letter before submission.]
 
 | # | Reviewer concern | Our response / evidence |
 |---|------------------|-------------------------|
-| 1 | *Why was Kraken2 demoted from the default backend?* | Measured on the same panel, the deacon backend is faster (depletion step 44--130× vs KneadData), 3.4× lower in memory (4.76 GB vs ~16 GB resident Kraken2 database), and more accurate (F1 0.99845--1.00000 with zero carry-over on high-host samples). Kraken2 remains as a documented fallback for deployments without a deacon index, chiefly because deacon is not yet peer-reviewed (Sections 2.10, 3.1 and 3.5). |
-| 2 | *Why is legacy Kraken2 memory so much larger than Hostile?* | The legacy Kraken2 path uses a T2T-only human index (~15.5 GB). The current deacon-based default requires 4.8 GB; KneadData remains lowest at 1.16 GB. Memory is bounded by index size, not sample size, and the memory-aware worker cap prevents overload (Section 2.7). Users can force the Bowtie2 path for low-memory environments. |
-| 3 | *The 99% host F1 drop of the legacy backend looks concerning.* | Expected behaviour of the legacy classification path: when microbial reads are rare, retained host reads dominate the F1 denominator. The absolute host carry-over remains modest, and the default deacon-based mode is not subject to this failure mode (Sections 3.1 and 3.5). |
-| 4 | *The legacy routing thresholds (10% / 30%) seem arbitrary.* | They apply only to the legacy fallback (no deacon index), and were set from measured runtime crossover of the two backends; conservative routing sends borderline samples to the safer alignment path (Section 2.10). The default deacon-based mode does not route at all; it uses a single 0.3 verification threshold on deacon's removed proportion. |
-| 5 | *KneadData includes Trimmomatic and repeat masking; the comparison is not like-for-like.* | Acknowledged. We report KneadData as the de facto standard and note that part of the speed advantage reflects scope differences (Discussion). A `--bypass-trf` comparison would further clarify this. |
-| 6 | *Why not compare with Hostile on all 18 datasets?* | Matched panel was run for all four conditions; full 18-dataset panel is RustyClean-only for computational cost. Cross-species and real-data validation extend generalisability. |
-| 7 | *Is the accuracy evaluation deterministic?* | Yes; depletion is deterministic, so accuracy is reported once per condition and replication applies only to timing (to be stated explicitly in Methods). |
-| 8 | *What about real sequencing artefacts and host genetic variation?* | Limitations section acknowledges this. The 11-sample real cohort validates throughput and robustness, but matched-host-genotype validation remains future work. |
-| 9 | *The legacy auto-survey estimator was inaccurate on the skewed 30M dataset.* | Legacy-fallback routing tolerates estimation error because it only needs the estimate to be on the correct side of a threshold. This is a designed property, not a bug (Section 3.5). The default deacon-based mode does not use the survey. |
-| 10 | *Why is Centrifuge included if it performs poorly?* | Evaluated as an alternative backend and rejected; included to show that the backend is interchangeable and that not all classifiers are suitable (Sections 2.11 and 3.6). |
-| 11 | *Does the pipeline handle ultra-high host fractions (>99%) or very large cohorts?* | 99% host tested on the legacy backend. Cohort-level throughput scales near-linearly with concurrent workers at flat per-worker memory (7.84× on 8 workers; Section 3.4); the memory-aware worker cap protects RAM on shared nodes (Section 2.7). |
-| 12 | *How does the user choose the reference database?* | Default is the deacon panhuman-1 index for human data, with a validated species-matched index set for human (T2T), monkey, mouse, pig, rat and rice; the human panhuman-1 index must not be used for non-human hosts (Section 3.2). Legacy Kraken2/Bowtie2 index options remain available (Section 2.10). |
-| 13 | *What is the practical advantage over running Hostile + fastp, or deacon directly?* | RustyClean integrates QC, adaptive verification (0.0035--0.0042% → 0.0000% host carry on high-host samples), pan-host index support, checkpointing, validation, and bounded concurrency in one binary; on the five-way panel the full pipeline is 1.3--2.2× faster than fastp + Hostile with equal-or-better F1 and zero carry-over (Section 3.1). deacon alone lacks the verification tier, QC and orchestration (Discussion). |
+| 1 | *KneadData includes Trimmomatic and repeat masking; the comparison is not like-for-like.* | Acknowledged. We report KneadData as the de facto standard and note that part of the speed advantage reflects scope differences (Discussion). A `--bypass-trf` comparison would further clarify this. |
+| 2 | *Why not compare with Hostile on all 18 datasets?* | Matched panel was run for all four conditions; the full 18-dataset panel is RustyClean-only for computational cost. Cross-species and real-data validation extend generalisability. |
+| 3 | *Is the accuracy evaluation deterministic?* | Yes; depletion is deterministic, so accuracy is reported once per condition and replication applies only to timing (to be stated explicitly in Methods). |
+| 4 | *What about real sequencing artefacts and host genetic variation?* | Limitations section acknowledges this. The 11-sample real cohort validates throughput and robustness, but matched-host-genotype validation remains future work. |
+| 5 | *Does the pipeline handle very large cohorts?* | Cohort-level throughput scales near-linearly with concurrent workers at flat per-worker memory (7.84× on 8 workers; Section 3.4); the memory-aware worker cap protects RAM on shared nodes (Section 2.7). |
+| 6 | *How does the user choose the reference database?* | Default is the deacon panhuman-1 index for human data, with a validated species-matched index set for human (T2T), monkey, mouse, pig, rat and rice; the human panhuman-1 index must not be used for non-human hosts (Section 3.2). |
+| 7 | *What is the practical advantage over running Hostile + fastp, or deacon directly?* | RustyClean integrates QC, adaptive verification (0.0035--0.0042% → 0.0000% host carry on high-host samples), pan-host index support, checkpointing, validation, and bounded concurrency in one binary; on the panel the full pipeline is 1.3--2.2× faster than fastp + Hostile with equal-or-better F1 and zero carry-over (Section 3.1). deacon alone lacks the verification tier, QC and orchestration (Discussion). |
+| 8 | *Why rely on deacon, which is not yet peer-reviewed?* | It is the fastest available engine by an order of magnitude and we replicate its reported behaviour on an independent panel with pinned v0.17.0. Alternative peer-reviewed backends (Bowtie2, minimap2, Kraken2) remain selectable via `--host-removal-mode`, so the pipeline does not hard-depend on deacon (Sections 2.1 and 3.5). |
 
 ## References
 
@@ -1186,45 +892,13 @@ one measurement (minimap2, 5M dataset) is a cold-start outlier.
 | Centrifuge | 60M / 90% | 0.9938 | 1.171 | 0.760 | 8.6 |
 
 **Supplementary Table S1.** Backend comparison of Figure S1 (accuracy
-and memory). Runtime is described in the text of Section 3.6.
-
-![](figures/fig2_matched_panel.png)
-
-**Figure S2.** Matched-panel runtime and memory comparison, legacy
-Kraken2-based auto configuration. (a) Host-depletion runtime on four
-single-end simulated datasets (30--100 M reads, 50--90% host);
-RustyClean was run with `--skip-qc` so that only the depletion step is
-timed; error bars show standard deviation across three technical
-replicates. (b) Peak resident set size of the largest single process.
-
-![](figures/fig4_speedup.png)
-
-**Figure S3.** RustyClean speedup on the matched panel, legacy
-configuration. Speedup is relative to Hostile (red) and KneadData (tan)
-for the depletion-only step; values are annotated above each bar.
-
-![](figures/fig3_accuracy.png)
-
-**Figure S4.** Accuracy of the legacy Kraken2-based auto backend across
-host fractions from 0% to 99% on the full enhanced panel. The dashed
-grey line marks F1 = 0.99; the value at each anchor point is annotated.
-The drop at 99% host reflects the increased impact of retained host
-reads when microbial reads are rare.
-
-**Supplementary Table S2.** Per-dataset results of the legacy
-Kraken2-based auto backend on the full 18-dataset enhanced panel
-(accuracy and runtime, three replicates for timing) are provided in the
-repository file `data/accuracy_rc_mm_bt_cf_v4.csv` together with the
-performance summary `data/performance_rc_mm_bt_cf_v4_corrected.csv`.
+and memory). Runtime is described in the text of Section 3.5.
 
 **Supplementary data (Section S1).** The machine-readable tables behind
 the deacon-based evaluation are available under `data/deacon_panel/`:
-`five_way_summary.csv` (the five-way means of Table 2),
+`five_way_summary.csv` (the four-way means of Table 2),
 `deacon_metrics.csv` and `auto_metrics.csv` (per-replicate deacon and
 AUTO runs), `cross_species_metrics.csv` (per-species index runs behind
 Table 3 and Figure 4), `index_build_metrics.csv` (species-matched index
-build time, memory and size), `parallel_scaling_deacon.csv` and the
-per-worker RSS samples under `parscale/` (Figure 5),
-`sketch_build_metrics.csv` (FracMinHash sketch builds) and
-`fmh_metrics_partial.csv.bak` (the partial FracMinHash evaluation of
-Section 2.11, covering the 5M/1%, 10M/10% and 30M/50% datasets).
+build time, memory and size), and `parallel_scaling_deacon.csv` with the
+per-worker RSS samples under `parscale/` (Figure 5).
