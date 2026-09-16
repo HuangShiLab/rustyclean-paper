@@ -392,9 +392,22 @@
       <span><b>项目目录</b> /lustre1/g/aos_shihuang/rustyclean-paper</span>
       <span><b>作业总数</b> 73 + 25 并行</span>
       <span><b>测量条数</b> 136 + 16 准确性 + 25 并行</span>
-      <span><b>更新</b> 2026-09-09</span>
+      <span><b>更新</b> 2026-09-16</span>
     </div>
   </header>
+
+  <div class="flag" data-tone="wait">
+    <h4>2026-09-16 审计范围</h4>
+    <p>
+      本报告的主体数据来自<b>旧版 auto 路由</b>（Bowtie2/Kraken2/sylph），
+      仍然是这些运行的有效审计记录；但当前投稿稿的默认 Tier-1 已改为
+      <b>deacon + 条件性 Bowtie2 verification</b>，其四路对比、跨物种与真实数据结果在
+      <code>manuscript/RustyClean_Manuscript_Draft.md</code> 和
+      <code>data/deacon_panel/</code> 中。<b>本报告不能直接当作当前默认流程的性能摘要引用。</b>
+      另外，<code>--mm</code> 代码修复未包含在下述旧测量中；在完成并行复测前，
+      其内存收益仍不能写成实测结论。
+    </p>
+  </div>
 
   <div class="tally">
     <div><span class="n done">全部</span><span class="k">实验已完成</span></div>
@@ -638,7 +651,9 @@
     <h2><span class="num">03</span>已得到的结果</h2>
     <p class="lede">
       运行时间与内存峰值来自 <code>/usr/bin/time -v</code>,每次工具调用一条记录,合计 136 条,
-      汇总于 <code>runs/summary/resources.csv</code>。<b>准确性数字尚不可用</b>,原因见第 07 节。
+      汇总于 <code>runs/summary/resources.csv</code>。准确性来自四个对比数据集的逐条
+      ground-truth 核对,汇总于 <code>scratch/accuracy_comparison.csv</code>;更细的口径和
+      失败重跑记录见第 07 节。
     </p>
 
     <div class="flag" data-tone="void">
@@ -1352,8 +1367,9 @@
       </div>
       <p>
         差别在调用方式,而查过代码后可以说得更准:<b>RustyClean 的去宿主一直在用
-        <code>--mm</code></b>(<code>pipeline.rs:1232 / 1243</code>),没用的是另外两处——
-        <b>survey</b>(<code>pipeline.rs:504</code>)和 <b>recheck</b>(<code>pipeline.rs:1009</code>)。
+        <code>--mm</code></b>,此前没用的另外两处是
+        <b>survey</b> 和 <b>recheck</b>。<b>2026-09-16 上游已给这两处补上 <code>--mm</code></b>;
+        本节数字是修复前的测量,只用于定位原因,不能当作修复后的性能证据。
         数字正好对上:W=1 时匿名内存 3.50 GB ≈ <b>一份</b> bowtie2 T2T 索引,
         W=8 时 27.5 GB ≈ 8 份。<b>线性增长的是 survey 的私有索引副本,不是去宿主。</b>
         修法是给这两处各加一个 <code>--mm</code>——比原先设想的更小、更定点。
@@ -1601,12 +1617,11 @@
       </p>
     </div>
 
-    <div class="flag" data-tone="void">
-      <h4>给 survey 和 recheck 的 bowtie2 加上 <code>--mm</code></h4>
+    <div class="flag" data-tone="run">
+      <h4>survey 和 recheck 的 <code>--mm</code> 已修,需并行复测</h4>
       <p>
         16 路并发时 Hostile 峰值 1.20 GB,RustyClean 55.0 GB,<b>相差 46 倍</b>。
-        去宿主本身<b>已经</b>用了内存映射索引(<code>pipeline.rs:1232 / 1243</code>);
-        漏掉的是 survey(<code>:504</code>)和 recheck(<code>:1009</code>),
+        去宿主本身<b>已经</b>用了内存映射索引;此前漏掉的是 survey 和 recheck,
         它们各自载入一份私有副本。W=1 时 3.50 GB ≈ 一份索引、W=8 时 27.5 GB ≈ 八份,
         与"每 worker 一份 survey 索引"完全吻合。
       </p>
@@ -1614,6 +1629,8 @@
         这不只是内存好看的问题——它<b>决定了并发的上限</b>。128 GB 的节点上 RustyClean 到 W=16
         就接近撞墙,Hostile 还远没有。而 <code>auto</code> 对低宿主样品恰恰<b>总是</b>要跑 survey,
         所以这个开关影响的正是最常见的那条路径。
+        <b>2026-09-16 状态:上游已为这两处补上 <code>--mm</code>,编译检查通过;
+        但修复后的并行内存/吞吐数据尚未复测,报告中的 46× 差距仍是修复前数字。</b>
       </p>
     </div>
 
