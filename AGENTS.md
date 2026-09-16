@@ -1,5 +1,12 @@
 # RustyClean Benchmark Suite — AI Agent Guide
 
+> **Current status note (2026-09):** The manuscript's default pipeline is the
+> two-tier `fastp → deacon → conditional Bowtie2 verification` design, not the
+> original Kraken2-only minimal pipeline described in the historical sections
+> below. `README.md` and `RUN_ALL.md` are the current entry points; treat the
+> original minimal/standard walkthroughs as legacy unless a task explicitly
+> asks for them.
+
 > 本文件面向不了解本项目的 AI coding agent。阅读后可快速掌握项目结构、技术栈、构建/运行方式、代码风格与常见注意事项。
 > 项目内注释与文档主要使用中文，因此本指南采用中文撰写。
 

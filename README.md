@@ -5,22 +5,37 @@ This repository contains the benchmark paper materials for **RustyClean**, a hig
 The repository provides:
 
 - The manuscript draft (`manuscript/`)
-- Publication-ready figures (`figures/`, fig1–fig4 + figS1)
+- Publication-ready figures (`figures/`)
 - All scripts for data generation, benchmarking, accuracy analysis, and visualization (`scripts/`)
 - Key result metrics and summary tables (`data/`)
 - Early exploratory analyses and outdated manuscript versions (`others/`)
 
-> RustyClean is implemented in Rust and combines `fastp` (QC) with `Kraken2`/`Bowtie2` (host depletion). The benchmark demonstrates that RustyClean achieves comparable accuracy to KneadData and Hostile while being one to two orders of magnitude faster.
+> RustyClean is implemented in Rust and combines `fastp` (QC), deacon-based
+> minimizer depletion, and conditional Bowtie2 verification. The current
+> benchmark focuses on this two-tier design rather than on a fixed
+> Kraken2-versus-Bowtie2 comparison.
 
 ---
 
 ## Key findings
 
-- **Speed**: RustyClean AUTO is ~5–40× faster than KneadData across four standard SE datasets, with the largest gains at high host contamination (≥50%).
-- **Memory**: Peak memory is comparable to or lower than KneadData; the default T2T-only Kraken2 index is ~15.5 GB.
-- **Accuracy**: On 18 enhanced simulated datasets, the F1-score difference between RustyClean and KneadData is <0.02. In the fair skip-QC comparison against Hostile, the F1 difference is <0.01.
-- **Adaptive strategy**: AUTO mode uses a lightweight survey to estimate host fraction. Low-host samples use Kraken2-only; high-host samples automatically enable Bowtie2 recheck, balancing speed and accuracy.
-- **Default database**: A human-only Kraken2 index built from T2T-CHM13v2.0; mixed Kraken2 indexes (e.g., kraken16) are available as an optional taxonomy-aware mode.
+- **Speed**: On the current simulated panel, deacon depletion alone is
+  44–130× faster than the complete KneadData pipeline; the complete
+  RustyClean AUTO pipeline is 3.7–10× faster than KneadData and 1.3–2.3×
+  faster than fastp + Hostile.
+- **Memory**: AUTO peaks at 4.8 GB. The deacon workers share a read-only
+  memory-mapped index, so per-worker RSS stays flat as sample-level
+  concurrency increases.
+- **Accuracy**: AUTO keeps host carry-over at 0.0000% of retained output on
+  every high-host dataset tested while discarding at most 0.31% of microbial
+  reads. Its F1 is at least 0.998 on those samples and is equal to or better
+  than KneadData on the panel.
+- **Adaptive strategy**: AUTO runs fastp, deacon Tier-1 depletion, then
+  Bowtie2 verification only when deacon reports that at least 30% of reads
+  were removed.
+- **Cross-host use**: The default human panhuman-1 index is not interchangeable
+  across species. Species-matched indexes for human (T2T), monkey, mouse, pig,
+  rat and rice are evaluated in the manuscript.
 
 Detailed results and discussion are in `manuscript/RustyClean_Manuscript_Draft.md`.
 
@@ -37,8 +52,8 @@ rustyclean-paper/
 │   ├── main/                      # Index builds, data generation, analysis, figures
 │   ├── benchmark/                 # Comparisons against Hostile / KneadData
 │   └── minimal/                   # Minimal validation workflow
-├── data/                          # Results from the current run (empty until it runs)
-├── figures/                       # Figures from the current run
+├── data/                          # Tracked result summaries for the current run
+├── figures/                       # Current publication figures
 ├── manuscript/                    # Manuscript draft and status deck
 ├── archive/v1/                    # Previous round: results, figures and the
 │   │                              # scripts that produced them. Superseded.
@@ -49,10 +64,10 @@ rustyclean-paper/
 └── LICENSE
 ```
 
-`data/` and `figures/` are empty until a run populates them. The previous
-round's results are preserved under `archive/v1/`, paired with a snapshot of the
-scripts that produced them; `archive/v1/README.md` records the problems that
-motivated the rerun.
+Large FASTQ and intermediate benchmark trees remain outside Git. The tracked
+summaries in `data/deacon_panel/` and `runs/**/metrics/`, together with
+`figures/`, reproduce the manuscript assets. The previous round is preserved
+under `archive/v1/`; its README explains why it was superseded.
 
 ---
 
@@ -71,7 +86,11 @@ Stages are chained with SLURM dependencies, and all database paths come from
 `scripts/hpc/config.sh`. Budget ~500 GB storage, 200 GB RAM for the Kraken2
 build, and 60–80 h of compute.
 
-### Minimal validation workflow (recommended first step)
+### Legacy minimal validation
+
+The standalone minimal workflow is retained from the original project
+validation. It is not the 18-dataset panel behind the current manuscript and
+should not be mixed with current results.
 
 Requirements: ~60 GB storage, ~3 hours, 16 GB RAM.
 
@@ -91,40 +110,29 @@ ls scripts/minimal/results/
 
 The minimal workflow includes 4 core datasets (10M/30M/60M reads, 10%–90% host contamination, SE and PE).
 
-> To upgrade to the full workflow: `bash scripts/minimal/upgrade_to_standard.sh`
+> For the current manuscript workflow, use `scripts/run_all.sh` and follow
+> `RUN_ALL.md`.
 
-### Full standard workflow
+### Regenerate current publication figures
 
-Requirements: ~470 GB storage, ~16 hours, 32 GB RAM.
+After updating a CSV under `data/deacon_panel/`, regenerate the deacon figures:
 
 ```bash
-# 1. Install the environment
-bash scripts/main/setup_env.sh
-conda activate rustyclean-benchmark
-
-# 2. Generate enhanced simulated data (18 datasets)
-bash scripts/main/generate_enhanced_data.sh
-
-# 3. Run the benchmark (3 replicates)
-bash scripts/main/run_benchmark.sh ./data/enhanced ./results
-
-# 4. Downstream analysis (taxonomy / assembly / CheckM2 / diversity)
-bash scripts/main/downstream_analysis.sh ./results ./data/enhanced
-
-# 5. Accuracy analysis
-python scripts/main/analyze_accuracy.py ./data/enhanced ./results ./data/analysis
-
-# 6. Performance analysis and basic visualizations
-python scripts/main/analyze_performance.py ./results ./data/analysis
-
-# 7. Publication-quality figures
-python scripts/main/plot_publication_figures_v2.py ./results ./figures
-
-# 8. Generate report
-python scripts/main/generate_report.py ./results ./manuscript/report.md
+python3 scripts/main/plot_deacon_figures.py data/deacon_panel figures
 ```
 
-### Fair comparisons against Hostile and KneadData
+After editing `manuscript/RustyClean_Manuscript_Draft.md`, regenerate the
+distribution DOCX from the repository root so the relative figure paths
+resolve:
+
+```bash
+pandoc manuscript/RustyClean_Manuscript_Draft.md \
+  --from markdown --to docx \
+  --resource-path=.:manuscript \
+  -o manuscript/RustyClean_Manuscript_Draft.docx
+```
+
+### Rerun comparisons against Hostile and KneadData
 
 | Comparison | Description | Script |
 |-----------|-------------|--------|
@@ -132,29 +140,33 @@ python scripts/main/generate_report.py ./results ./manuscript/report.md
 | vs KneadData (full pipeline) | RustyClean AUTO (with fastp QC) vs KneadData (with Trimmomatic QC) | `scripts/benchmark/run_benchmark.sh` |
 
 Result files:
-- `data/benchmark_results/fair_hostile_skipqc_results.csv`
-- `data/benchmark_results/auto_vs_kneaddata_metrics.csv`
+- `runs/` metric tables collected by the benchmark scripts;
+- `archive/v1/data/` for the superseded comparison outputs referenced by the
+  supplementary backend table.
 
 ---
 
 ## Figures
 
-The figures below are from the previous round and live under `archive/v1/figures/`.
-A rerun regenerates them into `figures/`.
+Current publication assets live under `figures/`.
 
-| Figure | Content | Files |
-|--------|---------|-------|
-| fig1 | Simulated data error and contamination profiles | `archive/v1/figures/fig1_error_profile.*` |
-| fig2 | Matched-panel comparison against Hostile / KneadData (runtime, memory, F1) | `archive/v1/figures/fig2_matched_panel.*` |
-| fig3 | Accuracy across 18 enhanced simulated datasets | `archive/v1/figures/fig3_accuracy.*` |
-| fig4 | Relative speedup and memory efficiency | `archive/v1/figures/fig4_speedup.*` |
-| figS1 | Backend comparison (Kraken2 / Bowtie2 / minimap2) | `archive/v1/figures/figS1_backend_comparison.*` |
+| Figure file | Manuscript figure | Content |
+|-------------|-------------------|---------|
+| `fig2_deacon_panel.*` | Figure 1 | Four-way runtime and memory comparison |
+| `fig3_deacon_accuracy.*` | Figure 2 | Four-way accuracy comparison |
+| `fig5_cross_species.*` | Figure 4 | Species-matched versus human index depletion |
+| `fig6_verification.*` | Figure 3 | Deacon-only versus AUTO host carry-over |
+| `fig7_parallel_scaling.*` | Figure 5 | Sample-level throughput and flat per-worker memory |
+| `figS1_backend_comparison.*` | Figure S1 | Bowtie2, minimap2 and Centrifuge comparison |
 
 ---
 
 ## Databases and reference data
 
-The default configuration uses a **T2T-CHM13v2.0 human-only index**:
+The active configuration uses a **T2T-CHM13v2.0 human-only Kraken2 index** for
+the rerun arms in `RUN_ALL.md`. The manuscript's default Tier-1 arm instead uses
+the deacon panhuman-1 index; Bowtie2 verification and the alternative-backend
+experiments use the alignment indexes below.
 
 | Index | Tool | Size | Example path |
 |-------|------|------|--------------|
@@ -173,6 +185,7 @@ export RUSTYCLEAN=rustyclean
 export KNEADDATA=kneaddata
 export KRAKEN2_DB=/path/to/rustyclean_human_t2t_only/kraken2/t2t_only
 export KNEADDATA_DB=/path/to/kneaddata/hg_39
+export HOST_INDEX=/path/to/rustyclean_human_t2t_only/bowtie2/t2t_only
 ```
 
 ---

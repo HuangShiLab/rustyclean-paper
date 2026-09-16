@@ -326,7 +326,7 @@ def figure_parallel_scaling(data_dir, out_dir):
     width = 0.35
     x = np.arange(len(workers))
     bars = ax.bar(x - width / 2, rss_sum, width, color='#7EB5A6', zorder=3,
-                  label='Σ RSS, all workers (shared pages counted per process)')
+                  label='Σ RSS, all workers')
     ax.bar(x + width / 2, rss_per, width, color='#4A90A4', zorder=3,
            label='RSS per deacon worker')
     ax.set_xlabel('Concurrent workers (samples)')
@@ -335,6 +335,7 @@ def figure_parallel_scaling(data_dir, out_dir):
     ax.set_xticks(x)
     ax.set_xticklabels([str(w) for w in workers])
     ax.legend(fontsize=8, loc='upper left')
+    ax.set_ylim(0, max(max(rss_sum), max(rss_per)) * 1.18)
     for b, v in zip(bars, rss_sum):
         ax.annotate(f'{v:.1f}', xy=(b.get_x() + b.get_width() / 2, v),
                     xytext=(0, 2), textcoords='offset points',
