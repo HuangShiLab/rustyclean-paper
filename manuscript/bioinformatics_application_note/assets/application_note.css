@@ -1,0 +1,15 @@
+@page { size: A4; margin: 18mm 18mm; }
+html { font-family: "Times New Roman", Times, serif; font-size: 10.2pt; line-height: 1.32; color: #111; }
+body { margin: 0 auto; }
+header#title-block-header h1.title { font-size: 16pt; line-height: 1.18; margin: 0 0 10px; text-align: center; }
+h1, h2, h3 { font-family: Arial, Helvetica, sans-serif; color: #111; break-after: avoid; }
+h2 { font-size: 11.4pt; margin: 12px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+h3 { font-size: 10.6pt; margin: 9px 0 4px; }
+p { margin: 0 0 7px; text-align: justify; }
+table { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 8.2pt; margin: 5px 0 9px; }
+th, td { border: 1px solid #777; padding: 3px 4px; vertical-align: top; }
+th { background: #ececec; text-align: left; }
+figure { margin: 8px 0 10px; break-inside: avoid; text-align: center; }
+img { max-width: 100%; height: auto; }
+figcaption { font-family: Arial, Helvetica, sans-serif; font-size: 8.1pt; text-align: left; margin-top: 4px; line-height: 1.2; }
+a { color: #10497a; text-decoration: none; word-break: break-word; }
