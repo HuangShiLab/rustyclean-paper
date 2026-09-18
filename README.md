@@ -19,17 +19,17 @@ The repository provides:
 
 ## Key findings
 
-- **Speed**: On the current simulated panel, deacon depletion alone is
-  44–130× faster than the complete KneadData pipeline; the complete
-  RustyClean AUTO pipeline is 3.7–10× faster than KneadData and 1.3–2.3×
-  faster than fastp + Hostile.
-- **Memory**: AUTO peaks at 4.8 GB. The deacon workers share a read-only
+- **Speed**: On the current six-dataset simulated panel, deacon depletion
+  alone is 41–130× faster than KneadData, and complete RustyClean AUTO is
+  3.45–10.19× faster than KneadData and 1.29–2.30× faster than
+  fastp + Hostile.
+- **Memory**: AUTO peaks at 4.54 GiB. The deacon workers share a read-only
   memory-mapped index, so per-worker RSS stays flat as sample-level
   concurrency increases.
 - **Accuracy**: AUTO keeps host carry-over at 0.0000% of retained output on
   every high-host dataset tested while discarding at most 0.31% of microbial
-  reads. Its F1 is at least 0.998 on those samples and is equal to or better
-  than KneadData on the panel.
+  reads. Its high-host F1 is at least 0.998, and it exceeds KneadData across
+  the panel.
 - **Adaptive strategy**: AUTO runs fastp, deacon Tier-1 depletion, then
   Bowtie2 verification only when deacon reports that at least 30% of reads
   were removed.
@@ -118,7 +118,7 @@ The minimal workflow includes 4 core datasets (10M/30M/60M reads, 10%–90% host
 After updating a CSV under `data/deacon_panel/`, regenerate the deacon figures:
 
 ```bash
-python3 scripts/main/plot_deacon_figures.py data/deacon_panel figures
+python3 scripts/main/plot_main_figures.py
 ```
 
 After editing `manuscript/RustyClean_Manuscript_Draft.md`, regenerate the
@@ -152,11 +152,10 @@ Current publication assets live under `figures/`.
 
 | Figure file | Manuscript figure | Content |
 |-------------|-------------------|---------|
-| `fig2_deacon_panel.*` | Figure 1 | Four-way runtime and memory comparison |
-| `fig3_deacon_accuracy.*` | Figure 2 | Four-way accuracy comparison |
-| `fig5_cross_species.*` | Figure 4 | Species-matched versus human index depletion |
-| `fig6_verification.*` | Figure 3 | Deacon-only versus AUTO host carry-over |
-| `fig7_parallel_scaling.*` | Figure 5 | Sample-level throughput and flat per-worker memory |
+| `fig1_four_way_runtime_memory.*` | Figure 1 | Four-way runtime and memory comparison |
+| `fig2_accuracy_verification.*` | Figure 2 | Accuracy and verification-tier comparison |
+| `fig3_cross_species_index.*` | Figure 3 | Species-matched versus human index depletion |
+| `fig4_parallel_scaling.*` | Figure 4 | Sample-level throughput and flat per-worker memory |
 | `figS1_backend_comparison.*` | Figure S1 | Bowtie2, minimap2 and Centrifuge comparison |
 
 ---

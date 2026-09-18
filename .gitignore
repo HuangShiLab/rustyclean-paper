@@ -75,8 +75,14 @@ scratch/**
 !runs/summary/*.txt
 data/*
 !data/.gitkeep
+!data/main_figures/
+!data/main_figures/**
 figures/*
 !figures/.gitkeep
+!figures/fig1_four_way_runtime_memory.*
+!figures/fig2_accuracy_verification.*
+!figures/fig3_cross_species_index.*
+!figures/fig4_parallel_scaling.*
 .conda_envs/
 
 # Fingerprint files are results, the same as the CSVs: 120 lines of sample id

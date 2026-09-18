@@ -1,0 +1,5 @@
+tool,dataset,rep,elapsed_s,max_rss_kb,accuracy,precision,recall,f1,microbial_loss_pct,host_carry_pct
+kneaddata,100M_50pct_high_lognormal_SE,1,6419.0,1157152,0.988783,0.997001,0.978486,0.987656,2.1514,0.2493
+kneaddata,100M_90pct_high_lognormal_SE,1,8271.0,1149112,0.995866,0.973610,0.978467,0.976032,2.1533,0.2496
+hostile_fastp,100M_50pct_high_lognormal_SE,1,1284.9,3772672,0.998881,0.997956,0.999607,0.998781,0.0393,0.1734
+hostile_fastp,100M_90pct_high_lognormal_SE,1,1860.7,3733244,0.998376,0.981840,0.999612,0.990647,0.0388,0.1740

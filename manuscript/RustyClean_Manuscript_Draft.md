@@ -21,15 +21,15 @@ summary reports a removed proportion above a configurable threshold
 fraction, no per-sample routing between backends is required; the live
 decision becomes verification-budget allocation. On simulated
 metagenomes spanning 1--90% host content with per-read ground truth,
-the deacon depletion step alone was 44--130× faster than the complete
+the deacon depletion step alone was 41--130× faster than the complete
 KneadData pipeline, and the full RustyClean AUTO pipeline was
-3.7--10× faster than KneadData and 1.3--2.3× faster than
-fastp + Hostile while matching or exceeding their accuracy (F1 ≥ 0.998
-on high-host samples), reducing host carry-over to 0.0000% of retained
-output on every high-host dataset tested --- against ~0.67% for
-Hostile and ~0.25% for KneadData --- and discarding at most 0.31% of
+3.45--10.19× faster than KneadData and 1.29--2.30× faster than
+fastp + Hostile across all six libraries,
+with high-host F1 ≥ 0.998 and host carry-over reduced to 0.0000% of retained
+output on every high-host dataset tested --- against 0.17--0.68% for
+Hostile and 0.25% for KneadData --- and discarding at most 0.31% of
 microbial reads, against 1.4--4.0% for KneadData. Peak memory was
-4.8 GB, above KneadData's 1.2 GB but bounded by index size rather
+4.54 GiB, above KneadData's 1.09 GiB but bounded by index size rather
 than sample size. Sample-level parallelism scaled near-linearly (7.84×
 on 8 workers, 98% parallel efficiency) with a flat per-worker memory
 footprint, because all workers share a single memory-mapped copy of the
@@ -182,10 +182,9 @@ RustyClean processes each sample through four stages:
 
 Samples may be supplied individually or as a tab-separated sample
 manifest; single-end and paired-end layouts are detected automatically
-and handled throughout. Alternative depletion backends (Bowtie2,
-minimap2, Kraken2, sylph, Centrifuge) remain available as explicit
-options (`--host-removal-mode`) but are not used by the default
-AUTO configuration (Sections 2.10 and 3.5).
+and handled throughout. Alternative depletion backends were benchmarked separately
+(Sections 2.10 and 3.5), but the streamlined production CLI exposes only
+the default AUTO pipeline and a deacon-only benchmarking mode.
 
 ### 2.2 Quality control
 
@@ -244,7 +243,8 @@ large. Both the threshold and the pass itself are user-configurable.
 No Tier-1 backend removes every host read: minimizer-based depletion
 leaves a small structural residue (~0.0035--0.0042% of retained output
 on our panel). RustyClean therefore implements a verification pass
-(`--bowtie2-recheck`) in which the reads retained by the Tier-1 backend
+(enabled by default in AUTO and controlled
+by `--recheck-threshold` / `--no-bowtie2-recheck`) in which the reads retained by the Tier-1 backend
 are aligned against the host Bowtie2 index and those that align are
 removed. Only the retained set is re-screened, so reads already
 identified as host are never realigned.
@@ -315,8 +315,8 @@ samples are not started after a shutdown signal.
 
 **Implementation.** RustyClean is \~1,300 lines of Rust built on the
 Tokio asynchronous runtime, distributed as a single binary with no
-language runtime dependency. External dependencies are the fastp,
-deacon, Kraken2, and Bowtie2 executables. Source is available at
+language runtime dependency. External dependencies are the fastp, deacon,
+Bowtie2 and samtools executables. Source is available at
 <https://github.com/HuangShiLab/rustyclean> under the MIT licence.
 
 ### 2.8 Benchmark design
@@ -411,8 +411,8 @@ runtime over direct Bowtie2 removal for host-positive samples, and the
 added survey overhead erased any potential speed advantage. We also
 confirmed that sylph cannot provide read-level classifications and
 therefore cannot be used as a direct substitute for a per-read depletion
-backend. Consequently, sylph is retained only as an optional explicit
-backend and is not used by the default auto-mode router.
+backend. Consequently, sylph is not exposed in the streamlined
+production CLI and is not used by AUTO.
 
 We also evaluated a FracMinHash (FMH) sketching backend, in which each
 read is sketched and queried against a FracMinHash sketch of the host
@@ -443,12 +443,15 @@ Because deacon's per-read cost is independent of host fraction, the
 four-way comparison in Table 2 required no per-sample routing: every
 sample passed through the same fastp → deacon → conditional-Bowtie2
 verification chain, with only the verification decision varying. The
-table reports, per dataset, KneadData (full pipeline), fastp + Hostile
-(full pipeline), deacon alone (depletion only, quality control skipped)
-and the RustyClean AUTO pipeline with deacon as the Tier-1 backend
-(full pipeline).
+table reports all four tools for all six datasets. KneadData and Hostile
+100M runs are single measurements because of cost; RustyClean/deacon
+timing is replicated as described in Methods. The table reports, per
+dataset, KneadData (full pipeline), fastp + Hostile (full pipeline),
+deacon alone (depletion only, quality control skipped) and the
+RustyClean AUTO pipeline with deacon as the Tier-1 backend (full
+pipeline).
 
-![](figures/fig2_deacon_panel.png)
+![](figures/fig1_four_way_runtime_memory.png)
 
 **Figure 1.** Four-way comparison on the simulated panel.
 (a) Runtime (log scale; basis as stated in Table 2 --- full pipeline
@@ -457,44 +460,56 @@ depletion only for deacon). (b) Peak resident set size of the largest
 single process.
 
 **Table 2.** Four-way comparison on the simulated panel. Runtime and
-peak memory are means over three replicates; F1, microbial loss and
-host carry-over are single evaluations (depletion is deterministic).
+peak memory are means over completed timing replicates; comparator 100M
+runs are single measurements because of cost. F1, microbial loss and
+host carry-over are single evaluations because depletion and alignment
+are deterministic. The AUTO 100M/90% runtime is the mean of two uncached
+replicates; a 2.2 s checkpoint-resumed replicate was excluded. The
+displayed memory is peak resident set size in GiB.
 Basis: KneadData, Hostile + fastp and the AUTO configuration
 are full-pipeline runs (QC plus depletion, plus verification where
 triggered); deacon is the depletion step alone (`--skip-qc`).
-"---" marks conditions that were not run.
 
-| **Dataset** | **Tool** | **Runtime (s)** | **Memory (GB)** | **F1** | **Microbial loss (%)** | **Host carry (%)** |
+| **Dataset** | **Tool** | **Runtime (s)** | **Memory (GiB)** | **F1** | **Microbial loss (%)** | **Host carry (%)** |
 |-------------|----------|-----------------|-----------------|--------|------------------------|--------------------|
-| 5M / 1% | KneadData | 420.3 | 1.14 | 0.97981 | 3.956 | 0.2688 |
-| 5M / 1% | Hostile + fastp | 186.6 | 3.54 | 0.99997 | 0.000 | 0.6858 |
-| 5M / 1% | deacon (depletion only) | 9.6 | 4.76 | 1.00000 | 0.000 | 0.0042 |
-| 5M / 1% | RustyClean AUTO (deacon) | 90.4 | 4.76 | 1.00000 | 0.000 | 0.0042 |
-| 10M / 10% | KneadData | 694.5 | 1.16 | 0.98571 | 2.791 | 0.2555 |
-| 10M / 10% | Hostile + fastp | 326.5 | 3.73 | 0.99923 | 0.079 | 0.6745 |
-| 10M / 10% | deacon (depletion only) | 13.0 | 4.76 | 0.99881 | 0.238 | 0.0037 |
-| 10M / 10% | RustyClean AUTO (deacon) | 142.0 | 4.76 | 0.99881 | 0.238 | 0.0037 |
-| 30M / 50% | KneadData | 2317.5 | 1.16 | 0.99098 | 1.425 | 0.2500 |
-| 30M / 50% | Hostile + fastp | 840.3 | 3.76 | 0.99501 | 0.000 | 0.6758 |
-| 30M / 50% | deacon (depletion only) | 28.6 | 4.76 | 0.99997 | 0.000 | 0.0037 |
-| 30M / 50% | RustyClean AUTO (deacon) | 622.3 | 4.76 | 1.00000 | 0.000 | 0.0000 |
-| 60M / 90% | KneadData | 6822.0 | 1.16 | 0.97603 | 2.154 | 0.2496 |
-| 60M / 90% | Hostile + fastp | 1456.4 | 3.78 | 0.96522 | 0.039 | 0.6745 |
-| 60M / 90% | deacon (depletion only) | 52.4 | 4.76 | 0.99921 | 0.120 | 0.0036 |
-| 60M / 90% | RustyClean AUTO (deacon) | 669.5 | 4.76 | 0.99845 | 0.309 | 0.0000 |
-| 100M / 50% | deacon (depletion only) | 153.4 | 4.76 | 0.99937 | 0.121 | 0.0035 |
-| 100M / 50% | RustyClean AUTO (deacon) | 1684.9 | 4.76 | 0.99845 | 0.310 | 0.0000 |
-| 100M / 90% | deacon (depletion only) | 202.4 | 4.76 | 0.99920 | 0.120 | 0.0037 |
-| 100M / 90% | RustyClean AUTO (deacon) | --- | --- | --- | --- | --- |
+| 5M / 1% | KneadData | 420.3 | 1.09 | 0.97981 | 3.956 | 0.2688 |
+| 5M / 1% | Hostile + fastp | 186.6 | 3.38 | 0.99997 | 0.000 | 0.6858 |
+| 5M / 1% | deacon (depletion only) | 9.6 | 4.54 | 1.00000 | 0.000 | 0.0042 |
+| 5M / 1% | RustyClean AUTO (fastp + deacon + conditional Bowtie2 verification) | 90.4 | 4.54 | 1.00000 | 0.000 | 0.0042 |
+| 10M / 10% | KneadData | 694.5 | 1.11 | 0.98571 | 2.791 | 0.2555 |
+| 10M / 10% | Hostile + fastp | 326.5 | 3.55 | 0.99923 | 0.079 | 0.6745 |
+| 10M / 10% | deacon (depletion only) | 13.0 | 4.54 | 0.99881 | 0.238 | 0.0037 |
+| 10M / 10% | RustyClean AUTO (fastp + deacon + conditional Bowtie2 verification) | 142.0 | 4.54 | 0.99881 | 0.238 | 0.0037 |
+| 30M / 50% | KneadData | 2317.5 | 1.11 | 0.99098 | 1.425 | 0.2500 |
+| 30M / 50% | Hostile + fastp | 840.3 | 3.58 | 0.99501 | 0.000 | 0.6758 |
+| 30M / 50% | deacon (depletion only) | 28.6 | 4.54 | 0.99997 | 0.000 | 0.0037 |
+| 30M / 50% | RustyClean AUTO (fastp + deacon + conditional Bowtie2 verification) | 622.3 | 4.54 | 1.00000 | 0.000 | 0.0000 |
+| 60M / 90% | KneadData | 6822.0 | 1.11 | 0.97603 | 2.154 | 0.2496 |
+| 60M / 90% | Hostile + fastp | 1456.4 | 3.60 | 0.96522 | 0.039 | 0.6745 |
+| 60M / 90% | deacon (depletion only) | 52.4 | 4.54 | 0.99921 | 0.120 | 0.0036 |
+| 60M / 90% | RustyClean AUTO (fastp + deacon + conditional Bowtie2 verification) | 669.5 | 4.54 | 0.99845 | 0.309 | 0.0000 |
+| 100M / 50% | KneadData | 6419.0 | 1.10 | 0.98766 | 2.151 | 0.2493 |
+| 100M / 50% | Hostile + fastp | 1284.9 | 3.60 | 0.99878 | 0.039 | 0.1734 |
+| 100M / 50% | deacon (depletion only) | 153.4 | 4.54 | 0.99937 | 0.121 | 0.0035 |
+| 100M / 50% | RustyClean AUTO (fastp + deacon + conditional Bowtie2 verification) | 1684.9 | 4.54 | 0.99845 | 0.310 | 0.0000 |
+| 100M / 90% | KneadData | 8271.0 | 1.10 | 0.97603 | 2.153 | 0.2496 |
+| 100M / 90% | Hostile + fastp | 1860.7 | 3.56 | 0.99065 | 0.039 | 0.1740 |
+| 100M / 90% | deacon (depletion only) | 202.4 | 4.54 | 0.99920 | 0.120 | 0.0037 |
+| 100M / 90% | RustyClean AUTO (fastp + deacon + conditional Bowtie2 verification) | 2396.7 | 4.54 | 0.99846 | 0.307 | 0.0000 |
 
-On speed, the deacon depletion step alone (9.6--202.4 s) was 44--130×
-faster than the complete KneadData pipeline, and the full AUTO pipeline
-(90.4--1684.9 s) was 3.7--10.2× faster than KneadData and 1.3--2.3×
-faster than fastp + Hostile on the datasets where all three were run.
-On accuracy, AUTO matched or exceeded every comparator: F1 was
+On speed, the deacon depletion step alone (9.6--202.4 s) was
+40.9--130.2× faster than the complete KneadData pipeline, and the full
+AUTO pipeline (90.4--2396.7 s) was 3.45--10.19× faster than KneadData.
+AUTO was 1.29--2.30× faster than fastp + Hostile across the six datasets.
+On accuracy, AUTO always exceeded KneadData and exceeded or closely
+matched Hostile: F1 was
 0.99845--1.00000 (Figure 2a), against 0.96522--0.99997 for fastp + Hostile and
-0.97603--0.99098 for KneadData. Microbial loss stayed at or below
-0.31% --- up to 13-fold below KneadData (1.4--4.0%), whose Trimmomatic
+0.97603--0.99098 for KneadData. Hostile had a slightly higher F1 on
+10M/10% (0.99923 versus 0.99881) and 100M/50% (0.99878 versus 0.99845);
+AUTO had the higher F1 on the other four datasets. Microbial loss stayed
+at or below
+0.31% --- 7--12-fold below KneadData when deacon/AUTO loss was nonzero
+(KneadData 1.4--4.0%), whose Trimmomatic
 stage over-trims genuine microbial reads --- and was essentially zero
 (<0.001%) on the 5M/1% and 30M/50% datasets.
 
@@ -503,7 +518,7 @@ and AUTO rows. deacon alone left a small structural residue of host
 reads --- 0.0035--0.0042% of retained output, essentially independent
 of host fraction. AUTO, in which the Bowtie2 verification pass fired
 whenever the removed proportion crossed the 0.3 threshold, reduced this
-to 0.0000% on every high-host dataset (Figure 3). The one exception is
+to 0.0000% on every high-host dataset (Figure 2c). The one exception is
 informative: on the 5M/1% dataset (0.9% realised host) the removed
 proportion fell below the threshold, verification correctly did not
 run, and carry-over remained 0.0042% --- with F1 still 1.00000 because
@@ -515,24 +530,21 @@ residue, at less than half the runtime of fastp + Hostile (142 s versus
 326 s). Verification effort is therefore allocated only where the host
 burden justifies it.
 
-![](figures/fig3_deacon_accuracy.png)
+![](figures/fig2_accuracy_verification.png)
 
-**Figure 2.** Accuracy of the four-way comparison. (a) F1 score per
-dataset and tool. (b) Host carry-over as a percentage of retained
+**Figure 2.** Accuracy and verification-tier performance. (a) F1 score
+per dataset and tool. (b) Host carry-over as a percentage of retained
 output (log scale); the dashed line marks 0.01%. Values of exactly
-0.0000% (AUTO on all high-host datasets) cannot be drawn on a log
-scale and are annotated as 0.
+0.0000% cannot be drawn on a log scale and are annotated as 0.
+(c) Host carry-over for deacon alone versus the full RustyClean AUTO
+pipeline (fastp + deacon + conditional Bowtie2 verification) on the
+four high-host datasets whose removed proportion crossed the 0.3
+recheck threshold.
 
-![](figures/fig6_verification.png)
-
-**Figure 3.** The verification tier eliminates deacon's residual host
-reads. Host carry-over of deacon alone versus the full AUTO pipeline
-(deacon plus conditional Bowtie2 verification) on the three datasets
-whose removed proportion crossed the 0.3 recheck threshold.
-
-Peak memory of the AUTO runs was 4.76 GB --- the resident panhuman-1
-index plus working set --- close to fastp + Hostile (3.5--3.8 GB),
-though above KneadData's 1.16 GB, which remains the lowest-memory option
+Peak memory of the AUTO runs was 4.54 GiB --- the resident panhuman-1
+index plus working set --- close to fastp + Hostile (3.38--3.60 GiB),
+though above KneadData's 1.11 GiB, which remains the lowest reported
+single-process-memory option
 (Figure 1b). AUTO's advantage is therefore not raw memory but the
 combination of accuracy, verification and carry-over at a modest,
 index-bounded footprint. As with any index-based backend, memory is
@@ -561,7 +573,7 @@ indexes for the mammalian hosts and 0.3 GB for the smaller rice genome
 
 On a panel of 10 M-read, 50%-host single-end simulated datasets, every
 species' own index achieved F1 0.99986--0.99998, with host carry-over of
-at most 0.006% and microbial loss of at most 0.023% (Table 3, Figure 4).
+at most 0.006% and microbial loss of at most 0.023% (Table 3, Figure 3).
 KneadData, which requires a species-specific Bowtie2 index, again
 performed well (F1 ≈ 0.996 on every host), but below the
 species-matched deacon indexes.
@@ -582,9 +594,9 @@ hosts above. Together with the species-matched results, this indicates
 that minimizer-based depletion is not restricted to human contamination,
 provided the index matches the host.
 
-![](figures/fig5_cross_species.png)
+![](figures/fig3_cross_species_index.png)
 
-**Figure 4.** Cross-species depletion accuracy on 10 M-read, 50%-host
+**Figure 3.** Cross-species depletion accuracy on 10 M-read, 50%-host
 simulated datasets. F1 with each species' own deacon index (steel blue)
 versus the human panhuman-1 index (muted red). The panhuman-1 index
 preserves accuracy only on human data; on non-human hosts it wrongly
@@ -633,16 +645,15 @@ fraction, below the verification threshold, so each sample executes
 fastp plus deacon only) with *T* = 4 and *W* ∈ {1, 2, 4, 8} on a single
 64-core AMD node.
 
-Throughput scaled near-linearly (Figure 5): wall clock for the 16-sample
+Throughput scaled near-linearly (Figure 4): wall clock for the 16-sample
 cohort dropped from 2,364 s (39m24s) at *W* = 1 to 1,153 s at *W* = 2
 (2.05×), 620 s at *W* = 4 (3.81×), and 302 s at *W* = 8 (7.84×; 98%
 parallel efficiency). Per-worker cost stayed constant throughout: the
-resident set of each deacon process was ~3.1--3.7 GB at every worker
-count --- the memory-mapped 3.3 GB panhuman-1 index plus a small private
-workspace. Because all workers map the same read-only index file, the
+resident set of each deacon process was ~4.52 GiB at every worker count
+--- the memory-mapped 3.3 GB panhuman-1 index plus private workspace. Because all workers map the same read-only index file, the
 kernel retains a single physical copy of its pages and each additional
 worker costs only its private workspace (the per-process RSS sum in
-Figure 5c therefore overcounts physical memory; it is shown to make the
+Figure 4c therefore overcounts physical memory; it is shown to make the
 accounting explicit). No alignment-based competitor in our comparison
 offers this combination: the per-sample memory footprint of an alignment
 index (Bowtie2, ~3--5 GB per sample) means the same 8-sample concurrency
@@ -651,17 +662,17 @@ throughput gain.
 
 Together with the memory-aware worker cap described in Section 2.7, this
 makes the default backend suitable for queue-free cohort processing on
-shared-nothing nodes: 16 samples complete in 5 minutes at under 40 GB
-aggregate per-process RSS.
+shared-nothing nodes: 16 samples complete in 5 minutes with an active per-process RSS sum
+below 34 GiB.
 
-![](figures/fig7_parallel_scaling.png)
+![](figures/fig4_parallel_scaling.png)
 
-**Figure 5.** Sample-level parallelism of the deacon backend. Sixteen
+**Figure 4.** Sample-level parallelism of the deacon backend. Sixteen
 identical 10M-read single-end samples (10% host) processed with four
 threads per sample and *W* concurrent workers. (a) Cohort wall time.
 (b) Speedup relative to *W* = 1; the dashed line is ideal linear
 scaling. (c) Resident set size: per deacon worker (steel blue, flat at
-~3.1--3.7 GB) and the sum over all workers (green). Because every worker
+~4.52 GiB) and the sum over all workers (green). Because every worker
 memory-maps the same read-only 3.3 GB index, the kernel shares its
 physical pages across processes and the green sum overcounts true
 physical usage.
@@ -709,12 +720,14 @@ no tandem-repeat or low-complexity masking, whereas KneadData does; part
 of the runtime advantage over KneadData therefore reflects work not done
 rather than work done faster, and the closer like-for-like comparison is
 against KneadData with repeat masking disabled. Second, Hostile is the
-more demanding baseline, and the deacon-based default meets it on both
-axes: the full AUTO pipeline is 1.3--2.3× faster than fastp + Hostile
-with equal-or-better F1 and zero host carry-over on high-host samples,
-where fastp + Hostile retains ~0.67% (Table 2). KneadData, meanwhile,
-retains the lowest memory footprint of any tool tested (1.16 GB); the
-AUTO advantage is accuracy, verification and carry-over at 4.8 GB ---
+more demanding baseline, but the deacon-based default remains
+1.29--2.30× faster across the full panel with comparable F1 on
+high-host samples (maximum difference 0.00033) and zero host carry-over
+where verification fires;
+fastp + Hostile retains 0.17--0.68% host (Table 2). KneadData, meanwhile,
+retains the lowest reported single-process memory footprint in our
+benchmark (1.11 GiB); the AUTO advantage is accuracy, verification and
+carry-over at 4.54 GiB ---
 not raw memory --- and Hostile remains competitive on speed.
 
 **Relationship to deacon.** deacon (Constantinides, Lees and Crook,
@@ -779,7 +792,7 @@ peer-reviewed validation are not yet established. Finally, the panel
 mixes thread counts: the deacon and AUTO runs used 16 threads, while the
 KneadData and Hostile figures are the 8-thread runs. A same-thread
 comparison would narrow the speed ratios by at most the thread-count
-factor (~2×), far smaller than the observed 44--130× gap for the deacon
+factor (~2×), far smaller than the observed 41--130× gap for the deacon
 depletion step, but we note the asymmetry for completeness.
 
 ## 5. Software and data availability
@@ -826,13 +839,13 @@ converted to a cover letter before submission.]
 | # | Reviewer concern | Our response / evidence |
 |---|------------------|-------------------------|
 | 1 | *KneadData includes Trimmomatic and repeat masking; the comparison is not like-for-like.* | Acknowledged. We report KneadData as the de facto standard and note that part of the speed advantage reflects scope differences (Discussion). A `--bypass-trf` comparison would further clarify this. |
-| 2 | *Why is the comparator panel limited to six datasets?* | KneadData runs at 100 M reads cost ~4 h each, so the panel concentrates on the host-fraction and depth range that spans the practical use cases (1--90% host, 5--100 M reads). The cross-species panel and the real-data cohort extend generalisability beyond it. |
+| 2 | *Why is the comparator panel limited to six datasets?* | The six datasets span the practical host-fraction and depth range (1--90% host, 5--100 M reads). All four tools are reported for all six datasets; 100M comparator arms use single runs because KneadData costs ~2--4 h per run. The cross-species panel and the real-data cohort extend generalisability beyond it. |
 | 3 | *Is the accuracy evaluation deterministic?* | Yes; depletion is deterministic, so accuracy is reported once per condition and replication applies only to timing (to be stated explicitly in Methods). |
 | 4 | *What about real sequencing artefacts and host genetic variation?* | Limitations section acknowledges this. The 11-sample real cohort validates throughput and robustness, but matched-host-genotype validation remains future work. |
 | 5 | *Does the pipeline handle very large cohorts?* | Cohort-level throughput scales near-linearly with concurrent workers at flat per-worker memory (7.84× on 8 workers; Section 3.4); the memory-aware worker cap protects RAM on shared nodes (Section 2.7). |
 | 6 | *How does the user choose the reference database?* | Default is the deacon panhuman-1 index for human data, with a validated species-matched index set for human (T2T), monkey, mouse, pig, rat and rice; the human panhuman-1 index must not be used for non-human hosts (Section 3.2). |
-| 7 | *What is the practical advantage over running Hostile + fastp, or deacon directly?* | RustyClean integrates QC, adaptive verification (0.0035--0.0042% → 0.0000% host carry on high-host samples), pan-host index support, checkpointing, validation, and bounded concurrency in one binary; on the panel the full pipeline is 1.3--2.3× faster than fastp + Hostile with equal-or-better F1 and zero carry-over (Section 3.1). deacon alone lacks the verification tier, QC and orchestration (Discussion). |
-| 8 | *Why rely on deacon, which is not yet peer-reviewed?* | It is the fastest available engine by an order of magnitude and we replicate its reported behaviour on an independent panel with pinned v0.17.0. Alternative peer-reviewed backends (Bowtie2, minimap2, Kraken2) remain selectable via `--host-removal-mode`, so the pipeline does not hard-depend on deacon (Sections 2.1 and 3.5). |
+| 7 | *What is the practical advantage over running Hostile + fastp, or deacon directly?* | RustyClean integrates QC, adaptive verification (0.0035--0.0042% → 0.0000% host carry on high-host samples), pan-host index support, checkpointing, validation, and bounded concurrency in one binary; across the six-dataset panel the full pipeline is 1.29--2.30× faster than fastp + Hostile with zero high-host carry-over and comparable-or-better F1 (Section 3.1). deacon alone lacks the verification tier, QC and orchestration (Discussion). |
+| 8 | *Why rely on deacon, which is not yet peer-reviewed?* | It is the fastest available engine by an order of magnitude and we replicate its reported behaviour on an independent panel with pinned v0.17.0. Alternative peer-reviewed backends were benchmarked in a separate pre-simplification research build; the streamlined production CLI is intentionally deacon/AUTO-focused (Sections 2.1 and 3.5). |
 
 ## References
 
@@ -892,11 +905,12 @@ carry-over is the percentage of retained output that is host (Section
 experiments (per-read counts in `archive/v1/data/accuracy_rc_mm_bt_cf_v4.csv`,
 peak memory in `archive/v1/data/performance_rc_mm_bt_cf_v4_corrected.csv`).
 
-**Supplementary data (Section S1).** The machine-readable tables behind
-the deacon-based evaluation are available under `data/deacon_panel/`:
-`five_way_summary.csv` (the four-way means of Table 2),
+**Supplementary data (Section S1).** Per-figure summary tables used
+directly by the plotting code are under `data/main_figures/`. Replicate-
+and comparator-level source tables are under `runs/deacon_panel/metrics/`:
 `deacon_metrics.csv` and `auto_metrics.csv` (per-replicate deacon and
-AUTO runs), `cross_species_metrics.csv` (per-species index runs behind
-Table 3 and Figure 4), `index_build_metrics.csv` (species-matched index
-build time, memory and size), and `parallel_scaling_deacon.csv` with the
-per-worker RSS samples under `parscale/` (Figure 5).
+AUTO runs), `fill_100m_comparators.csv` (single-run KneadData and
+fastp + Hostile 100M measurements), `cross_species_metrics.csv`
+(per-species index runs behind Table 3 and Figure 3),
+`index_build_metrics.csv` (species-matched index build time, memory and
+size), and `parallel_scaling_deacon.csv` (Figure 4 scaling summary).
