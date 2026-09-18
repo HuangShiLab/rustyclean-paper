@@ -1,0 +1,16 @@
+@page { size: A4; margin: 20mm 18mm; }
+html { font-family: "Times New Roman", Times, serif; font-size: 11pt; color: #111; }
+body { max-width: 100%; margin: 0 auto; line-height: 1.42; }
+header#title-block-header h1.title { font-size: 20pt; line-height: 1.2; margin: 0 0 18px; text-align: center; }
+h1, h2, h3, h4 { font-family: Arial, Helvetica, sans-serif; color: #111; break-after: avoid; }
+h2 { font-size: 13pt; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 22px; }
+h3 { font-size: 12pt; margin-top: 16px; }
+p, li { text-align: justify; }
+table { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 7.8pt; margin: 8px 0 16px; table-layout: auto; }
+th, td { border: 1px solid #777; padding: 3px 4px; vertical-align: top; }
+th { background: #ececec; text-align: left; }
+figure { margin: 14px 0 18px; break-inside: avoid; text-align: center; }
+img { max-width: 100%; height: auto; }
+figcaption { font-family: Arial, Helvetica, sans-serif; font-size: 8.4pt; text-align: left; margin-top: 6px; line-height: 1.25; }
+code, pre { font-family: Menlo, Monaco, monospace; font-size: 9pt; }
+a { color: #10497a; text-decoration: none; word-break: break-word; }
