@@ -1,0 +1,31 @@
+tool,dataset,runtime_s,f1,microbial_loss_pct,host_carry_pct,basis,memory_gib
+deacon_skipqc,5M_1pct_low_even_SE,9.6,1.0,0.0,0.0042,skip-qc,4.5395
+hostile_fastp,5M_1pct_low_even_SE,186.6,0.99997,0.0,0.6858,fastp+hostile,3.3756
+kneaddata,5M_1pct_low_even_SE,420.3,0.97981,3.956,0.2688,full pipeline,1.0872
+rc_auto_deacon,5M_1pct_low_even_SE,90.4,1.0,0.0,0.0042,full pipeline,4.5395
+deacon_skipqc,10M_10pct_med_even_SE,13.0,0.99881,0.238,0.0037,skip-qc,4.5395
+hostile_fastp,10M_10pct_med_even_SE,326.5,0.99923,0.079,0.6745,fastp+hostile,3.5542
+kneaddata,10M_10pct_med_even_SE,694.5,0.98571,2.791,0.2555,full pipeline,1.1063
+rc_auto_deacon,10M_10pct_med_even_SE,142.0,0.99881,0.238,0.0037,full pipeline,4.5395
+deacon_skipqc,30M_50pct_high_skewed_SE,28.6,0.99997,0.0,0.0037,skip-qc,4.5395
+hostile_fastp,30M_50pct_high_skewed_SE,840.3,0.99501,0.0,0.6758,fastp+hostile,3.5848
+kneaddata,30M_50pct_high_skewed_SE,2317.5,0.99098,1.425,0.25,full pipeline,1.1063
+rc_auto_deacon,30M_50pct_high_skewed_SE,622.3,1.0,0.0,0.0,full pipeline,4.5395
+deacon_skipqc,60M_90pct_high_lognormal_SE,52.4,0.99921,0.12,0.0036,skip-qc,4.5395
+hostile_fastp,60M_90pct_high_lognormal_SE,1456.4,0.96522,0.039,0.6745,fastp+hostile,3.6026
+kneaddata,60M_90pct_high_lognormal_SE,6822.0,0.97603,2.154,0.2496,full pipeline,1.1063
+rc_auto_deacon,60M_90pct_high_lognormal_SE,669.5,0.99845,0.309,0.0,full pipeline,4.5395
+deacon_skipqc,100M_50pct_high_lognormal_SE,153.4,0.99937,0.121,0.0035,skip-qc,4.5395
+hostile_fastp,100M_50pct_high_lognormal_SE,1284.9,0.998781,0.0393,0.1734,fastp+hostile,3.5979
+kneaddata,100M_50pct_high_lognormal_SE,6419.0,0.987656,2.1514,0.2493,full pipeline,1.1035
+rc_auto_deacon,100M_50pct_high_lognormal_SE,1684.9,0.99845,0.31,0.0,full pipeline,4.5395
+deacon_skipqc,100M_90pct_high_lognormal_SE,202.4,0.9992,0.1198,0.0037,skip-qc,4.5375
+hostile_fastp,100M_90pct_high_lognormal_SE,1860.7,0.990647,0.0388,0.174,fastp+hostile,3.5603
+kneaddata,100M_90pct_high_lognormal_SE,8271.0,0.976032,2.1533,0.2496,full pipeline,1.0959
+rc_auto_deacon,100M_90pct_high_lognormal_SE,2396.7,0.99846,0.3072,0.0,full pipeline,4.5401
+rc_auto_deacon_norecheck,5M_1pct_low_even_SE,141.92,1.0,0.0,0.0042,fastp + deacon; recheck disabled,4.5363
+rc_auto_deacon_norecheck,10M_10pct_med_even_SE,194.97,0.99881,0.2381,0.0037,fastp + deacon; recheck disabled,4.5379
+rc_auto_deacon_norecheck,30M_50pct_high_skewed_SE,324.86,0.99997,0.0055,0.0037,fastp + deacon; recheck disabled,4.5361
+rc_auto_deacon_norecheck,60M_90pct_high_lognormal_SE,683.75,0.99921,0.1199,0.0036,fastp + deacon; recheck disabled,4.54
+rc_auto_deacon_norecheck,100M_50pct_high_lognormal_SE,1228.63,0.99937,0.1211,0.0035,fastp + deacon; recheck disabled,4.543
+rc_auto_deacon_norecheck,100M_90pct_high_lognormal_SE,1483.74,0.9992,0.1198,0.0037,fastp + deacon; recheck disabled,4.541

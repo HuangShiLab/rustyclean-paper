@@ -9,7 +9,7 @@ This directory contains a concise Bioinformatics-style Application Note for Rust
 - `RustyClean_Application_Note.html` — standalone print source.
 - `RustyClean_Application_Note.pdf` — formatted Application Note.
 - `figures/` — combined performance and parallel-scaling figure in PNG, PDF and SVG.
-- `source_data/` — exact CSV summary data underlying the runtime/memory and parallel-scaling panels.
+- `source_data/` — five-tool runtime/memory summary, no-recheck summary and parallel-scaling data.
 - `assets/application_note.css` — formatting used for the PDF.
 - `RustyClean_Application_Note_package.zip` — assembled submission package.
 
@@ -18,12 +18,13 @@ This directory contains a concise Bioinformatics-style Application Note for Rust
 - Application Note label included above the author block.
 - Structured abstract: Summary, Availability and implementation, Supplementary information, Contact.
 - Abstract: 137 words including headings, excluding URLs.
-- Total length: 947 words including references.
+- Total length: 1003 words including references.
 - Rendered PDF: 3 pages, within the 4-page Application Note limit.
 - One combined figure and one compact table.
 - Alphabetical author-year references; only cited references retained.
 - No placeholders remaining.
 - Figure 1 contains the original four-tool performance panels (a,b) above the parallel-scaling panels (c–e).
+- Includes a measured RustyClean AUTO no-recheck arm (fastp + Deacon).
 - Host carry-over uses retained host reads divided by total retained output.
 
 ## Figure regeneration
@@ -39,6 +40,7 @@ python3 scripts/application_note/plot_application_note_figure.py \
 ## Versions cited
 
 - Benchmark research source: RustyClean commit `7ab1a4b`.
+- No-recheck arm: three replicates per dataset, run on HPC2021; summary in `runs/deacon_auto_norecheck/metrics/summary.csv` in the paper repository.
 - Streamlined AUTO interface: RustyClean commit `55f93af`.
 
 ## Rebuild commands

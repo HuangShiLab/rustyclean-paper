@@ -39,18 +39,20 @@ mpl.rcParams.update({
     'pdf.fonttype': 42,
 })
 
-TOOLS = ['kneaddata', 'hostile_fastp', 'deacon_skipqc', 'rc_auto_deacon']
+TOOLS = ['kneaddata', 'hostile_fastp', 'deacon_skipqc', 'rc_auto_deacon', 'rc_auto_deacon_norecheck']
 LABELS = {
     'kneaddata': 'KneadData',
     'hostile_fastp': 'Hostile + fastp',
     'deacon_skipqc': 'Deacon (depletion only)',
     'rc_auto_deacon': 'RustyClean AUTO\n(fastp + deacon + conditional Bowtie2 verification)',
+    'rc_auto_deacon_norecheck': 'RustyClean AUTO without recheck\n(fastp + deacon)',
 }
 COLORS = {
     'kneaddata': '#D4A373',
     'hostile_fastp': '#C75B5B',
     'deacon_skipqc': '#7EB5A6',
     'rc_auto_deacon': '#4A90A4',
+    'rc_auto_deacon_norecheck': '#E17054',
 }
 DATASETS = [
     '5M_1pct_low_even_SE', '10M_10pct_med_even_SE',
@@ -63,7 +65,7 @@ DATASET_LABELS = ['5M / 1%', '10M / 10%', '30M / 50%', '60M / 90%',
 
 def plot_four_way(ax_runtime, ax_memory, perf):
     x = np.arange(len(DATASETS))
-    width = 0.18
+    width = 0.15
     for i, tool in enumerate(TOOLS):
         offset = (i - (len(TOOLS) - 1) / 2) * width
         for j, dataset in enumerate(DATASETS):
@@ -145,7 +147,7 @@ def plot_scaling(ax_wall, ax_speedup, ax_memory, scaling, rss):
 
 def main(data_dir, out_dir):
     data_dir, out_dir = Path(data_dir), Path(out_dir)
-    perf = pd.read_csv(data_dir / 'fig1_four_way_runtime_memory.csv')
+    perf = pd.read_csv(data_dir / 'fig1_five_way_runtime_memory.csv')
     perf = perf.set_index(['tool', 'dataset'])
     scaling = pd.read_csv(data_dir / 'fig4_parallel_scaling.csv')
     rss = pd.read_csv(data_dir / 'fig4_parallel_scaling_rss_samples.csv')

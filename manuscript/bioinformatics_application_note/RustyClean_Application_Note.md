@@ -12,7 +12,7 @@ APPLICATION NOTE
 
 ## Abstract
 
-**Summary:** Host-read depletion must retain microbial signal while removing abundant host DNA. RustyClean is a Rust workflow that combines fastp quality control, Deacon minimizer-based depletion and conditional Bowtie2 verification. Verification is triggered only when Deacon reports a removed fraction above a configurable threshold. On six simulated metagenomes spanning 1–90% host, RustyClean AUTO was 3.45–10.19-fold faster than KneadData and 1.29–2.30-fold faster than fastp+Hostile. On high-host libraries, it achieved F1 ≥0.998, 0.0000% host carry-over and ≤0.31% microbial loss.
+**Summary:** Host-read depletion must retain microbial signal while removing abundant host DNA. RustyClean is a Rust workflow that combines fastp quality control, Deacon minimizer-based depletion and conditional Bowtie2 verification. Verification is triggered only when Deacon reports a removed fraction above a configurable threshold. On six simulated metagenomes spanning 1–90% host, RustyClean AUTO was 3.45–10.19-fold faster than KneadData and 1.29–2.30-fold faster than fastp+Hostile; with verification disabled, it remained 1.05–2.59-fold faster than fastp+Hostile. With verification, AUTO achieved F1 ≥0.998, 0.0000% host carry-over and ≤0.31% microbial loss on high-host libraries.
 
 **Availability and implementation:** RustyClean is implemented in Rust, uses fastp, Deacon, Bowtie2 and samtools, and is available under the MIT licence at https://github.com/HuangShiLab/rustyclean. Benchmark source data are available at https://github.com/HuangShiLab/rustyclean-paper.
 
@@ -32,11 +32,11 @@ The workflow is implemented as a single Rust binary and provides sample manifest
 
 ## 3 Results
 
-On six simulated single-end metagenomes generated with InSilicoSeq and scored with per-read ground truth, RustyClean AUTO required 90.4–2396.7 s across 5–100 million reads (Gourlé et al., 2019). This was 3.45–10.19-fold faster than KneadData v0.12.3 and 1.29–2.30-fold faster than fastp+Hostile (Constantinides et al., 2023; McIver et al., 2018). Deacon depletion alone took 9.6–202.4 s and was 40.9–130.2-fold faster than the complete KneadData pipeline. Peak memory was 4.54 GiB and was bounded by the pangenome index rather than sample size. Cohort-level concurrency scaled near-linearly because all workers shared the same memory-mapped index (Fig. 1c–e).
+On six simulated single-end metagenomes generated with InSilicoSeq and scored with per-read ground truth, RustyClean AUTO required 90.4–2396.7 s across 5–100 million reads (Gourlé et al., 2019). This was 3.45–10.19-fold faster than KneadData v0.12.3 and 1.29–2.30-fold faster than fastp+Hostile (Constantinides et al., 2023; McIver et al., 2018). With Bowtie2 verification disabled, the complete fastp+Deacon workflow averaged 141.9–1483.7 s and remained 1.05–2.59-fold faster than fastp+Hostile across all six datasets. Deacon depletion alone took 9.6–202.4 s and was 40.9–130.2-fold faster than the complete KneadData pipeline. Peak memory was 4.54 GiB and was bounded by the pangenome index rather than sample size. Cohort-level concurrency scaled near-linearly because all workers shared the same memory-mapped index (Fig. 1c–e).
 
-On four high-host datasets (50–90%), Bowtie2 verification reduced host carry-over to 0.0000% of retained output, whereas fastp+Hostile retained 0.17–0.68% and KneadData retained 0.25% (Table 1). RustyClean AUTO maintained F1 ≥0.998 and lost at most 0.31% of microbial reads. Verification therefore provides a practical route to zero measured host carry-over without applying an alignment pass to every low-host sample.
+On four high-host datasets (50–90%), Bowtie2 verification reduced host carry-over to 0.0000% of retained output, whereas fastp+Hostile retained 0.17–0.68% and KneadData retained 0.25% (Table 1). RustyClean AUTO maintained F1 ≥0.998 and lost at most 0.31% of microbial reads. Verification therefore provides a practical route to zero measured host carry-over without applying an alignment pass to every low-host sample. If users prefer the faster fastp+Deacon configuration, disabling recheck preserved F1 ≥0.99881 and microbial loss ≤0.238% across the panel, but retained the Deacon host residue (0.0035–0.0037% on high-host libraries).
 
-![**Fig. 1.** Performance and parallel scaling of RustyClean. (a,b) Runtime and peak memory for four depletion workflows on six simulated metagenomes; runtime is shown on a logarithmic scale, and KneadData, fastp+Hostile and RustyClean AUTO are full pipelines, whereas Deacon is depletion only. (c–e) Sixteen 10M-read samples processed with one to eight concurrent workers: cohort wall time, speedup relative to one worker, and resident set size.](figures/fig1_runtime_memory_scaling.png){width=100%}
+![**Fig. 1.** Performance and parallel scaling of RustyClean. (a,b) Runtime and peak memory for five depletion workflows or arms on six simulated metagenomes; runtime uses a logarithmic scale. KneadData, fastp+Hostile and both RustyClean AUTO arms are full pipelines, whereas Deacon is depletion only. (c–e) Sixteen 10M-read samples processed with one to eight concurrent workers: cohort wall time, speedup relative to one worker, and resident set size.](figures/fig1_runtime_memory_scaling.png){width=100%}
 
 **Table 1.** Accuracy on four high-host simulated datasets.
 
@@ -46,6 +46,7 @@ On four high-host datasets (50–90%), Bowtie2 verification reduced host carry-o
 | fastp+Hostile | 0.96522–0.99878 | 0.000–0.039 | 0.1734–0.6758 |
 | Deacon only | 0.99920–0.99997 | 0.000–0.121 | 0.0035–0.0037 |
 | RustyClean AUTO | 0.99845–1.00000 | 0.000–0.310 | 0.0000 |
+| RustyClean AUTO without recheck | 0.99920–0.99997 | 0.0055–0.1211 | 0.0035–0.0037 |
 
 ## 4 Conclusion
 

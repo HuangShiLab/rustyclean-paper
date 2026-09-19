@@ -1,0 +1,7 @@
+tool,dataset,runtime_s,memory_gib,f1,microbial_loss_pct,host_carry_pct,basis
+rc_auto_deacon_norecheck,5M_1pct_low_even_SE,141.92,4.5363,1.00000,0.0000,0.0042,fastp + deacon; recheck disabled
+rc_auto_deacon_norecheck,10M_10pct_med_even_SE,194.97,4.5379,0.99881,0.2381,0.0037,fastp + deacon; recheck disabled
+rc_auto_deacon_norecheck,30M_50pct_high_skewed_SE,324.86,4.5361,0.99997,0.0055,0.0037,fastp + deacon; recheck disabled
+rc_auto_deacon_norecheck,60M_90pct_high_lognormal_SE,683.75,4.5400,0.99921,0.1199,0.0036,fastp + deacon; recheck disabled
+rc_auto_deacon_norecheck,100M_50pct_high_lognormal_SE,1228.63,4.5430,0.99937,0.1211,0.0035,fastp + deacon; recheck disabled
+rc_auto_deacon_norecheck,100M_90pct_high_lognormal_SE,1483.74,4.5410,0.99920,0.1198,0.0037,fastp + deacon; recheck disabled
