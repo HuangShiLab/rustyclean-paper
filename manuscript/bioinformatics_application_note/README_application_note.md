@@ -9,7 +9,7 @@ This directory contains a concise Bioinformatics-style Application Note for Rust
 - `RustyClean_Application_Note.html` — standalone print source.
 - `RustyClean_Application_Note.pdf` — formatted Application Note.
 - `figures/` — combined performance and parallel-scaling figure in PNG, PDF and SVG.
-- `source_data/` — five-tool runtime/memory summary, no-recheck summary and parallel-scaling data.
+- `source_data/` — five-tool runtime/memory summary, no-recheck summary, Hostile runtime decomposition and parallel-scaling data.
 - `assets/application_note.css` — formatting used for the PDF.
 - `RustyClean_Application_Note_package.zip` — assembled submission package.
 
@@ -24,6 +24,7 @@ This directory contains a concise Bioinformatics-style Application Note for Rust
 - Alphabetical author-year references; only cited references retained.
 - No placeholders remaining.
 - Figure 1 contains the original four-tool performance panels (a,b) above the parallel-scaling panels (c–e).
+- Hostile+fastp runtimes are the sum of independently timed fastp and Hostile stages; the decomposition is in `source_data/hostile_runtime_components.csv`.
 - Includes a measured RustyClean AUTO no-recheck arm (fastp + Deacon).
 - Host carry-over uses retained host reads divided by total retained output.
 

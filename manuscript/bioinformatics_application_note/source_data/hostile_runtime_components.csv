@@ -1,0 +1,7 @@
+dataset,fastp_s,hostile_after_fastp_s,fastp_plus_hostile_s,deacon_only_s,hostile_after_fastp_over_deacon
+5M_1pct_low_even_SE,72.49,114.13,186.62,9.6,11.89
+10M_10pct_med_even_SE,110.03,216.43,326.46,13.0,16.65
+30M_50pct_high_skewed_SE,259.73,580.58,840.31,28.6,20.30
+60M_90pct_high_lognormal_SE,474.57,981.83,1456.40,52.4,18.74
+100M_50pct_high_lognormal_SE,338.59,946.33,1284.92,153.4,6.17
+100M_90pct_high_lognormal_SE,424.20,1436.50,1860.70,202.4,7.10
