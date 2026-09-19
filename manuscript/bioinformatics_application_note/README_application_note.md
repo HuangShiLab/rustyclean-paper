@@ -18,7 +18,7 @@ This directory contains a concise Bioinformatics-style Application Note for Rust
 - Application Note label included above the author block.
 - Structured abstract: Summary, Availability and implementation, Supplementary information, Contact.
 - Abstract: 137 words including headings, excluding URLs.
-- Total length: 1003 words including references.
+- Total length: 1100 words including references.
 - Rendered PDF: 3 pages, within the 4-page Application Note limit.
 - One combined figure and one compact table.
 - Alphabetical author-year references; only cited references retained.

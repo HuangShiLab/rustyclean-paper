@@ -61,10 +61,11 @@ that combines fastp quality control, Deacon minimizer-based depletion
 and conditional Bowtie2 verification. Verification is triggered only
 when Deacon reports a removed fraction above a configurable threshold.
 On six simulated metagenomes spanning 1–90% host, RustyClean AUTO was
-3.45–10.19-fold faster than KneadData and 1.29–2.30-fold faster than
-fastp+Hostile; with verification disabled, it remained 1.05–2.59-fold
-faster than fastp+Hostile. With verification, AUTO achieved F1 ≥0.998,
-0.0000% host carry-over and ≤0.31% microbial loss on high-host
+3.45–10.19-fold faster than KneadData. Without verification, the
+fastp+Deacon workflow was 1.05–2.59-fold faster than fastp+Hostile
+across all six datasets; conditional verification improved high-host
+carry-over at additional runtime. With verification, AUTO achieved F1
+≥0.998, 0.0000% host carry-over and ≤0.31% microbial loss on high-host
 libraries.</p>
 <p><strong>Availability and implementation:</strong> RustyClean is
 implemented in Rust, uses fastp, Deacon, Bowtie2 and samtools, and is
@@ -112,19 +113,23 @@ depletion backends.</p>
 <p>On six simulated single-end metagenomes generated with InSilicoSeq
 and scored with per-read ground truth, RustyClean AUTO required
 90.4–2396.7 s across 5–100 million reads (Gourlé et al., 2019). This was
-3.45–10.19-fold faster than KneadData v0.12.3 and 1.29–2.30-fold faster
-than fastp+Hostile (Constantinides et al., 2023; McIver et al., 2018).
-With Bowtie2 verification disabled, the complete fastp+Deacon workflow
-averaged 141.9–1483.7 s and remained 1.05–2.59-fold faster than
-fastp+Hostile across all six datasets. Deacon depletion alone took
-9.6–202.4 s and was 40.9–130.2-fold faster than the complete KneadData
-pipeline. The Hostile comparator is the sequential fastp+Hostile
-workflow: the plotted times are the sums of independently timed fastp
-and Hostile stages, not Hostile alone. Across the panel, the Hostile
-stage alone required 6.17–20.30-fold longer than Deacon depletion only.
-Peak memory was 4.54 GiB and was bounded by the pangenome index rather
-than sample size. Cohort-level concurrency scaled near-linearly because
-all workers shared the same memory-mapped index (Fig. 1c–e).</p>
+3.45–10.19-fold faster than KneadData v0.12.3 (Constantinides et al.,
+2023; McIver et al., 2018). The complete fastp+Deacon workflow with
+verification disabled averaged 141.9–1483.7 s and was 1.05–2.59-fold
+faster than fastp+Hostile across all six datasets. AUTO with conditional
+verification was 1.35–2.30-fold faster than fastp+Hostile on the 5–60M
+datasets, but the added Bowtie2 pass made it 1.29–1.31-fold slower on
+the two 100M datasets. Thus the large Deacon-versus-Hostile speed
+advantage is diluted once the shared fastp stage—and, for AUTO,
+verification—is included. Deacon depletion alone took 9.6–202.4 s and
+was 40.9–130.2-fold faster than the complete KneadData pipeline. The
+Hostile comparator is the sequential fastp+Hostile workflow: the plotted
+times are the sums of independently timed fastp and Hostile stages, not
+Hostile alone. Across the panel, the Hostile stage alone required
+6.17–20.30-fold longer than Deacon depletion only. Peak memory was 4.54
+GiB and was bounded by the pangenome index rather than sample size.
+Cohort-level concurrency scaled near-linearly because all workers shared
+the same memory-mapped index (Fig. 1c–e).</p>
 <p>On four high-host datasets (50–90%), Bowtie2 verification reduced
 host carry-over to 0.0000% of retained output, whereas fastp+Hostile
 retained 0.17–0.68% and KneadData retained 0.25% (Table 1). RustyClean
