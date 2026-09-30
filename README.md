@@ -26,9 +26,9 @@ The repository provides:
 - **Memory**: AUTO peaks at 4.54 GiB. The deacon workers share a read-only
   memory-mapped index, so per-worker RSS stays flat as sample-level
   concurrency increases.
-- **Accuracy**: AUTO keeps host carry-over at 0.0000% of retained output on
-  every high-host dataset tested while discarding at most 0.31% of microbial
-  reads. Its high-host F1 is at least 0.998, and it exceeds KneadData across
+- **Accuracy**: AUTO keeps host carry-over at 0.0000% of host reads (four
+  decimals) on every high-host dataset tested while discarding at most 0.31%
+  of microbial reads. Its high-host F1 is at least 0.998, and it exceeds KneadData across
   the panel.
 - **Adaptive strategy**: AUTO runs fastp, deacon Tier-1 depletion, then
   Bowtie2 verification only when deacon reports that at least 30% of reads
@@ -65,7 +65,7 @@ rustyclean-paper/
 ```
 
 Large FASTQ and intermediate benchmark trees remain outside Git. The tracked
-summaries in `data/deacon_panel/` and `runs/**/metrics/`, together with
+summaries in `data/main_figures/` and `runs/**/metrics/`, together with
 `figures/`, reproduce the manuscript assets. The previous round is preserved
 under `archive/v1/`; its README explains why it was superseded.
 
@@ -115,7 +115,7 @@ The minimal workflow includes 4 core datasets (10M/30M/60M reads, 10%–90% host
 
 ### Regenerate current publication figures
 
-After updating a CSV under `data/deacon_panel/`, regenerate the deacon figures:
+After updating a CSV under `data/main_figures/`, regenerate the main figures:
 
 ```bash
 python3 scripts/main/plot_main_figures.py

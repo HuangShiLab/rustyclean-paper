@@ -20,12 +20,11 @@ This directory is the clean submission version of the manuscript. It is separate
 - Main figures numbered 1–4; only one supplementary figure is retained.
 - Internal target-journal and peer-review response sections removed.
 - Figure legends, tables and source-data references included.
-- Host carry-over is defined consistently as retained host reads divided by total retained output.
+- Main-text host carry-over is retained host reads divided by all host reads, and F1 treats retained microbial reads as positive, matching the evaluation scripts (`scripts/hpc/fmh_accuracy.py`). Supplementary Table S1 comes from an earlier analysis with different definitions, stated in its caption.
 
 ## Versions cited in the manuscript
 
-- Benchmark research source: RustyClean commit `7ab1a4b`.
-- Streamlined AUTO interface: RustyClean commit `55f93af`.
+- Benchmark research source: RustyClean commit `7ab1a4b` (merged into main).
 
 ## Rebuild commands
 
@@ -54,5 +53,5 @@ pandoc manuscript/bioinformatics_biorxiv/RustyClean_Bioinformatics_biorxiv.md \
 ## Before final upload
 
 - Confirm the final co-author list and any ORCID/competing-interest requirements with the co-author.
-- Replace the two commit identifiers with released tags if tag publication is preferred.
+- Once the deacon workflow is merged into RustyClean main, tag a release and cite it alongside `7ab1a4b`.
 - Upload source data separately if bioRxiv requests CSVs as separate files.

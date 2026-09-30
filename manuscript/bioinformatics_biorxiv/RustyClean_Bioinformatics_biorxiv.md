@@ -15,7 +15,7 @@ Keywords: metagenomics; host DNA depletion; minimizers; Bowtie2; workflow orches
 
 **Motivation:** Host depletion must balance loss of microbial signal against retention of host DNA. Rapid depletion filters are efficient but require quality control, verification and scalable orchestration.
 
-**Results:** RustyClean combines fastp, Deacon minimizer depletion and conditional Bowtie2 verification. Across six simulated metagenomes, RustyClean AUTO was 3.45–10.19-fold faster than KneadData. Conditional verification improved high-host carry-over, although the additional alignment pass reduced the runtime advantage over fastp+Hostile on 100M-read libraries. On high-host libraries, it achieved ≥0.998 F1, 0.0000% host carry-over and ≤0.31% microbial loss. Species-matched Deacon indexes gave F1 ≥0.99986, whereas a human index removed 46.8–99.8% of non-human microbial reads. Eight-worker processing scaled 7.84-fold at near-constant per-worker memory.
+**Results:** RustyClean combines fastp, Deacon minimizer depletion and conditional Bowtie2 verification. Across six simulated metagenomes, RustyClean AUTO was 3.45–10.19-fold faster than KneadData. Conditional verification improved high-host carry-over, although the additional alignment pass reduced the runtime advantage over fastp+Hostile on 100M-read libraries. On high-host libraries, it achieved ≥0.998 F1, host carry-over below 0.00005% of host reads and ≤0.31% microbial loss. Species-matched Deacon indexes gave F1 ≥0.99986, whereas a human index left 46.8–99.8% of non-human host reads in the output. Eight-worker processing scaled 7.84-fold at near-constant per-worker memory.
 
 **Availability and implementation:** RustyClean is Rust software available under the MIT licence at https://github.com/HuangShiLab/rustyclean, with source data and analysis code at https://github.com/HuangShiLab/rustyclean-paper.
 
@@ -35,7 +35,7 @@ RustyClean addresses these gaps by integrating Deacon into a reproducible pipeli
 
 ### 2.1 Pipeline overview
 
-RustyClean AUTO processes each sample through four stages: (i) quality control with fastp; (ii) minimizer-based depletion with Deacon against a user-supplied pangenome index; (iii) conditional Bowtie2 verification; and (iv) validation and finalisation. Single-end and paired-end FASTQ inputs are detected automatically. Samples may be supplied individually or as a manifest. The streamlined production interface exposes only the AUTO pipeline and a `--deacon-only` benchmarking mode; alternative backends used in earlier experiments are not part of the default workflow.
+RustyClean AUTO processes each sample through four stages: (i) quality control with fastp; (ii) minimizer-based depletion with Deacon against a user-supplied pangenome index; (iii) conditional Bowtie2 verification; and (iv) validation and finalisation. Single-end and paired-end FASTQ inputs are detected automatically. Samples may be supplied individually or as a manifest. AUTO is the default mode; `--host-removal-mode deacon` runs Deacon alone without verification. Alternative backends used in earlier experiments (Kraken2, Bowtie2, minimap2, Centrifuge and sylph) remain selectable but are not part of the default workflow.
 
 ### 2.2 Quality control
 
@@ -43,9 +43,9 @@ Reads are processed with fastp (Chen et al., 2018) using automatic paired-end ad
 
 ### 2.3 Depletion and adaptive verification
 
-Deacon v0.17.0 was used with a k31,w15 pangenome index and clean parameters `-d -a 2 -r 0.01`. For human samples, the default Tier-1 index was the published panhuman-1 pangenome index. RustyClean parses the Deacon summary and obtains the removed-read proportion, `seqs_removed_proportion`. If this value is at least the recheck threshold (default 0.30), the retained reads are screened with Bowtie2 (Langmead and Salzberg, 2012) against the human T2T-CHM13v2.0 plus HLA index used by Hostile; aligned reads are removed. Otherwise, the Deacon output is accepted without realignment. Only the retained set is presented to Bowtie2, and the pass can be disabled with `--no-bowtie2-recheck`.
+Deacon v0.17.0 was used with a k31,w15 pangenome index and clean parameters `-d -a 2 -r 0.01`. For human samples, the default Tier-1 index was the published panhuman-1 pangenome index. RustyClean parses the Deacon summary and obtains the removed-read proportion, `seqs_removed_proportion`. If this value is at least the recheck threshold (default 0.30), the retained reads are screened with Bowtie2 (Langmead and Salzberg, 2012; `--very-fast-local`) against the human T2T-CHM13v2.0 plus HLA index used by Hostile; aligned reads are removed. Otherwise, the Deacon output is accepted without realignment. Only the retained set is presented to Bowtie2. The threshold is set with `--recheck-threshold`, and the pass can be disabled with `--no-recheck`.
 
-Before promotion to the final output directory, each sample must pass two assertions: output FASTQ files must exceed a configurable minimum size, and the estimated residual host fraction must not exceed a configurable maximum (default 5%). Failed samples remain visibly failed and are not consumed by downstream steps.
+Before promotion to the final output directory, each sample must pass two assertions: output FASTQ files must exceed a configurable minimum size (default 1 kB), and the fraction of input reads removed as host must not exceed a configurable maximum (`--max-contamination`; disabled by default). Failed samples remain visibly failed and are not consumed by downstream steps.
 
 ### 2.4 Orchestration
 
@@ -68,7 +68,7 @@ Six single-end simulated metagenomes were generated with InSilicoSeq v2.0.0 (Gou
 
 ### 2.6 Accuracy and performance metrics
 
-Treating host as the positive class, microbial read loss was the number of true microbial reads removed divided by all true microbial reads. Host carry-over was the number of host reads retained divided by the total retained output and is reported as a percentage. F1 was the harmonic mean of precision and recall for host calls. Runtime was sample-level wall time for individual libraries or cohort wall time for parallel batches. Peak memory was maximum resident set size and is reported in GiB unless stated otherwise.
+Accuracy was computed from the read identifiers in each tool's final FASTQ output against per-read ground truth, with the same definitions for every tool. Retained microbial reads were treated as the positive class: precision was the fraction of retained reads that were microbial, recall was the fraction of microbial reads retained, and F1 was their harmonic mean. Microbial read loss was the number of true microbial reads removed divided by all true microbial reads. Host carry-over was the number of host reads retained divided by all true host reads (one minus host-read sensitivity) and is reported as a percentage. Runtime was sample-level wall time for individual libraries or cohort wall time for parallel batches. Peak memory was maximum resident set size and is reported in GiB unless stated otherwise.
 
 ### 2.7 Cross-species and parallel-scaling experiments
 
@@ -76,7 +76,7 @@ Species-specific Deacon indexes (k31,w15) were built for human T2T-CHM13v2.0, mo
 
 ### 2.8 Supplementary backend comparison
 
-To place the default backend in context, we previously compared Bowtie2, minimap2 and Centrifuge within an earlier research build of RustyClean on four simulated datasets. Those experiments used the same orchestration concept but are not exposed by the streamlined production CLI. Results are shown in Supplementary Figure S1 and Table S1 and are retained as provenance rather than as a recommendation.
+To place the default backend in context, we previously compared Bowtie2, minimap2 and Centrifuge within an earlier research build of RustyClean on four simulated datasets. These backends remain selectable in RustyClean but are not part of the default workflow. Results are shown in Supplementary Figure S1 and Table S1 and are retained as provenance rather than as a recommendation.
 
 ## 3 Results
 
@@ -86,7 +86,7 @@ Because Deacon’s cost is approximately independent of host fraction, RustyClea
 
 ![**Fig. 1.** Four-tool runtime and peak-memory comparison on six simulated metagenomes. (a) Runtime on a logarithmic scale. KneadData, fastp+Hostile and RustyClean AUTO are full pipelines; Deacon is depletion only. (b) Peak resident set size of the largest single process.](figures/fig1_four_way_runtime_memory.png){width=100%}
 
-**Table 2.** Four-tool comparison on the simulated panel. Accuracy is deterministic and was evaluated once per dataset. Runtime and memory for RustyClean/Deacon are means of timing replicates; 100M KneadData and Hostile+fastp runs are single measurements. Host carry-over is host reads as a percentage of retained output.
+**Table 2.** Four-tool comparison on the simulated panel. Accuracy is deterministic and was evaluated once per dataset. Runtime and memory for RustyClean/Deacon are means of timing replicates; 100M KneadData and Hostile+fastp runs are single measurements. Host carry-over is retained host reads as a percentage of all host reads; 0.0000 denotes a value below 0.00005%.
 
 | Dataset | Tool | Runtime (s) | Memory (GiB) | F1 | Microbial loss (%) | Host carry-over (%) |
 |---|---|---:|---:|---:|---:|---:|
@@ -117,9 +117,9 @@ Because Deacon’s cost is approximately independent of host fraction, RustyClea
 
 AUTO always had higher F1 than KneadData and matched or exceeded Hostile on four of six datasets (Fig. 2a). Hostile was marginally better on 10M/10% and 100M/50%, whereas AUTO was better on the other four datasets. AUTO microbial loss was at most 0.31% and was 7–12-fold lower than KneadData when loss was nonzero. KneadData lost 1.4–4.0% of microbial reads, largely because its trimming/masking workflow removed genuine non-host reads.
 
-The verification tier accounted for the accuracy gain on high-host libraries. Deacon alone retained a small structural residue of host reads, 0.0035–0.0042% of retained output. When removed fraction exceeded 0.30, Bowtie2 verification reduced this to 0.0000% on all four high-host datasets (Fig. 2b,c). The 5M/1% and 10M/10% conditions fell below the threshold and therefore retained the Deacon residue by design; F1 remained 1.00000 on 5M/1%, and carry-over was only 0.0037% on 10M/10%. This illustrates the intended allocation: verification is spent where absolute residual host burden is largest and the retained set is small.
+The verification tier accounted for the accuracy gain on high-host libraries. Deacon alone retained a small structural residue of host reads, 0.0035–0.0042% of all host reads. When the removed fraction reached 0.30, Bowtie2 verification reduced this to 0.0000% at four-decimal precision on all four high-host datasets (Fig. 2b,c); where raw counts are archived (30M/50%, 60M/90% and 100M/50%), 0–5 host reads remained per library. The 5M/1% and 10M/10% conditions fell below the threshold and therefore retained the Deacon residue by design; F1 remained 1.00000 on 5M/1%, and carry-over was only 0.0037% on 10M/10%. This illustrates the intended allocation: verification is spent where absolute residual host burden is largest and the retained set is small.
 
-![**Fig. 2.** Accuracy and verification effect across the simulated panel. (a) F1 score. (b) Host carry-over as a percentage of retained output; the dashed line is 0.01%. Exact zeros are annotated because they cannot be shown on the logarithmic axis. (c) Comparison of Deacon-only and RustyClean AUTO carry-over on high-host datasets that triggered verification.](figures/fig2_accuracy_verification.png){width=100%}
+![**Fig. 2.** Accuracy and verification effect across the simulated panel. (a) F1 score. (b) Host carry-over as a percentage of host reads retained; the dashed line is 0.01%. Values that round to 0.0000% are annotated as 0 because they cannot be shown on the logarithmic axis. (c) Comparison of Deacon-only and RustyClean AUTO carry-over on high-host datasets that triggered verification.](figures/fig2_accuracy_verification.png){width=100%}
 
 Peak memory for AUTO was 4.54 GiB, similar to fastp+Hostile (3.38–3.60 GiB) and higher than KneadData (1.09–1.11 GiB). Memory was determined mainly by the pangenome index and did not increase across 5–100M-read libraries. KneadData therefore remains preferable when single-process memory is the primary constraint, whereas AUTO improves speed, verification and high-host carry-over within an index-bounded footprint. A T2T-only Deacon index left 0.2254% carry-over on the human 10M/50% sample, compared with 0.0049% for panhuman-1, showing that index representativeness, not merely the minimizer algorithm, drives accuracy.
 
@@ -127,22 +127,22 @@ Peak memory for AUTO was 4.54 GiB, similar to fastp+Hostile (3.38–3.60 GiB) an
 
 All species-matched Deacon indexes achieved F1 ≥0.99986 on 10M-read, 50%-host datasets (Fig. 3, Table 3). Matched-index host carry-over was at most 0.006% and microbial loss at most 0.023%. Index construction took 4–52 s. The smaller rice index occupied 0.30 GB, whereas mammalian indexes occupied 2.20–2.53 GB.
 
-Applying the human panhuman-1 index to non-human hosts was catastrophic: 46.8% of monkey microbial reads and 97.0–99.8% of mouse, pig, rat and rice microbial reads were wrongly depleted. Precision fell to 0.50–0.68 and F1 to 0.67–0.81. Conversely, human data benefited from a pangenome index: T2T-only depletion had 46-fold more carry-over than panhuman-1. Thus, minimizer depletion can generalise across hosts, but only with species-matched or appropriately broad pan-host indexes.
+Applying the human panhuman-1 index to non-human hosts left most host reads in place: 46.8% of monkey host reads and 97.0–99.8% of mouse, pig, rat and rice host reads remained in the output, whereas microbial loss stayed at or below 0.003%. Precision fell to 0.50–0.68 and F1 to 0.67–0.81. Conversely, human data benefited from a pangenome index: T2T-only depletion had 46-fold more carry-over than panhuman-1. Thus, minimizer depletion can generalise across hosts, but only with species-matched or appropriately broad pan-host indexes.
 
 ![**Fig. 3.** Cross-species accuracy of Deacon indexes on 10M-read, 50%-host simulated data. Each dataset was depleted with its species-matched index and with the human panhuman-1 index.](figures/fig3_cross_species_index.png){width=100%}
 
 **Table 3.** Cross-species host depletion with matched and human pangenome indexes.
 
-| Host | Matched-index F1 | panhuman-1 F1 | Non-human microbial reads removed by panhuman-1 (%) | Index build (s) | Index size (GB) |
+| Host | Matched-index F1 | panhuman-1 F1 | Host reads retained by panhuman-1 (%) | Index build (s) | Index size (GB) |
 |---|---:|---:|---:|---:|---:|
-| Human | 0.99996 | 0.99996 | 0.003 | 33.1^a^ | 2.53 |
+| Human | 0.99996^a^ | 0.99996 | 0.005 | 33.1^a^ | 2.53 |
 | Monkey | 0.99997 | 0.80979 | 46.8 | 52.4 | 2.53 |
 | Mouse | 0.99986 | 0.67231 | 97.0 | 39.3 | 2.20 |
 | Pig | 0.99998 | 0.67249 | 97.0 | 26.9 | 2.20 |
 | Rat | 0.99995 | 0.67213 | 97.1 | 31.8 | 2.25 |
 | Rice | 0.99988 | 0.66621 | 99.8 | 4.2 | 0.30 |
 
-^a^The human build row uses a T2T-only single-reference index; panhuman-1 itself was a published prebuilt index.
+^a^For human, panhuman-1 serves as the matched index, so both F1 columns refer to it. Because panhuman-1 was a published prebuilt index, the build time and size refer to a T2T-only single-reference index built for comparison (F1 0.99886, host carry-over 0.2254%).
 
 ### 3.3 Real-data cohort and parallel scaling
 
@@ -158,11 +158,11 @@ The earlier Bowtie2, minimap2 and Centrifuge comparison showed that Bowtie2 and 
 
 ## 4 Discussion
 
-RustyClean shows that host depletion need not choose once between a precise but slower alignment workflow and a fast but less complete depletion filter. A minimizer-based backend provides stable speed across host fractions, and the remaining engineering decision is verification allocation. The empirical rule used here is simple: re-screen only when Deacon reports a removed fraction above 0.30. This rule fires precisely when residual host reads are most consequential and when the retained library is small enough to make Bowtie2 inexpensive. On high-host samples, the second pass reduced host carry-over from 0.0035–0.0042% of retained output to zero while keeping microbial loss at or below 0.31%.
+RustyClean shows that host depletion need not choose once between a precise but slower alignment workflow and a fast but less complete depletion filter. A minimizer-based backend provides stable speed across host fractions, and the remaining engineering decision is verification allocation. The empirical rule used here is simple: re-screen only when Deacon reports a removed fraction of at least 0.30. This rule fires precisely when residual host reads are most consequential and when the retained library is small enough to make Bowtie2 inexpensive. On high-host samples, the second pass reduced host carry-over from 0.0035–0.0037% of host reads to below 0.00005% while keeping microbial loss at or below 0.31%.
 
 The appropriate trade-off remains application dependent. For taxonomic profiling, a very small residual host fraction is often tolerable, whereas discarded microbial reads irreversibly bias abundance and diversity estimates. For public human data, assembly or MAG recovery, complete host removal may be more important. RustyClean therefore exposes both the threshold and the verification switch. The default is not claimed to be optimal for every study, but it removes the need for unconditional alignment in low-host samples.
 
-Comparison with KneadData requires scope caveats. KneadData includes trimming and tandem-repeat masking, whereas RustyClean does not; some of the speed difference therefore reflects work not performed rather than an accelerated version of identical work. KneadData also had the lowest peak memory in our benchmark. Conversely, fastp+Hostile is the stricter throughput baseline: AUTO was faster on the 5–60M datasets but slower on the two 100M datasets when verification fired, although it had zero measured high-host carry-over where verification fired; Hostile retained slightly higher F1 on two datasets. These results position AUTO as a balanced production workflow rather than a strict improvement in every single metric.
+Comparison with KneadData requires scope caveats. KneadData includes trimming and tandem-repeat masking, whereas RustyClean does not; some of the speed difference therefore reflects work not performed rather than an accelerated version of identical work. KneadData also had the lowest peak memory in our benchmark. Conversely, fastp+Hostile is the stricter throughput baseline: AUTO was faster on the 5–60M datasets but slower on the two 100M datasets when verification fired, although its high-host carry-over rounded to 0.0000% where verification fired; Hostile retained slightly higher F1 on two datasets. These results position AUTO as a balanced production workflow rather than a strict improvement in every single metric.
 
 Our contribution relative to Deacon is architectural and evaluative. Deacon supplies the rapid depletion primitive; RustyClean adds QC, checkpointing, bounded concurrency, output validation, conditional verification and cross-species index validation. The results also emphasize index choice. A human pangenome index is excellent for human data but cannot be treated as a universal host index, and species-specific indexes were essential for monkey, mouse, pig, rat and rice. This is consistent with the observation that a T2T-only human index was substantially less complete than a human pangenome index.
 
@@ -170,7 +170,7 @@ Several limitations should guide interpretation. The read-level evaluation uses 
 
 ## 5 Availability and implementation
 
-RustyClean is implemented in Rust and available under the MIT licence at https://github.com/HuangShiLab/rustyclean. The benchmarked research source is archived at commit `7ab1a4b`; the streamlined production CLI corresponding to the described AUTO interface is at commit `55f93af`. Benchmarking scripts, figure-generation code, simulated-data metadata and per-figure source tables are available at https://github.com/HuangShiLab/rustyclean-paper. The bioRxiv package contains the manuscript, Figure 1–4, Supplementary Figure S1 and CSV files underlying every main figure. Human oral microbiome data were obtained from the LU cohort under the original data-access agreements.
+RustyClean is implemented in Rust and available under the MIT licence at https://github.com/HuangShiLab/rustyclean. The benchmarks were run with commit `7ab1a4b`, which is part of the main-branch history; later main-branch changes add the `--no-recheck` switch and corrected read-count reporting but do not alter the depletion or verification steps. Benchmarking scripts, figure-generation code, simulated-data metadata and per-figure source tables are available at https://github.com/HuangShiLab/rustyclean-paper. The bioRxiv package contains the manuscript, Figure 1–4, Supplementary Figure S1 and CSV files underlying every main figure. Human oral microbiome data were obtained from the LU cohort under the original data-access agreements.
 
 ## Acknowledgements
 
@@ -206,7 +206,7 @@ Wood D.E. *et al.* (2019) Improved metagenomic analysis with Kraken 2. *Genome B
 
 ![**Supplementary Fig. S1.** Comparison of Bowtie2, minimap2 and Centrifuge depletion backends in an earlier research build of RustyClean. (a) F1, (b) host carry-over, (c) microbial reads lost and (d) peak memory.](figures/figS1_backend_comparison.png){width=100%}
 
-**Supplementary Table S1.** Backend comparison used in Supplementary Figure S1. Host carry-over is host reads as a percentage of retained output.
+**Supplementary Table S1.** Backend comparison used in Supplementary Figure S1. This earlier analysis used different definitions from the main text: F1 treats removed host reads as the positive class, and host carry-over is host reads as a percentage of retained output. Values are therefore not directly comparable with Tables 2 and 3.
 
 | Backend | Dataset | F1 | Host carry-over (%) | Microbial loss (%) | Peak memory (GB) |
 |---|---|---:|---:|---:|---:|

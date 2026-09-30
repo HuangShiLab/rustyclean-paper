@@ -23,7 +23,7 @@ from matplotlib.patches import Patch
 
 mpl.rcParams.update({
     "font.family": "sans-serif",
-    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans", "sans-serif"],
+    "font.sans-serif": ["Arial", "Helvetica", "Liberation Sans", "DejaVu Sans", "sans-serif"],
     "font.size": 10,
     "axes.labelsize": 11,
     "axes.titlesize": 12,
@@ -163,7 +163,7 @@ def figure_accuracy_and_verification(df, out_dir):
     ax1.set_xticklabels(DATASET_LABELS, rotation=20, ha='right')
     ax1.set_ylim(0.95, 1.001)
 
-    ax2.set_title('b  Host carry-over (% retained output, log scale)')
+    ax2.set_title('b  Host carry-over (% of host reads retained, log scale)')
     ax2.set_ylabel('Host carry-over (%)')
     ax2.set_xticks(x)
     ax2.set_xticklabels(DATASET_LABELS, rotation=20, ha='right')
