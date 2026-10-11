@@ -8,19 +8,23 @@ This directory is the clean submission version of the manuscript. It is separate
 - `RustyClean_Bioinformatics_biorxiv.docx` — editable submission manuscript.
 - `RustyClean_Bioinformatics_biorxiv.html` — standalone print source.
 - `RustyClean_Bioinformatics_biorxiv.pdf` — formatted PDF for bioRxiv review.
-- `figures/` — Figure 1–4 and Supplementary Figure S1 in PNG, PDF and SVG.
-- `source_data/` — exact CSV summary tables used to generate the main figures.
+- `NATURE_REVIEW_RESPONSE.md` — reviewer-concern-to-change map for the latest revision.
+- `source_data/unresolved_controls/production_index_comparison/` — direct Cleanifier-versus-Deacon production-index benchmark metrics.
+- `figures/` — Figure 1–5 and Supplementary Figures S1–S3 in PNG, PDF and SVG.
+- `source_data/` — exact CSV summary tables used to generate the main figures, plus optimized-runtime, paired-validation and parallel-demo summaries.
 - `assets/manuscript.css` — formatting used for the PDF.
 
 ## Bioinformatics-style checks completed
 
 - Structured abstract: Motivation, Results, Availability and implementation, Supplementary information.
-- Abstract length: 128 words excluding headings and URLs.
+- Abstract length: 150 words excluding headings and URLs.
 - Alphabetical author-year reference list.
-- Main figures numbered 1–4; only one supplementary figure is retained.
+- Main figures numbered 1–5; Supplementary Figures S1–S3 are retained.
 - Internal target-journal and peer-review response sections removed.
+- Competing-interests statement included.
 - Figure legends, tables and source-data references included.
-- Host carry-over is defined consistently as retained host reads divided by total retained output.
+- Host retention is defined as retained host reads divided by true host input; host output fraction is reported separately where needed. The metric audit is in `data/metric_audit/`.
+- Figure 4 includes Deacon backend scaling and the full-pipeline RustyClean-versus-Hostile batch comparison.
 
 ## Versions cited in the manuscript
 
@@ -41,7 +45,7 @@ pandoc manuscript/bioinformatics_biorxiv/RustyClean_Bioinformatics_biorxiv.md \
 pandoc manuscript/bioinformatics_biorxiv/RustyClean_Bioinformatics_biorxiv.md \
   --from=markdown+pipe_tables+implicit_figures+subscript+superscript \
   --to=html5 --standalone --embed-resources \
-  --css=assets/manuscript.css \
+  --css=manuscript/bioinformatics_biorxiv/assets/manuscript.css \
   --resource-path=manuscript/bioinformatics_biorxiv \
   --output=manuscript/bioinformatics_biorxiv/RustyClean_Bioinformatics_biorxiv.html
 

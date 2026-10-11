@@ -1,0 +1,2 @@
+n,rustyclean_mean_s,rustyclean_sd_s,hostile_mean_s,hostile_sd_s,mean_speedup,min_speedup,max_speedup,mean_delta_s,paired_t_p,wilcoxon_p
+3,427.977,76.1638,1032.37,37.1498,2.46682,2.12418,3.01231,604.393,0.00613585,0.25

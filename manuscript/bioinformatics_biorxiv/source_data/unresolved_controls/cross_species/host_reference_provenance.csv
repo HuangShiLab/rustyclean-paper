@@ -1,0 +1,7 @@
+host,taxid,source_fasta_basename,accession_or_strain_provenance,availability_in_current_archive
+human,9606,human.fa,not recorded in surviving benchmark artifact,not available
+mouse,10090,mouse.fa,not recorded in surviving benchmark artifact,not available
+rat,10116,rat.fa,not recorded in surviving benchmark artifact,not available
+pig,9823,pig.fa,not recorded in surviving benchmark artifact,not available
+rice,4530,rice.fa,not recorded in surviving benchmark artifact,not available
+monkey,9544,monkey.fa,not recorded in surviving benchmark artifact,not available

@@ -1,0 +1,27 @@
+{
+  "manifest": "/lustre1/g/aos_shihuang/rustyclean-paper/runs/unresolved_controls/mock_manifest_input/mock_manifest.csv",
+  "reads": 2000000,
+  "host_reads": 400225,
+  "microbe_reads": 1599775,
+  "host_fraction_observed": 0.2001125,
+  "host_fraction_requested": 0.2,
+  "read_length": 150,
+  "paired": true,
+  "error_model": "uniform substitutions; rate only applied to simulated FASTA",
+  "seed": 732,
+  "host_source": "/lustre1/g/aos_shihuang/rustyclean-paper/runs/unresolved_controls/mock_manifest_input/synthetic_divergent_host.fna",
+  "microbe_sources": [
+    "/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_900051425.1_13154_3_18_genomic.fna",
+    "/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_900099715.1_IMG-taxon_2593339241_annotated_assembly_genomic.fna",
+    "/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_902365005.1_MGYG-HGUT-00274_genomic.fna",
+    "/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_001187325.1_ASM118732v1_genomic.fna",
+    "/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_900753945.1_ERS396401_36_genomic.fna"
+  ],
+  "abundances": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ]
+}

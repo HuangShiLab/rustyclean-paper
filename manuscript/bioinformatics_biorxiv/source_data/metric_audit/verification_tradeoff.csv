@@ -1,0 +1,5 @@
+dataset,deacon_retained_host_reads,auto_retained_host_reads,host_reads_removed_by_recheck,deacon_lost_microbe_reads,auto_lost_microbe_reads,additional_microbes_lost,microbes_lost_per_extra_host_removed,deacon_f1,auto_f1
+30M_50pct_high_skewed_SE,526,0,526,2,33,31,0.058935361216730035,0.9999725491056468,0.9999982842694176
+60M_90pct_high_lognormal_SE,1836,5,1831,5794,14952,9158,5.001638448935008,0.9992103806689596,0.9984503561217772
+100M_50pct_high_lognormal_SE,1681,1,1680,48771,125028,76257,45.39107142857143,0.9993733873436712,0.998445638168848
+100M_90pct_high_lognormal_SE,3192,9,3183,9649,24747,15098,4.743323908262646,0.9992026959692404,0.9984611410133396

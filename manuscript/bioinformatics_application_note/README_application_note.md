@@ -10,33 +10,40 @@ This directory contains a concise Bioinformatics-style Application Note for Rust
 - `RustyClean_Application_Note.pdf` — formatted Application Note.
 - `figures/` — combined performance and parallel-scaling figure in PNG, PDF and SVG.
 - `source_data/` — five-tool runtime/memory summary, no-recheck summary, Hostile runtime decomposition and parallel-scaling data.
-- `assets/application_note.css` — formatting used for the PDF.
+- `assets/application_note.css` — compact formatting used for the PDF.
 - `RustyClean_Application_Note_package.zip` — assembled submission package.
 
 ## Format checks
 
 - Application Note label included above the author block.
 - Structured abstract: Summary, Availability and implementation, Supplementary information, Contact.
-- Abstract: 137 words including headings, excluding URLs.
-- Total length: 1100 words including references.
-- Rendered PDF: 3 pages, within the 4-page Application Note limit.
-- One combined figure and one compact table.
+- Abstract: 165 words including headings, excluding URLs.
+- Total length: 1277 words including references.
+- Rendered PDF: 4 pages of main text plus a references page.
+- Two figures and three compact tables.
 - Alphabetical author-year references; only cited references retained.
 - No placeholders remaining.
 - Figure 1 contains the original four-tool performance panels (a,b) above the parallel-scaling panels (c–e).
-- Hostile+fastp runtimes are the sum of independently timed fastp and Hostile stages; the decomposition is in `source_data/hostile_runtime_components.csv`.
+- Hostile + fastp runtimes are the sum of independently timed fastp and Hostile stages; the decomposition is in `source_data/hostile_runtime_components.csv`.
 - Includes a measured RustyClean AUTO no-recheck arm (fastp + Deacon).
 - Host carry-over uses retained host reads divided by total retained output.
+- Figure 2 adds the I/O-optimized runtime panel and the full-pipeline batch-parallelization comparison against Hostile + fastp.
+- `source_data/` now includes optimized-runtime, paired-validation and completed parallel-demo summaries.
+- CSS compacted to retain a four-page main-text layout after adding Figure 2d (memory).
 
 ## Figure regeneration
 
 From the repository root:
 
 ```bash
-python3 scripts/application_note/plot_application_note_figure.py \
+python3 scripts/main/plot_application_note_merged_figures.py \
   data/main_figures \
   manuscript/bioinformatics_application_note/figures
 ```
+
+Figure 2c–d reads the completed batch comparison from
+`data/parallel_demo/parallel_demo_completed.csv` and the peak-process memory
+from `data/parallel_demo/parallel_demo.csv`.
 
 ## Versions cited
 

@@ -1,0 +1,2 @@
+dataset	records	host_total	microbe_total	host_removed	host_retained	host_retention_pct	microbe_removed	microbe_retained	microbial_loss_pct	boundary_true_host	boundary_true_microbe	retained_total	host_output_fraction_pct	precision	recall	f1	seconds
+100M_90pct_high_lognormal_SE	95456703	85585130	9871573	32526819	53058311	61.994777597	35392	9836181	0.358524422	53057957	9752882	62894492	84.360822884	0.156391771159	0.996414755784	0.270350774087	25904.116

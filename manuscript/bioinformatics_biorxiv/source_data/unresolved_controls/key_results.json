@@ -1,0 +1,383 @@
+{
+  "recheck_controls": [
+    {
+      "condition": "no_recheck",
+      "datasets": 6,
+      "runs": 18,
+      "f1_mean": 0.9994274758563095,
+      "host_input_retention_pct_mean": 0.0037404368634885174,
+      "microbial_loss_pct_mean": 0.09980707172116403,
+      "runtime_s_mean": 676.3105555555555,
+      "runtime_s_median": 383.56
+    },
+    {
+      "condition": "conditional_default_0.30",
+      "datasets": 6,
+      "runs": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_mean": 1907.7283333333332,
+      "runtime_s_median": 374.15999999999997
+    },
+    {
+      "condition": "always_recheck_0.00",
+      "datasets": 6,
+      "runs": 18,
+      "f1_mean": 0.9987048120635639,
+      "host_input_retention_pct_mean": 3.725958489593627e-06,
+      "microbial_loss_pct_mean": 0.25845324905794165,
+      "runtime_s_mean": 731.74,
+      "runtime_s_median": 497.56000000000006
+    }
+  ],
+  "threshold_sweep": [
+    {
+      "threshold": 0.0,
+      "datasets": 6,
+      "f1_mean": 0.998704812063564,
+      "host_input_retention_pct_mean": 3.725958489593627e-06,
+      "microbial_loss_pct_mean": 0.2584532490579416,
+      "runtime_s_median": 601.3,
+      "recheck_rate": 1.0
+    },
+    {
+      "threshold": 0.05,
+      "datasets": 6,
+      "f1_mean": 0.9987049804269429,
+      "host_input_retention_pct_mean": 0.0007093127950615602,
+      "microbial_loss_pct_mean": 0.25841284190741143,
+      "runtime_s_median": 474.355,
+      "recheck_rate": 0.8333333333333334
+    },
+    {
+      "threshold": 0.1,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 490.225,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.15,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 507.19500000000005,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.2,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 459.03999999999996,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.25,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 387.855,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.3,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 374.15999999999997,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.35,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 546.92,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.4,
+      "datasets": 6,
+      "f1_mean": 0.9990003545726468,
+      "host_input_retention_pct_mean": 0.0013228983506264605,
+      "microbial_loss_pct_mean": 0.1995148277908553,
+      "runtime_s_median": 744.5350000000001,
+      "recheck_rate": 0.6666666666666666
+    },
+    {
+      "threshold": 0.5,
+      "datasets": 6,
+      "f1_mean": 0.9991592431404078,
+      "host_input_retention_pct_mean": 0.0025263122016725265,
+      "microbial_loss_pct_mean": 0.16620399196387217,
+      "runtime_s_median": 322.2,
+      "recheck_rate": 0.3333333333333333
+    },
+    {
+      "threshold": 0.6,
+      "datasets": 6,
+      "f1_mean": 0.9991592431404078,
+      "host_input_retention_pct_mean": 0.0025263122016725265,
+      "microbial_loss_pct_mean": 0.16620399196387217,
+      "runtime_s_median": 216.305,
+      "recheck_rate": 0.3333333333333333
+    },
+    {
+      "threshold": 0.8,
+      "datasets": 6,
+      "f1_mean": 0.9991592431404078,
+      "host_input_retention_pct_mean": 0.0025263122016725265,
+      "microbial_loss_pct_mean": 0.16620399196387217,
+      "runtime_s_median": 334.715,
+      "recheck_rate": 0.3333333333333333
+    },
+    {
+      "threshold": 1.01,
+      "datasets": 6,
+      "f1_mean": 0.9994274758563094,
+      "host_input_retention_pct_mean": 0.0037404368634885166,
+      "microbial_loss_pct_mean": 0.09980707172116403,
+      "runtime_s_median": 303.725,
+      "recheck_rate": 0.0
+    }
+  ],
+  "cleanifier_accuracy": [
+    {
+      "tool": "cleanifier",
+      "runs": 18,
+      "f1_mean": 0.9992076512630244,
+      "f1_sd": 0.0009178569675644797,
+      "host_retention_pct_mean": 0.036169165148219516,
+      "host_retention_pct_sd": 0.0021180682266023223,
+      "microbial_loss_pct_mean": 0.008955468856241698,
+      "microbial_loss_pct_sd": 0.006682597463643344
+    }
+  ],
+  "mock_ground_truth_accuracy": [
+    {
+      "tool": "cleanifier",
+      "runs": 3,
+      "f1_mean": 0.9895868435022698,
+      "f1_sd": 3.61867755567372e-05,
+      "host_retention_pct_mean": 8.414343777125803,
+      "host_retention_pct_sd": 0.023765617556667604,
+      "microbial_loss_pct_mean": 0.0,
+      "microbial_loss_pct_sd": 0.0
+    },
+    {
+      "tool": "fastp_hostile",
+      "runs": 3,
+      "f1_mean": 0.9966485682869162,
+      "f1_sd": 1.2913591780184694e-05,
+      "host_retention_pct_mean": 0.22000549300399994,
+      "host_retention_pct_sd": 0.006124128666278791,
+      "microbial_loss_pct_mean": 0.6133892968950386,
+      "microbial_loss_pct_sd": 0.0030613625589918916
+    },
+    {
+      "tool": "rustyclean_auto",
+      "runs": 3,
+      "f1_mean": 0.9968968431741979,
+      "f1_sd": 1.563990167603475e-05,
+      "host_retention_pct_mean": 0.021075158597697766,
+      "host_retention_pct_sd": 0.0015165055014322438,
+      "microbial_loss_pct_mean": 0.6134726444496236,
+      "microbial_loss_pct_sd": 0.0031051541986732364
+    }
+  ],
+  "equal_thread_accuracy": [
+    {
+      "tool": "fastp_hostile",
+      "runs": 18,
+      "f1_mean": 0.9963956961612715,
+      "f1_sd": 0.004178854894259568,
+      "host_retention_pct_mean": 0.17858194995338778,
+      "host_retention_pct_sd": 0.011399311512613112,
+      "microbial_loss_pct_mean": 0.03258728862860011,
+      "microbial_loss_pct_sd": 0.027707656778867547
+    },
+    {
+      "tool": "rustyclean_auto",
+      "runs": 18,
+      "f1_mean": 0.9990003545726468,
+      "f1_sd": 0.0007414360865213278,
+      "host_retention_pct_mean": 0.0013228983506264602,
+      "host_retention_pct_sd": 0.0019239706269241212,
+      "microbial_loss_pct_mean": 0.19951482779085528,
+      "microbial_loss_pct_sd": 0.14801439331411984
+    }
+  ],
+  "runtime_panels": {
+    "threshold": [
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.00",
+        "runs": 6,
+        "runtime_s_mean": 1294.3116666666667,
+        "runtime_s_sd": 1776.854229748931,
+        "max_memory_kb_mean": 4760764.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.05",
+        "runs": 6,
+        "runtime_s_mean": 602.7466666666667,
+        "runtime_s_sd": 528.2230507150049,
+        "max_memory_kb_mean": 4761234.0
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.10",
+        "runs": 6,
+        "runtime_s_mean": 991.5633333333334,
+        "runtime_s_sd": 1444.8681989533393,
+        "max_memory_kb_mean": 4762158.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.15",
+        "runs": 6,
+        "runtime_s_mean": 2447.4133333333334,
+        "runtime_s_sd": 4693.60380940559,
+        "max_memory_kb_mean": 4760994.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.20",
+        "runs": 6,
+        "runtime_s_mean": 926.4799999999999,
+        "runtime_s_sd": 1065.1704016541203,
+        "max_memory_kb_mean": 4761554.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.25",
+        "runs": 6,
+        "runtime_s_mean": 1051.115,
+        "runtime_s_sd": 1580.0003437309754,
+        "max_memory_kb_mean": 4762292.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.30",
+        "runs": 6,
+        "runtime_s_mean": 1907.7283333333332,
+        "runtime_s_sd": 3630.438447104794,
+        "max_memory_kb_mean": 4761336.0
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.35",
+        "runs": 6,
+        "runtime_s_mean": 631.7066666666666,
+        "runtime_s_sd": 677.3622647790963,
+        "max_memory_kb_mean": 4761364.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.40",
+        "runs": 6,
+        "runtime_s_mean": 654.0466666666666,
+        "runtime_s_sd": 479.579990978217,
+        "max_memory_kb_mean": 4760484.0
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.50",
+        "runs": 6,
+        "runtime_s_mean": 471.9583333333333,
+        "runtime_s_sd": 493.80258546980764,
+        "max_memory_kb_mean": 4759422.0
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.60",
+        "runs": 6,
+        "runtime_s_mean": 281.50499999999994,
+        "runtime_s_sd": 238.7140340030305,
+        "max_memory_kb_mean": 4761124.666666667
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.80",
+        "runs": 6,
+        "runtime_s_mean": 753.8266666666667,
+        "runtime_s_sd": 1056.851207628901,
+        "max_memory_kb_mean": 4760187.333333333
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_1.01",
+        "runs": 6,
+        "runtime_s_mean": 353.09499999999997,
+        "runtime_s_sd": 284.877119246176,
+        "max_memory_kb_mean": 4760580.666666667
+      }
+    ],
+    "always": [
+      {
+        "tool": "rustyclean_auto",
+        "condition": "threshold_0.00",
+        "runs": 18,
+        "runtime_s_mean": 731.74,
+        "runtime_s_sd": 679.0400011521457,
+        "max_memory_kb_mean": 4761780.666666667
+      }
+    ],
+    "cleanifier": [
+      {
+        "tool": "cleanifier",
+        "condition": "threshold_0.5",
+        "runs": 18,
+        "runtime_s_mean": 432.28611111111115,
+        "runtime_s_sd": 580.2786619642719,
+        "max_memory_kb_mean": 6902370.0
+      }
+    ],
+    "mock": [
+      {
+        "tool": "cleanifier",
+        "condition": "threshold_0.5",
+        "runs": 3,
+        "runtime_s_mean": 168.24,
+        "runtime_s_sd": 193.90144481153305,
+        "max_memory_kb_mean": 6918077.333333333
+      },
+      {
+        "tool": "fastp_hostile",
+        "condition": "fastp_plus_hostile",
+        "runs": 3,
+        "runtime_s_mean": 56.46333333333333,
+        "runtime_s_sd": 28.58794909281415,
+        "max_memory_kb_mean": 3828149.3333333335
+      },
+      {
+        "tool": "rustyclean_auto",
+        "condition": "auto_deacon_default",
+        "runs": 3,
+        "runtime_s_mean": 170.9,
+        "runtime_s_sd": 157.76852632892277,
+        "max_memory_kb_mean": 4781993.333333333
+      }
+    ],
+    "norecheck": [
+      {
+        "tool": "rustyclean_auto_deacon_norecheck",
+        "condition": "legacy_norecheck",
+        "runs": 18,
+        "runtime_s_mean": 676.3105555555555,
+        "runtime_s_sd": 602.3624935932752,
+        "max_memory_kb_mean": 4759548.222222222
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+panel,workflow,workers,wall_s,speedup_vs_w1
+a_deacon_backend,RustyClean backend,1,2363.6,1.0
+a_deacon_backend,RustyClean backend,2,1153.2,2.05
+a_deacon_backend,RustyClean backend,4,620.01,3.81
+a_deacon_backend,RustyClean backend,8,301.61,7.84
+b_full_pipeline,RustyClean AUTO,1,1027.14,
+b_full_pipeline,Hostile + fastp,1,1002.15,
+b_full_pipeline,RustyClean AUTO,8,140.67,
+b_full_pipeline,Hostile + fastp,8,265.62,

@@ -1,0 +1,13 @@
+{
+  "dataset": "real_vaginal_swab",
+  "records": 3537448,
+  "deacon_retained": 158,
+  "cleanifier_retained": 3537287,
+  "fusion_retained": 11321,
+  "fusion_removed": 3526127,
+  "fusion_retained_pct": 0.3200329729228529,
+  "truth_available": false,
+  "deacon_runtime_s": 2.400265588,
+  "cleanifier_load_s": 188.2,
+  "fusion_runtime_s": 732.812
+}

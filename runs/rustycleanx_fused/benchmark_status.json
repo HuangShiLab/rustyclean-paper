@@ -1,0 +1,17 @@
+{
+  "status": "completed",
+  "outcome": "prototype_did_not_outperform_comparators",
+  "datasets_completed": 6,
+  "full_run_job": 4247484,
+  "calibration_job": 4248651,
+  "host_retention_pct_mean_fused": 62.05921291233333,
+  "microbial_loss_pct_mean_fused": 0.32218139883333335,
+  "f1_mean_fused": 0.6734094207708333,
+  "calibration_selected_thresholds": {
+    "host_score_remove": 0.9,
+    "host_score_confident": 0.95,
+    "microbe_score_rescue": 0.4
+  },
+  "calibration_target_feasible": false,
+  "kneaddata_same_panel_available": false
+}

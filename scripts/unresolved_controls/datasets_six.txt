@@ -1,0 +1,6 @@
+5M_1pct_low_even_SE
+10M_10pct_med_even_SE
+30M_50pct_high_skewed_SE
+60M_90pct_high_lognormal_SE
+100M_50pct_high_lognormal_SE
+100M_90pct_high_lognormal_SE

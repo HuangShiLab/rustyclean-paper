@@ -1,0 +1,7 @@
+class,label,path,abundance
+host,human_spike_in,"/path/host_R1.fastq.gz,/path/host_R2.fastq.gz",1
+microbe,species_A,/path/species_A.fna,1
+microbe,species_B,/path/species_B.fna,1
+microbe,species_C,/path/species_C.fna,0.5
+microbe,species_D,/path/species_D.fna,0.25
+microbe,species_E,/path/species_E.fna,0.25

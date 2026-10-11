@@ -1,0 +1,7 @@
+dataset,rep,tool,runtime_s
+100M_90pct_high_lognormal_SE,1,rustyclean,499.020
+100M_90pct_high_lognormal_SE,1,hostile_fastp,1060.010
+100M_90pct_high_lognormal_SE,2,rustyclean,437.350
+100M_90pct_high_lognormal_SE,2,hostile_fastp,990.140
+100M_90pct_high_lognormal_SE,3,rustyclean,347.560
+100M_90pct_high_lognormal_SE,3,hostile_fastp,1046.960

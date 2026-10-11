@@ -261,15 +261,15 @@ def figure_supplementary_backends(out_dir):
         'minimap2': [0.9986, 0.9742, 0.9984, 0.9997],
         'Centrifuge': [0.9940, 0.9500, 0.9920, 0.9938],
     }
-    host_carry = {
-        'Bowtie2': [0.001, 0.006, 0.073, 0.521],
-        'minimap2': [0.000, 0.003, 0.044, 0.313],
-        'Centrifuge': [0.010, 0.132, 1.721, 11.140],
+    host_retained = {
+        'Bowtie2': [0.055, 0.053, 0.049, 0.049],
+        'minimap2': [0.021, 0.026, 0.030, 0.029],
+        'Centrifuge': [1.090, 1.179, 1.173, 1.171],
     }
     microbe_loss = {
-        'Bowtie2': [0.000, 0.568, 0.402, 0.388],
-        'minimap2': [0.002, 0.587, 0.431, 0.416],
-        'Centrifuge': [0.001, 1.027, 0.632, 0.760],
+        'Bowtie2': [0.000242, 0.568, 0.402, 0.388],
+        'minimap2': [0.00242, 0.587, 0.431, 0.416],
+        'Centrifuge': [0.00101, 1.027, 0.632, 0.760],
     }
     peak_mem = {
         'Bowtie2': [3.6, 3.6, 3.6, 6.2],
@@ -282,7 +282,7 @@ def figure_supplementary_backends(out_dir):
     fig, axes = plt.subplots(2, 2, figsize=(7.5, 7.5))
     panels = [
         ('a  F1 score', f1, axes[0, 0]),
-        ('b  Host carry-over (% of retained output)', host_carry, axes[0, 1]),
+        ('b  Retained host reads (% of host input)', host_retained, axes[0, 1]),
         ('c  Microbial reads lost (%)', microbe_loss, axes[1, 0]),
         ('d  Peak memory (GB)', peak_mem, axes[1, 1]),
     ]

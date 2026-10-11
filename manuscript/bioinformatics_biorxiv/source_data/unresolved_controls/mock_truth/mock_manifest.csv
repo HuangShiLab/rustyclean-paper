@@ -1,0 +1,7 @@
+class,label,path,abundance
+host,synthetic_divergent_host,/lustre1/g/aos_shihuang/rustyclean-paper/runs/unresolved_controls/mock_manifest_input/synthetic_divergent_host.fna,1
+microbe,mock_species_01,/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_900051425.1_13154_3_18_genomic.fna,1
+microbe,mock_species_02,/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_900099715.1_IMG-taxon_2593339241_annotated_assembly_genomic.fna,1
+microbe,mock_species_03,/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_902365005.1_MGYG-HGUT-00274_genomic.fna,1
+microbe,mock_species_04,/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_001187325.1_ASM118732v1_genomic.fna,1
+microbe,mock_species_05,/lustre1/g/aos_shihuang/databases/GTDB/GTDBr202/GTDBr202_reference_genome/GCF_900753945.1_ERS396401_36_genomic.fna,1

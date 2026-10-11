@@ -1,0 +1,27 @@
+{
+  "sample_every": 1000,
+  "training_sample_rows": 43933,
+  "train_datasets": [
+    "5M_1pct_low_even_SE",
+    "10M_10pct_med_even_SE",
+    "30M_50pct_high_skewed_SE"
+  ],
+  "validation_datasets": [
+    "60M_90pct_high_lognormal_SE",
+    "100M_50pct_high_lognormal_SE",
+    "100M_90pct_high_lognormal_SE"
+  ],
+  "host_target_pct": 0.05,
+  "selected_microbe_score_rescue": 0.0,
+  "selected_training_metrics": {
+    "microbe_score_rescue": 0.0,
+    "host_retention_pct": 0.04586554842091469,
+    "microbial_loss_pct": 0.010463534581981793,
+    "host_removed": 15255,
+    "microbe_removed": 3,
+    "retained_total": 28675,
+    "precision": 0.9997558849171753,
+    "recall": 0.9998953646541802,
+    "f1": 0.9998256199211802
+  }
+}

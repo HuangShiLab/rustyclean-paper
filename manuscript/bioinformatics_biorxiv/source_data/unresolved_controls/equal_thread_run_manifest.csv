@@ -1,0 +1,7 @@
+job_id,array_task,dataset,partition,node,exclusive,allocated_cpus,nominal_primary_worker_threads,architecture,state,start,end
+4200049_0,0,5M_1pct_low_even_SE,intel,GPI-3-20,yes,16,16,x86_64;2 sockets;32 cores per node,COMPLETED,2026-10-02T00:25:52,2026-10-02T00:43:28
+4200049_1,1,10M_10pct_med_even_SE,intel,GPI-3-21,yes,16,16,x86_64;2 sockets;32 cores per node,COMPLETED,2026-10-02T00:25:52,2026-10-02T00:52:20
+4200049_2,2,30M_50pct_high_skewed_SE,intel,GPI-3-22,yes,16,16,x86_64;2 sockets;32 cores per node,COMPLETED,2026-10-02T00:25:52,2026-10-02T01:30:34
+4200049_3,3,60M_90pct_high_lognormal_SE,intel,GPI-3-24,yes,16,16,x86_64;2 sockets;32 cores per node,COMPLETED,2026-10-02T00:25:52,2026-10-02T01:31:00
+4200049_4,4,100M_50pct_high_lognormal_SE,intel,GPI-3-14,yes,16,16,x86_64;2 sockets;32 cores per node,COMPLETED,2026-10-02T00:36:12,2026-10-02T03:19:53
+4200049_5,5,100M_90pct_high_lognormal_SE,intel,GPI-3-2,yes,16,16,x86_64;2 sockets;32 cores per node,COMPLETED,2026-10-02T00:37:12,2026-10-02T02:58:05

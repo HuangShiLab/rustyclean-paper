@@ -106,7 +106,13 @@ def figure_four_way_runtime_memory(df, out_dir):
                 row = df.loc[(tool, ds)]
             except KeyError:
                 continue
-            bar(ax1, x[j] + offsets, row['runtime_s'] / 60.0, TOOL_COLORS[tool])
+            runtime_min = row['runtime_s'] / 60.0
+            bar(ax1, x[j] + offsets, runtime_min, TOOL_COLORS[tool])
+            if not np.isnan(row.get('runtime_sd_s', np.nan)):
+                ax1.errorbar(x[j] + offsets, runtime_min,
+                             yerr=row['runtime_sd_s'] / 60.0, fmt='none',
+                             ecolor='black', elinewidth=0.6, capsize=1.5,
+                             zorder=4)
             bar(ax2, x[j] + offsets, row['memory_gib'], TOOL_COLORS[tool])
 
     for ax, title, ylabel in [
@@ -150,7 +156,7 @@ def figure_accuracy_and_verification(df, out_dir):
                 row = df.loc[(tool, ds)]
             except KeyError:
                 continue
-            f1, carry = row['f1'], row['host_carry_pct']
+            f1, carry = row['f1'], row['host_input_retained_pct']
             bar(ax1, x[j] + offsets, f1, TOOL_COLORS[tool])
             if carry <= 0:
                 annotate_zero(ax2, x[j] + offsets, carry_floor * 1.2)
@@ -163,23 +169,23 @@ def figure_accuracy_and_verification(df, out_dir):
     ax1.set_xticklabels(DATASET_LABELS, rotation=20, ha='right')
     ax1.set_ylim(0.95, 1.001)
 
-    ax2.set_title('b  Host carry-over (% retained output, log scale)')
-    ax2.set_ylabel('Host carry-over (%)')
+    ax2.set_title('b  Retained host reads (% of host input, log scale)')
+    ax2.set_ylabel('Retained host reads (%)')
     ax2.set_xticks(x)
     ax2.set_xticklabels(DATASET_LABELS, rotation=20, ha='right')
     ax2.set_yscale('log')
     ax2.set_ylim(5e-4, 5)
     ax2.axhline(0.01, color='gray', linestyle='--', linewidth=0.6, alpha=0.7)
 
-    deacon_carry = [df.loc[('deacon_skipqc', ds)]['host_carry_pct'] for ds in high_datasets]
-    auto_carry = [df.loc[('rc_auto_deacon', ds)]['host_carry_pct'] for ds in high_datasets]
+    deacon_carry = [df.loc[('deacon_skipqc', ds)]['host_input_retained_pct'] for ds in high_datasets]
+    auto_carry = [df.loc[('rc_auto_deacon', ds)]['host_input_retained_pct'] for ds in high_datasets]
     width = 0.38
     bars1 = ax3.bar(hx - width / 2, deacon_carry, width, color='#7EB5A6',
                     label='deacon only')
     bars2 = ax3.bar(hx + width / 2, auto_carry, width, color='#4A90A4',
                     label='RustyClean AUTO\n(fastp + deacon + conditional Bowtie2 verification)')
     ax3.set_title('c  Verification effect (high-host datasets)')
-    ax3.set_ylabel('Host carry-over (%)')
+    ax3.set_ylabel('Retained host reads (%)')
     ax3.set_xticks(hx)
     ax3.set_xticklabels(high_labels, rotation=25, ha='right')
     ax3.set_ylim(0, 0.0062)
@@ -190,7 +196,9 @@ def figure_accuracy_and_verification(df, out_dir):
                      xytext=(0, 2), textcoords='offset points',
                      ha='center', va='bottom', fontsize=7.5)
     for b in bars2:
-        ax3.annotate('0.0000', xy=(b.get_x() + b.get_width() / 2, 0.0001),
+        h = b.get_height()
+        label = '0' if h == 0 else f'{h:.1e}'.replace('e-0', 'e-')
+        ax3.annotate(label, xy=(b.get_x() + b.get_width() / 2, max(h, 0.0001)),
                      xytext=(0, 2), textcoords='offset points',
                      ha='center', va='bottom', fontsize=7.5)
 
@@ -243,14 +251,14 @@ def figure_cross_species_index(data_dir, out_dir):
     for i in range(len(hosts)):
         if abs(matched[i] - panhuman[i]) < 1e-9:
             # twin bars (human): single centred label above both
-            ax.annotate(f'{matched[i]:.3f}', xy=(x[i], matched[i]),
+            ax.annotate(f'{matched[i]:.5f}', xy=(x[i], matched[i]),
                         xytext=(0, 2), textcoords='offset points',
                         ha='center', va='bottom', fontsize=7)
         else:
-            ax.annotate(f'{matched[i]:.3f}', xy=(x[i] - width / 2, matched[i]),
+            ax.annotate(f'{matched[i]:.5f}', xy=(x[i] - width / 2, matched[i]),
                         xytext=(0, 2), textcoords='offset points',
                         ha='center', va='bottom', fontsize=7)
-            ax.annotate(f'{panhuman[i]:.3f}', xy=(x[i] + width / 2, panhuman[i]),
+            ax.annotate(f'{panhuman[i]:.5f}', xy=(x[i] + width / 2, panhuman[i]),
                         xytext=(0, 2), textcoords='offset points',
                         ha='center', va='bottom', fontsize=7)
     fig.tight_layout()
@@ -294,7 +302,7 @@ def figure_parallel_scaling_memory(data_dir, out_dir):
                     ha='center', va='bottom', fontsize=8)
     ax.set_xlabel('Concurrent workers (samples)')
     ax.set_ylabel('Wall time for 16 samples (s)')
-    ax.set_title('(a) Throughput scaling')
+    ax.set_title('(a) Wall-time scaling')
 
     ax = axes[1]
     ideal = workers
@@ -314,12 +322,12 @@ def figure_parallel_scaling_memory(data_dir, out_dir):
     width = 0.35
     x = np.arange(len(workers))
     bars = ax.bar(x - width / 2, rss_sum, width, color='#7EB5A6', zorder=3,
-                  label='Σ RSS, all workers')
+                  label='Median Σ RSS, all workers')
     ax.bar(x + width / 2, rss_per, width, color='#4A90A4', zorder=3,
            label='RSS per deacon worker')
     ax.set_xlabel('Concurrent workers (samples)')
     ax.set_ylabel('Resident set size (GiB)')
-    ax.set_title('(c) Memory per worker stays flat')
+    ax.set_title('(c) Median sampled RSS')
     ax.set_xticks(x)
     ax.set_xticklabels([str(w) for w in workers])
     ax.legend(fontsize=8, loc='upper left')

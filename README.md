@@ -19,23 +19,38 @@ The repository provides:
 
 ## Key findings
 
-- **Speed**: On the current six-dataset simulated panel, deacon depletion
-  alone is 41–130× faster than KneadData, and complete RustyClean AUTO is
-  3.45–10.19× faster than KneadData and 1.29–2.30× faster than
-  fastp + Hostile.
-- **Memory**: AUTO peaks at 4.54 GiB. The deacon workers share a read-only
-  memory-mapped index, so per-worker RSS stays flat as sample-level
-  concurrency increases.
-- **Accuracy**: AUTO keeps host carry-over at 0.0000% of retained output on
-  every high-host dataset tested while discarding at most 0.31% of microbial
-  reads. Its high-host F1 is at least 0.998, and it exceeds KneadData across
-  the panel.
-- **Adaptive strategy**: AUTO runs fastp, deacon Tier-1 depletion, then
-  Bowtie2 verification only when deacon reports that at least 30% of reads
-  were removed.
-- **Cross-host use**: The default human panhuman-1 index is not interchangeable
-  across species. Species-matched indexes for human (T2T), monkey, mouse, pig,
-  rat and rice are evaluated in the manuscript.
+- **Runtime scope**: On the six-dataset simulated panel, Deacon/AUTO used 16
+  threads whereas KneadData and fastp + Hostile used 8 threads; KneadData also
+  performed extra trimming, repeat masking and identifier reformatting. The
+  panel is therefore a workflow-scope comparison, not a controlled speed
+  benchmark. AUTO took 90--2,397 s versus 420--8,271 s for KneadData.
+- **Controlled paired runtime**: In the same-node 16-thread 100M/90%
+  validation, optimized RustyClean took 428 ± 76 s versus 1,032 ± 37 s for
+  fastp + Hostile and was faster in all three replicates (2.12--3.01×).
+- **Observational optimized panel**: With fastp compression 1, node-local
+  scratch and a Deacon server, all-replicate speedups versus historical Hostile
+  runs were 1.99--6.36×. These runs are unpaired except at 100M/90%; warm-
+  server values are reported separately and are not mixed into the headline
+  range.
+- **Batch parallelization**: In one unreplicated 24-library benchmark,
+  RustyClean reached 7.30× speedup from 1 to 8 workers, Hostile+fastp reached
+  3.77×, and RustyClean was 1.89× faster at eight workers.
+- **Memory**: AUTO peaked at 4.54 GiB for the largest measured process. The
+  sample-level benchmark kept per-process RSS approximately flat, while
+  aggregate sampled RSS increased with active workers; this is not unique
+  physical-memory accounting.
+- **Accuracy**: On the four high-host datasets, AUTO had F1 ≥ 0.998, lost at
+  most 0.310% of true microbial reads, and retained at most 0.0000105% of true
+  host input (at most nine host reads). Deacon alone retained
+  0.0035--0.0037% of true host input before verification.
+- **Adaptive strategy**: AUTO runs fastp, Deacon Tier-1 depletion, then Bowtie2
+  verification only when Deacon reports that at least 30% of reads were
+  removed. The 0.3 cutoff is an empirical default, not a threshold sweep
+  optimum.
+- **Cross-host use**: The default human panhuman-1 index is unsuitable for the
+  tested non-human datasets. Species-matched indexes for human (T2T), monkey,
+  mouse, pig, rat and rice are a six-host proof of concept, not a validated
+  universal pan-host index.
 
 Detailed results and discussion are in `manuscript/RustyClean_Manuscript_Draft.md`.
 
@@ -143,6 +158,48 @@ Result files:
 - `runs/` metric tables collected by the benchmark scripts;
 - `archive/v1/data/` for the superseded comparison outputs referenced by the
   supplementary backend table.
+
+### Profile fastp and Deacon I/O
+
+The standalone fastp profiler compares gzip compression levels and records
+wall/CPU time, cgroup I/O, compressed bytes and fastp logical bases:
+
+```bash
+REPS=2 THREADS=16 COMPRESSION_LEVELS="1 2 4 6" \
+bash scripts/hpc/profile_fastp_io.sh \
+  /path/to/reads.fastq.gz runs/fastp_io_profile
+```
+
+For paired-end data, set `R2=/path/to/reads_R2.fastq.gz`.
+
+`benchmark_fastp_deacon_io.sh` profiles the actual `fastp -> Deacon` handoff.
+It uses node-local scratch through RustyClean's `--work-dir`, disables Bowtie2
+verification by default, and reads the new `stage_metrics.json` emitted by
+RustyClean:
+
+```bash
+sbatch scripts/hpc/benchmark_fastp_deacon_io.sh
+```
+
+Override `RUSTYCLEAN`, `DEACON_INDEX`, `HOST_INDEX`, `DATA_DIR`, or
+`RESULTS_DIR` for a different cluster. The CSV records stage wall time, GNU
+time CPU/RSS, cgroup CPU, Deacon counters, and the unaccounted difference is
+therefore easy to inspect from `wall_s - (fastp_ms + deacon_ms + finalize_ms)/1000`.
+
+The RustyClean binary also exposes independent tuning controls:
+
+```bash
+rustyclean \
+  --work-dir /scratch/job/rustyclean \
+  --fastp-threads 8 \
+  --fastp-compression 2 \
+  --deacon-compression-level 2 \
+  --deacon-compression-threads 2
+```
+
+Use a low compression level for intermediates on local scratch; keep stronger
+compression for archival final output only if downstream I/O or storage makes
+that worthwhile.
 
 ---
 

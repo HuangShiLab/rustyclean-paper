@@ -1,0 +1,159 @@
+{
+  "status": "analysis_ready",
+  "datasets_expected": [
+    "5M_1pct_low_even_SE",
+    "10M_10pct_med_even_SE",
+    "30M_50pct_high_skewed_SE",
+    "60M_90pct_high_lognormal_SE",
+    "100M_50pct_high_lognormal_SE",
+    "100M_90pct_high_lognormal_SE"
+  ],
+  "equal_thread": {
+    "ready": true,
+    "coverage": {
+      "rustyclean": [
+        {
+          "dataset": "5M_1pct_low_even_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "10M_10pct_med_even_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "30M_50pct_high_skewed_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "60M_90pct_high_lognormal_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "100M_50pct_high_lognormal_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "100M_90pct_high_lognormal_SE",
+          "complete_reps": 3
+        }
+      ],
+      "fastp_hostile": [
+        {
+          "dataset": "5M_1pct_low_even_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "10M_10pct_med_even_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "30M_50pct_high_skewed_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "60M_90pct_high_lognormal_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "100M_50pct_high_lognormal_SE",
+          "complete_reps": 3
+        },
+        {
+          "dataset": "100M_90pct_high_lognormal_SE",
+          "complete_reps": 3
+        }
+      ]
+    }
+  },
+  "cleanifier": {
+    "ready": true,
+    "coverage": [
+      {
+        "dataset": "5M_1pct_low_even_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "10M_10pct_med_even_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "30M_50pct_high_skewed_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "60M_90pct_high_lognormal_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "100M_50pct_high_lognormal_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "100M_90pct_high_lognormal_SE",
+        "complete_reps": 3
+      }
+    ]
+  },
+  "threshold_sweep": {
+    "ready": true,
+    "replicates": "one deterministic scoring replicate per threshold",
+    "conditions_observed": [
+      "threshold_0.00",
+      "threshold_0.05",
+      "threshold_0.10",
+      "threshold_0.15",
+      "threshold_0.20",
+      "threshold_0.25",
+      "threshold_0.30",
+      "threshold_0.35",
+      "threshold_0.40",
+      "threshold_0.50",
+      "threshold_0.60",
+      "threshold_0.80",
+      "threshold_1.01"
+    ]
+  },
+  "always_recheck": {
+    "ready": true,
+    "coverage": [
+      {
+        "dataset": "5M_1pct_low_even_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "10M_10pct_med_even_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "30M_50pct_high_skewed_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "60M_90pct_high_lognormal_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "100M_50pct_high_lognormal_SE",
+        "complete_reps": 3
+      },
+      {
+        "dataset": "100M_90pct_high_lognormal_SE",
+        "complete_reps": 3
+      }
+    ]
+  },
+  "no_recheck": {
+    "ready": true,
+    "note": "Existing runs/deacon_auto_norecheck accepted after count-level audit."
+  },
+  "mock_ground_truth": {
+    "ready": true,
+    "datasets_with_accuracy": [
+      "mock_2000000_0.20_150_rep1",
+      "mock_2000000_0.20_150_rep2",
+      "mock_2000000_0.20_150_rep3"
+    ],
+    "note": "Requires exact ground truth and all three tool arms per replicate."
+  },
+  "blocking_work": []
+}

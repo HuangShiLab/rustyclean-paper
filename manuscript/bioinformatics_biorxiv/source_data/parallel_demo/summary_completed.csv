@@ -1,0 +1,5 @@
+arm,workers,n,mean_wall_s,sd_wall_s,speedup_vs_own_w1,parallel_efficiency,hostile_at_same_workers_s,rustyclean_speedup_vs_hostile
+rustyclean,1,1,1027.140,0.000,1.00,1.00,1002.150,0.98
+rustyclean,8,1,140.670,0.000,7.30,0.91,265.620,1.89
+hostile_fastp,1,1,1002.150,0.000,1.00,1.00,1002.150,
+hostile_fastp,8,1,265.620,0.000,3.77,0.47,265.620,

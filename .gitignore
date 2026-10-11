@@ -101,3 +101,13 @@ runs/**/.checkpoints/**
 scratch/**/.checkpoints/**
 runs/**/work/**
 scratch/**/work/**
+
+# Keep the small RustyClean-X production-fusion summaries and calibration
+# products, but exclude multi-GB per-read reports and reference hash indexes.
+!runs/rustycleanx_fused/
+!runs/rustycleanx_fused/**
+runs/rustycleanx_fused/indices/**
+runs/rustycleanx_fused/**/per_read_report.tsv.gz
+runs/rustycleanx_fused/**/training_sample.tsv
+!runs/unresolved_controls/summary/rustycleanx_production_fusion_end_to_end_summary.tsv
+!runs/unresolved_controls/summary/rustycleanx_production_fusion_same_version_summary.tsv
