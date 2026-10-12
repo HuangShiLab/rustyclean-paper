@@ -31,11 +31,17 @@ struct Args {
     #[arg(long)]
     witness_index: PathBuf,
     #[arg(long)]
+    host_gapped_index: PathBuf,
+    #[arg(long)]
+    host_minimizer_index: PathBuf,
+    #[arg(long)]
     outdir: PathBuf,
     #[arg(long, default_value_t = 0.30)]
     microbe_witness_fraction: f64,
     #[arg(long, default_value_t = 0.80)]
     microbe_score_rescue: f64,
+    #[arg(long, default_value_t = 0.50)]
+    host_score_max: f64,
     #[arg(long, default_value_t = 0.50)]
     deacon_weight: f64,
     #[arg(long, default_value_t = 0.50)]
@@ -104,8 +110,16 @@ fn main() -> Result<()> {
     eprintln!("Cleanifier imported retained={}", cleanifier_keep.len());
 
     let witness = MicrobialWitnessFilter::from_hash_file(&args.witness_index, 21)?;
-    // Dummy host filters are required by the shared single-pass extractor.  No
-    // host query is made through them in production-fusion mode.
+    // Host evidence is queried only for production-query removal candidates.
+    // It supplies an independent confidence gate for microbial rescue.
+    eprintln!("loading host gapped-seed index");
+    let host_gapped = GappedSeedFilter::from_hash_file(&args.host_gapped_index)?;
+    eprintln!("loading host minimizer index");
+    let host_minimizer = rustyclean_x::evidence::minimizer::MinimizerFilter::from_hash_file(
+        &args.host_minimizer_index,
+        21,
+        41,
+    )?;
     let empty_gapped = GappedSeedFilter::empty(Vec::new());
     let empty_minimizer = rustyclean_x::evidence::minimizer::MinimizerFilter::empty(21, 41);
 
@@ -113,6 +127,10 @@ fn main() -> Result<()> {
     config.decision_mode = rustyclean_x::config::DecisionMode::Fused;
     config.microbe_witness_fraction = args.microbe_witness_fraction;
     config.microbe_score_rescue = args.microbe_score_rescue;
+    // These match the calibrated internal-evidence report and define host-score
+    // normalization only.  Production union depletion remains the removal rule.
+    config.host_gapped_fraction = 0.07;
+    config.host_minimizer_hits = 1;
 
     let total_weight = args.deacon_weight + args.cleanifier_weight;
     if total_weight <= 0.0 {
@@ -132,7 +150,7 @@ fn main() -> Result<()> {
     let mut report = BufWriter::with_capacity(1024 * 1024, report_encoder);
     writeln!(
         report,
-        "read_id\ttruth\tprediction\tretained\tdeacon_remove\tcleanifier_remove\tdisagreement\tproduction_score\tmicrobe_score\tmicrobe_witness_fraction"
+        "read_id\ttruth\tprediction\tretained\tdeacon_remove\tcleanifier_remove\tdisagreement\tproduction_score\tmicrobe_score\tmicrobe_witness_fraction\thost_score\tgapped_component\tminimizer_component"
     )?;
 
     let mut counts = Counts::default();
@@ -173,14 +191,26 @@ fn main() -> Result<()> {
             + args.cleanifier_weight * f64::from(cleanifier_remove))
             / total_weight;
 
-        // Shared one-pass witness extraction. Host indexes above are not queried.
-        let features = rustyclean_x::evidence::EvidenceFeatures::extract_fused(
-            &record,
-            &empty_gapped,
-            &empty_minimizer,
-            Some(&witness),
-        );
-        let _scores = score_features(&features, &config);
+        let production_remove_candidate = deacon_remove || cleanifier_remove;
+        // Keep/keep is immediately safe and avoids both host-index queries.
+        // For a removal candidate, all three evidence types are extracted from
+        // the same parsed FASTQ record.
+        let features = if production_remove_candidate {
+            rustyclean_x::evidence::EvidenceFeatures::extract_fused(
+                &record,
+                &host_gapped,
+                &host_minimizer,
+                Some(&witness),
+            )
+        } else {
+            rustyclean_x::evidence::EvidenceFeatures::extract_fused(
+                &record,
+                &empty_gapped,
+                &empty_minimizer,
+                Some(&witness),
+            )
+        };
+        let scores = score_features(&features, &config);
         let microbe_score =
             (features.microbe_witness_fraction / config.microbe_witness_fraction).clamp(0.0, 1.0);
 
@@ -189,9 +219,9 @@ fn main() -> Result<()> {
         } else if !deacon_remove && !cleanifier_remove {
             false
         } else {
-            // Host-clean disagreement policy: remove unless the independent
-            // microbial witness confidently identifies the read.
-            microbe_score < args.microbe_score_rescue
+            // Calibrated conflict resolver: rescue only with strong independent
+            // microbial witness and weak independent host evidence.
+            microbe_score < args.microbe_score_rescue || scores.host_score > args.host_score_max
         };
         let decision = if remove {
             Decision::Remove
@@ -227,7 +257,7 @@ fn main() -> Result<()> {
 
         writeln!(
             report,
-            "{}\t{}\t{:?}\t{}\t{}\t{}\t{}\t{:.9}\t{:.9}\t{:.9}",
+            "{}\t{}\t{:?}\t{}\t{}\t{}\t{}\t{:.9}\t{:.9}\t{:.9}\t{:.9}\t{:.9}\t{:.9}",
             record.id(),
             truth_label,
             decision,
@@ -238,6 +268,9 @@ fn main() -> Result<()> {
             production_score,
             microbe_score,
             features.microbe_witness_fraction,
+            scores.host_score,
+            scores.gapped_component,
+            scores.minimizer_component,
         )?;
         if counts.records % 1_000_000 == 0 {
             report.flush()?;

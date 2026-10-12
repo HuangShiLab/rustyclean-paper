@@ -296,7 +296,11 @@ fn extract_intersection_kept_fastq(
     Ok(selected)
 }
 
-fn parse_unmapped_reader<R: Read>(mut reader: BufReader<R>) -> Result<HashSet<String>> {
+fn parse_verifier_kept_reader<R: Read>(
+    mut reader: BufReader<R>,
+    max_mapq: u8,
+    min_nm_for_ambiguous_rescue: i64,
+) -> Result<HashSet<String>> {
     let mut retained = HashSet::new();
     let mut line = String::new();
     while reader.read_line(&mut line)? != 0 {
@@ -305,9 +309,23 @@ fn parse_unmapped_reader<R: Read>(mut reader: BufReader<R>) -> Result<HashSet<St
             continue;
         }
         let fields: Vec<&str> = line.trim_end_matches(['\r', '\n']).split('\t').collect();
-        if fields.len() >= 2 {
+        if fields.len() >= 5 {
             let flag = fields[1].parse::<u16>()?;
-            if flag & 0x04 != 0 {
+            let unmapped = flag & 0x04 != 0;
+            let secondary = flag & 0x100 != 0;
+            let supplementary = flag & 0x800 != 0;
+            let mapq = fields[4].parse::<u8>().unwrap_or(255);
+            let mut edit_distance = i64::MAX;
+            for field in fields.iter().skip(11) {
+                if let Some(value) = field.strip_prefix("NM:i:") {
+                    edit_distance = value.parse::<i64>()?;
+                }
+            }
+            let ambiguous_rescue = !secondary
+                && !supplementary
+                && mapq < max_mapq
+                && edit_distance > min_nm_for_ambiguous_rescue;
+            if unmapped || ambiguous_rescue {
                 retained.insert(fields[0].to_string());
             }
         }
@@ -321,17 +339,20 @@ fn verified_clean_removed(
     deacon_kept: &HashSet<String>,
     cleanifier_kept: &HashSet<String>,
     verifier_kept: &HashSet<String>,
+    verify_both_removed: bool,
 ) -> HashSet<String> {
     universe
         .iter()
         .filter(|id| {
-            !({
-                let deacon_kept = deacon_kept.contains(id.as_str());
-                let cleanifier_kept = cleanifier_kept.contains(id.as_str());
-                let at_least_one_kept = deacon_kept || cleanifier_kept;
-                let both_kept = deacon_kept && cleanifier_kept;
-                at_least_one_kept && (!both_kept || verifier_kept.contains(id.as_str()))
-            })
+            let deacon_kept = deacon_kept.contains(id.as_str());
+            let cleanifier_kept = cleanifier_kept.contains(id.as_str());
+            if deacon_kept && cleanifier_kept {
+                false
+            } else if verify_both_removed {
+                !verifier_kept.contains(id.as_str())
+            } else {
+                !(deacon_kept && cleanifier_kept) && !verifier_kept.contains(id.as_str())
+            }
         })
         .cloned()
         .collect()
@@ -352,6 +373,8 @@ fn main() -> Result<()> {
     let mut bowtie2_exe = PathBuf::from("bowtie2");
     let mut work_dir = PathBuf::from("rustyclean_x_verified_work");
     let mut threads = 8_usize;
+    let mut max_mapq = 2_u8;
+    let mut min_nm_for_ambiguous_rescue = 10_i64;
     let mut keep_intermediates = false;
 
     let mut iterator = std::env::args().skip(1);
@@ -377,6 +400,10 @@ fn main() -> Result<()> {
             "--bowtie2" => bowtie2_exe = value("--bowtie2")?.into(),
             "--work-dir" => work_dir = value("--work-dir")?.into(),
             "--threads" => threads = value("--threads")?.parse()?,
+            "--verifier-max-mapq" => max_mapq = value("--verifier-max-mapq")?.parse()?,
+            "--verifier-min-nm" => {
+                min_nm_for_ambiguous_rescue = value("--verifier-min-nm")?.parse()?
+            }
             "--keep-intermediates" => keep_intermediates = true,
             "--output" => output = value("--output")?.into(),
             "--help" | "-h" => {
@@ -387,6 +414,8 @@ fn main() -> Result<()> {
                      --strategy verified-disagreement Bowtie2 arbitrates disagreement reads\n\
                      --strategy verified-clean Bowtie2 arbitrates all union-removed reads\n\
                      --strategy comparison    emit both modes in one pass\n\
+                     --verifier-max-mapq N    rescue primary alignments below MAPQ N (default 2)
+                     --verifier-min-nm N      require edit distance > N for ambiguous rescue (default 10)
                      --keep-intermediates     retain extracted candidate FASTQ/SAM files"
                 );
                 std::process::exit(0);
@@ -461,7 +490,11 @@ fn main() -> Result<()> {
             .stdout
             .take()
             .ok_or_else(|| anyhow!("could not capture Bowtie2 stdout"))?;
-        let verifier_kept = parse_unmapped_reader(BufReader::new(child_stdout))?;
+        let verifier_kept = parse_verifier_kept_reader(
+            BufReader::new(child_stdout),
+            max_mapq,
+            min_nm_for_ambiguous_rescue,
+        )?;
         let status = child.wait()?;
         if !status.success() {
             return Err(anyhow!(
@@ -470,8 +503,13 @@ fn main() -> Result<()> {
         }
         let bowtie2_runtime = alignment_start.elapsed().as_secs_f64();
         let universe = fastq_ids(&input_path)?;
-        let removed =
-            verified_clean_removed(&universe, &deacon_kept, &cleanifier_kept, &verifier_kept);
+        let removed = verified_clean_removed(
+            &universe,
+            &deacon_kept,
+            &cleanifier_kept,
+            &verifier_kept,
+            strategy == "verified-clean",
+        );
         let consensus_runtime = consensus_runtime + extraction_runtime + bowtie2_runtime;
         let disagreement_count = 0_usize;
         let both_removed_count = 0_usize;
@@ -592,6 +630,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn verifier_rescues_unmapped_and_ambiguous_primary_alignments() {
+        let sam = concat!(
+            "@HD\tVN:1.0\n",
+            "unmapped\t4\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\n",
+            "ambiguous\t0\tchr1\t100\t1\t4M\t*\t0\t0\tACGT\tIIII\tNM:i:20\n",
+            "threshold\t0\tchr1\t100\t2\t4M\t*\t0\t0\tACGT\tIIII\tNM:i:20\n",
+            "exact_primary\t0\tchr1\t100\t1\t4M\t*\t0\t0\tACGT\tIIII\tNM:i:0\n",
+            "secondary\t256\tchr1\t100\t0\t4M\t*\t0\t0\tACGT\tIIII\n"
+        );
+        let kept = parse_verifier_kept_reader(BufReader::new(sam.as_bytes()), 2, 10).unwrap();
+        assert!(kept.contains("unmapped"));
+        assert!(kept.contains("ambiguous"));
+        assert!(!kept.contains("threshold"));
+        assert!(!kept.contains("exact_primary"));
+        assert!(!kept.contains("secondary"));
+    }
+
+    #[test]
     fn decision_rules_follow_set_algebra() {
         let deacon: HashSet<_> = ["m", "h1"].into_iter().map(String::from).collect();
         let cleanifier: HashSet<_> = ["m", "h2"].into_iter().map(String::from).collect();
@@ -604,7 +660,7 @@ mod tests {
     }
 
     #[test]
-    fn verified_clean_verifies_both_keep_reads() {
+    fn verified_modes_distinguish_both_removed_and_conflicts() {
         let universe: HashSet<_> = ["m", "h1", "h2", "h3"]
             .into_iter()
             .map(String::from)
@@ -612,8 +668,17 @@ mod tests {
         let deacon: HashSet<_> = ["m", "h1"].into_iter().map(String::from).collect();
         let cleanifier: HashSet<_> = ["m", "h2"].into_iter().map(String::from).collect();
         let verifier_kept: HashSet<_> = ["m", "h2", "h3"].into_iter().map(String::from).collect();
-        let removed = verified_clean_removed(&universe, &deacon, &cleanifier, &verifier_kept);
-        assert_eq!(removed, ["h3"].into_iter().map(String::from).collect());
+        let verified_clean =
+            verified_clean_removed(&universe, &deacon, &cleanifier, &verifier_kept, true);
+        assert_eq!(
+            verified_clean,
+            ["h1"].into_iter().map(String::from).collect()
+        );
+        let verified_disagreement =
+            verified_clean_removed(&universe, &deacon, &cleanifier, &verifier_kept, false);
+        assert!(verified_disagreement.contains("h1"));
+        assert!(!verified_disagreement.contains("h2"));
+        assert!(!verified_disagreement.contains("h3"));
     }
 
     #[test]
