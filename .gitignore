@@ -47,7 +47,6 @@ target/
 
 # Local RustyClean source copies that belong to the rustyclean repo, not this paper repo
 /scripts/rustyclean_src/*.rs
-pipeline.rs
 
 # Accidental empty tool marker files
 bowtie2,

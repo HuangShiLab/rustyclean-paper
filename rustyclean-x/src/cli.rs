@@ -1,12 +1,30 @@
 use anyhow::{anyhow, Result};
 
+/// Processing path selected by the user.
+///
+/// * **RustyCleanX** (default) fuses Deacon-style minimizer evidence with
+///   Cleanifier-style gapped-seed evidence, applies a calibrated conflict
+///   resolver, and optionally routes disagreements through Bowtie2.
+/// * **Deacon** uses only the minimizer index (fast, compact).
+/// * **Cleanifier** uses only the gapped-seed index (sensitive to substitutions).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    /// Dual-index fusion + calibrated conflict resolver (default).
+    RustyCleanX,
+    /// Minimizer-only depletion (Deacon-style).
+    Deacon,
+    /// Gapped-seed-only depletion (Cleanifier-style).
+    Cleanifier,
+}
+
 #[derive(Debug, Clone)]
 pub struct Args {
+    pub mode: Mode,
     pub r1: String,
     pub r2: Option<String>,
     pub output_prefix: String,
-    pub gapped_index: String,
-    pub minimizer_index: String,
+    pub gapped_index: Option<String>,
+    pub minimizer_index: Option<String>,
     pub microbial_index: Option<String>,
     pub threads: usize,
     pub batch_size: usize,
@@ -80,6 +98,7 @@ impl DecisionModeArg {
 
 impl Args {
     pub fn parse(argv: Vec<String>) -> Result<Self> {
+        let mut mode = Mode::RustyCleanX;
         let mut r1 = None;
         let mut r2 = None;
         let mut output_prefix = None;
@@ -106,6 +125,17 @@ impl Args {
                     .ok_or_else(|| anyhow!("missing value for {name}"))
             };
             match flag.as_str() {
+                "--mode" => {
+                    let m = value("--mode")?.to_ascii_lowercase();
+                    mode = match m.as_str() {
+                        "rustycleanx" => Mode::RustyCleanX,
+                        "deacon" => Mode::Deacon,
+                        "cleanifier" => Mode::Cleanifier,
+                        other => return Err(anyhow!(
+                            "invalid --mode '{other}'; expected rustycleanx, deacon, or cleanifier"
+                        )),
+                    };
+                }
                 "--r1" => r1 = Some(value("--r1")?),
                 "--r2" => r2 = Some(value("--r2")?),
                 "--output-prefix" => output_prefix = Some(value("--output-prefix")?),
@@ -147,13 +177,35 @@ impl Args {
             }
         }
 
+        let mode_name = match mode {
+            Mode::RustyCleanX => "rustycleanx",
+            Mode::Deacon => "deacon",
+            Mode::Cleanifier => "cleanifier",
+        };
+
+        // Validate index requirements per mode
+        let gapped_index = if mode != Mode::Deacon {
+            Some(gapped_index.ok_or_else(|| {
+                anyhow!("--gapped-index is required for mode '{mode_name}'")
+            })?)
+        } else {
+            gapped_index
+        };
+        let minimizer_index = if mode != Mode::Cleanifier {
+            Some(minimizer_index.ok_or_else(|| {
+                anyhow!("--minimizer-index is required for mode '{mode_name}'")
+            })?)
+        } else {
+            minimizer_index
+        };
+
         Ok(Self {
+            mode,
             r1: r1.ok_or_else(|| anyhow!("--r1 is required"))?,
             r2,
             output_prefix: output_prefix.ok_or_else(|| anyhow!("--output-prefix is required"))?,
-            gapped_index: gapped_index.ok_or_else(|| anyhow!("--gapped-index is required"))?,
-            minimizer_index: minimizer_index
-                .ok_or_else(|| anyhow!("--minimizer-index is required"))?,
+            gapped_index,
+            minimizer_index,
             microbial_index,
             threads: threads.max(1),
             batch_size: batch_size.max(1),
@@ -179,18 +231,26 @@ fn num_cpus() -> usize {
 
 fn print_help() {
     println!(
-        "RustyClean-X 0.1.0 framework draft
+        "RustyClean-X 0.2.0 — integrated host-depletion platform
 
 USAGE:
-  rustyclean-x --r1 READ1 [--r2 READ2] --output-prefix PREFIX \
---gapped-index GAPPED --minimizer-index MINIMIZER [OPTIONS]
+  rustyclean-x --r1 READ1 [--r2 READ2] --output-prefix PREFIX [OPTIONS]
 
-OPTIONS:
+MODES:
+  --mode rustycleanx    dual-index fusion + calibrated resolver (default)
+  --mode deacon         minimizer-only depletion (fast, compact)
+  --mode cleanifier     gapped-seed-only depletion (substitution-tolerant)
+
+REQUIRED (per mode):
+  --gapped-index <PATH>       gapped-seed hash index  [cleanifier, rustycleanx]
+  --minimizer-index <PATH>    minimizer hash index    [deacon, rustycleanx]
+
+INPUT:
   --r1 <PATH>                 input R1 or single-end FASTQ
   --r2 <PATH>                 input R2 for paired-end mode
-  --output-prefix <PREFIX>    writes PREFIX.keep.fastq and PREFIX.remove.fastq
-  --gapped-index <PATH>       Cleanifier-style gapped-seed hash index
-  --minimizer-index <PATH>    Deacon-style minimizer hash index
+  --output-prefix <PREFIX>    writes PREFIX.keep.fastq + PREFIX.remove.fastq
+
+OPTIONS:
   --microbial-index <PATH>    optional GTDB/microbial witness index
   --profile <NAME>            privacy, microbiome, or mag [default: microbiome]
   --host-evidence-rule <NAME> both or either [default: both; hard mode only]
