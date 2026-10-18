@@ -1,0 +1,7 @@
+dataset	serial_wall_s	optimized_wall_s	speedup	deacon_s	cleanifier_s	extract_s	bowtie2_s	host_retention_pct	microbial_loss_pct	f1
+5M_1pct_low_even_SE	889.891	604.6	1.47x	305.4	247.9	51.1	0	0.000000	100.000000	0.000000
+10M_10pct_med_even_SE	3044.903	130.1	23.40x	15.3	29.9	84.8	0	0.000526	99.999474	0.016953
+30M_50pct_high_skewed_SE	791.905	276.2	2.87x	33.0	54.2	188.9	0	0.000946	99.999054	0.000000
+60M_90pct_high_lognormal_SE	898.940	471.7	1.91x	56.6	87.8	327.2	0	0.001046	99.998954	0.009083
+100M_50pct_high_lognormal_SE	1717.919	975.4	1.76x	101.0	153.9	720.3	0	0.001007	99.998993	0.008885
+100M_90pct_high_lognormal_SE	1349.296	1157.0	1.17x	411.8	163.1	581.9	0	0.001053	99.998947	0.009012
