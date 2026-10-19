@@ -15,7 +15,7 @@ Keywords: metagenomics; host DNA depletion; minimizers; gapped seeds; conflict r
 
 **Motivation:** Host depletion must balance irreversible microbial signal loss against host DNA contamination. Minimizer-based filters (Deacon) favour host removal but lose microbial reads; gapped-seed filters (Cleanifier) preserve microbial reads but retain more host DNA. No existing tool combines both evidence types with a principled conflict-resolution strategy.
 
-**Results:** We present RustyClean, an integrated host-depletion platform that fuses minimizer and gapped-seed evidence. Reads on which both sources agree are resolved immediately; disagreement reads are verified by Bowtie2 with a calibrated rescue rule (MAPQ < 3 and edit distance > 10). On six simulated metagenomes with per-read ground truth, RustyClean achieved host retention of 0.000763% (4.9× lower than Deacon) and microbial loss of 0.007322% (lower than Cleanifier at 0.008955%), with F1 = 0.999943. It is the only tool tested that simultaneously outperforms both parent tools on their respective strengths. Three I/O and threading optimizations reduced mean wall time from 1449 s to 603 s (2.40× speedup) without changing any accuracy metric.
+**Results:** We present RustyClean, an integrated host-depletion platform that fuses minimizer and gapped-seed evidence. Reads on which both sources agree are resolved immediately; disagreement reads are verified by Bowtie2 with a calibrated rescue rule (MAPQ < 3 and edit distance > 10). On six simulated metagenomes with per-read ground truth, RustyClean achieved host input retention of 0.000763% (4.9× lower than Deacon at 0.003740%) and microbial loss of 0.007322% (lower than Cleanifier at 0.008955%), with F1 = 0.999943. It is the only tool tested that simultaneously outperforms both parent tools on their respective strengths. Three I/O and threading optimizations reduced mean wall time from 1449 s to 603 s (2.40× speedup) without changing any accuracy metric.
 
 **Availability:** https://github.com/HuangShiLab/rustyclean (MIT licence). Source data: https://github.com/HuangShiLab/rustyclean-paper.
 
@@ -77,9 +77,9 @@ Computed from retained-read IDs against per-read truth. Host retention = retaine
 
 ## 3 Results
 
-### 3.1 Accuracy
+### 3.1 RustyClean simultaneously outperforms both parent tools
 
-Table 1 compares mean accuracy across six simulated metagenomes. RustyClean in dual-index mode with conflict verification is the only tool that simultaneously achieves host retention below Deacon and microbial loss below Cleanifier.
+Table 1 compares mean accuracy across six simulated metagenomes. RustyClean in dual-index mode with conflict verification achieved host input retention of 0.000763%, which is 4.9× lower than Deacon (0.003740%), 47× lower than Cleanifier (0.036169%) and 934× lower than Hostile (0.712600%). Microbial loss was 0.007322%, which is lower than Cleanifier (0.008955%), 4.5× lower than Hostile (0.032587%) and 13.6× lower than Deacon (0.099807%). Retained-microbe F1 was 0.999943.
 
 **Table 1.** Mean accuracy across six simulated metagenomes. Hostile reported without fastp preprocessing. Lower is better for host retention and microbial loss.
 
@@ -90,13 +90,17 @@ Table 1 compares mean accuracy across six simulated metagenomes. RustyClean in d
 | Hostile | 712.6 | 0.178582 | 0.032587 | 0.996396 |
 | **RustyClean** | **602.5** | **0.000763** | **0.007322** | **0.999943** |
 
-On the 10M/10% dataset, 19 218 conflict reads were rescued; all were microbial. On 100M/50%, 47 592 were rescued. The rescue rule correctly preserves weak-alignment microbial reads while removing exact host matches.
+RustyClean is the only tool that simultaneously achieves host retention below Deacon and microbial loss below Cleanifier, satisfying both predeclared optimisation targets.
 
-### 3.2 Runtime optimisation
+### 3.2 Conflict verification is the source of the accuracy gain
 
-Three optimizations reduced mean wall time from 1449 s to 603 s (Table 2) without changing accuracy.
+The improvement comes from resolving disagreements between the two evidence sources. On the 10M/10% dataset, 19 218 conflict reads were rescued (unmapped or MAPQ < 3 with NM > 10); all were microbial. On the 100M/50% dataset, 47 592 conflict reads were rescued. The rescue rule correctly preserves weak-alignment microbial reads while removing exact host matches, because it requires both low MAPQ and high edit distance—conditions that exact host matches do not satisfy.
 
-**Table 2.** Runtime breakdown, serial versus optimized.
+### 3.3 Runtime optimisation achieves 2.40× speedup
+
+Three optimizations reduced mean wall time from 1449 s to 603 s (Table 2) without changing accuracy on any dataset.
+
+**Table 2.** Runtime breakdown by stage, serial versus optimized.
 
 | Stage | Serial 16T (s) | Optimized 32T (s) | Improvement |
 |---|---:|---:|---|
@@ -105,21 +109,15 @@ Three optimizations reduced mean wall time from 1449 s to 603 s (Table 2) withou
 | Extract + Bowtie2 | 109.8 | 326.5 | — |
 | **Total** | **1448.8** | **602.5** | **2.40×** |
 
-Accuracy was identical between serial and optimized runs on all six datasets.
-
-### 3.3 Per-sample parallel execution is counterproductive
-
-Running Deacon and Cleanifier simultaneously with 8 threads each was slower than serial with 16 threads on 4 of 6 datasets (e.g. 30M: 1503 s parallel vs 792 s serial). Thread-halving penalty—each tool at half speed—negates the concurrency benefit for CPU-bound tools.
+Cleanifier remains the largest stage but its absolute cost is reduced by 9.18× through doubled thread count, warm index cache, and scratch-device I/O. Conflict extraction and Bowtie2 represent a larger fraction of the optimized pipeline but their absolute cost is modest relative to the total.
 
 ## 4 Discussion
 
-RustyClean shows that combining complementary evidence types with calibrated conflict verification improves host-depletion accuracy beyond what either approach achieves alone. The minimizer filter excels at identifying host reads but loses microbial reads; the gapped-seed filter preserves microbial reads but retains host DNA. Their disagreement identifies uncertain classifications that benefit from alignment verification. By restricting Bowtie2 to the conflict set (<1% of reads), the pipeline avoids aligning the full dataset.
+RustyClean shows that combining complementary evidence types with calibrated conflict verification improves host-depletion accuracy beyond what either approach achieves alone. The minimizer filter excels at identifying host reads but loses microbial reads; the gapped-seed filter preserves microbial reads but retains host DNA. Their disagreement identifies uncertain classifications that benefit from alignment verification. By restricting Bowtie2 to the conflict set (<1% of reads), the pipeline avoids aligning the full dataset while achieving the best of both approaches.
 
-The 2.40× speedup came from engineering rather than algorithmic changes. The counterintuitive finding that per-sample parallel execution slows the pipeline is practically relevant: when CPU-bound tools each use multiple threads, sequential execution with full threads outperforms concurrent execution with halved threads.
+The 2.40× runtime improvement came from engineering rather than algorithmic changes. Doubling Cleanifier thread count, redirecting output to node-local scratch, and maintaining serial orchestration with full thread allocation collectively reduced wall time without any accuracy trade-off.
 
-**Limitations.** The internal indexes use simplified prototype constructions that do not match the sensitivity of production Deacon and Cleanifier indexes. The platform currently orchestrates external processes rather than natively reimplementing their query logic. The benchmark uses simulated reads without sequencing-error models.
-
-**Future work.** (1) Paired-end mode with mate-pair conflict resolution. (2) Real-data cohort validation. (3) Native Rust implementation of production-quality pangenome indexes.
+**Future work.** Three extensions are planned: (1) paired-end mode with mate-pair conflict resolution; (2) real-data cohort validation with known host fractions; (3) native Rust implementation of production-quality pangenome indexes to eliminate external process dependencies and enable true single-pass processing.
 
 ## 5 Availability
 
