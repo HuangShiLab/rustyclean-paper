@@ -23,7 +23,7 @@ Keywords: metagenomics; host DNA depletion; minimizers; gapped seeds; conflict r
 
 Shotgun metagenomic sequencing of host-associated samples returns a mixture of microbial and host DNA. Residual host reads waste sequencing capacity, distort profiling and assembly, and raise privacy concerns. Computational depletion is therefore applied before analysis. The task is binary classification: a microbial read incorrectly removed is an irreversible loss; a host read incorrectly retained contaminates downstream analyses.
 
-Existing tools occupy complementary positions on the accuracy Pareto frontier. Alignment-based methods (Hostile; Constantinides et al., 2023) achieve low host retention but lose microbial reads and scale with host fraction. Minimizer-based filters (Deacon; Constantinides et al., 2025) use compact pangenome indexes and combine speed with accuracy, but still discard microbial reads sharing k-mers with the host. Gapped-seed filters (Cleanifier; Zentgraf et al., 2025) use spaced-seed matching that tolerates substitutions, achieving near-zero microbial loss but retaining substantially more host DNA.
+Existing tools occupy complementary positions on the accuracy Pareto frontier. Alignment-based methods such as Hostile (Constantinides et al., 2023) achieve low host retention but lose microbial reads and scale with host fraction. Minimizer-based filters such as Deacon (Constantinides et al., 2025) use compact pangenome indexes and combine speed with accuracy, but still discard microbial reads sharing k-mers with the host. Gapped-seed filters such as Cleanifier (Zentgraf et al., 2025) use spaced-seed matching that tolerates substitutions, achieving near-zero microbial loss but retaining substantially more host DNA.
 
 The complementary failure modes suggest a natural integration: if minimizer and gapped-seed evidence disagree about a read, that read warrants alignment-based verification. RustyClean implements this idea as a unified platform with three depletion modes (minimizer-only, gapped-seed-only, and dual-index fusion), optional fastp quality control, and configurable Bowtie2 verification.
 
@@ -115,17 +115,19 @@ Cleanifier remains the largest stage but its absolute cost is reduced by 9.18× 
 
 RustyClean shows that combining complementary evidence types with calibrated conflict verification improves host-depletion accuracy beyond what either approach achieves alone. The minimizer filter excels at identifying host reads but loses microbial reads; the gapped-seed filter preserves microbial reads but retains host DNA. Their disagreement identifies uncertain classifications that benefit from alignment verification. By restricting Bowtie2 to the conflict set (<1% of reads), the pipeline avoids aligning the full dataset while achieving the best of both approaches.
 
-The 2.40× runtime improvement came from engineering rather than algorithmic changes. Doubling Cleanifier thread count, redirecting output to node-local scratch, and maintaining serial orchestration with full thread allocation collectively reduced wall time without any accuracy trade-off.
+The 2.40× runtime improvement came from engineering rather than algorithmic changes. Doubling Cleanifier thread count, redirecting output to node-local scratch, and maintaining serial orchestration with full thread allocation collectively reduced wall time without any accuracy trade-off. Doubling threads is effective because Cleanifier's filtering stage is CPU-bound with sub-linear scaling at 16 threads; the additional headroom at 32 threads allows more concurrent seed lookups. Scratch-device output eliminates the Lustre metadata overhead that dominates small-file writes in the cleaned-FASTQ stage.
 
-**Future work.** Three extensions are planned: (1) paired-end mode with mate-pair conflict resolution; (2) real-data cohort validation with known host fractions; (3) native Rust implementation of production-quality pangenome indexes to eliminate external process dependencies and enable true single-pass processing.
+**Limitations.** The benchmark uses simulated reads without sequencing-error models; real-data cohort validation with known host fractions is needed before clinical deployment. The internal dual-index query uses prototype indexes that do not yet match the sensitivity of the production Deacon and Cleanifier indexes; the current accuracy is achieved by orchestrating external processes. Building production-quality pangenome indexes natively in Rust is planned to enable true single-pass processing without external dependencies.
 
-## 5 Availability
+**Future work.** Three extensions are planned: (1) paired-end mode with mate-pair conflict resolution; (2) real-data cohort validation; (3) native Rust implementation of production-quality pangenome indexes.
 
-RustyClean is Rust software under the MIT licence at https://github.com/HuangShiLab/rustyclean. Source data: https://github.com/HuangShiLab/rustyclean-paper.
+## Data availability
+
+RustyClean is Rust software under the MIT licence at https://github.com/HuangShiLab/rustyclean. Benchmark sbatch scripts, per-read report parsers and accuracy calculators are available at https://github.com/HuangShiLab/rustyclean-paper under `scripts/` and `runs/rustycleanx_fused/`.
 
 ## Acknowledgements
 
-HKU HPC team for computational support.
+We thank the HKU HPC team for computational support.
 
 ## Author contributions
 
